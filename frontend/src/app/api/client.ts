@@ -29,3 +29,5 @@ export const getModelFacts = async (modelId: number) => {
   const response = await apiClient.get(`/model/${modelId}/facts`)
   return response.data
 }
+
+export default apiClient;
