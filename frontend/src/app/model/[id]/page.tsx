@@ -1,69 +1,62 @@
-// app/model/[id]/page.tsx
 'use client'
-import { useState } from 'react'
-import { Box, Tabs, TabList, TabPanels, Tab, TabPanel, Text, Progress, VStack } from '@chakra-ui/react'
+import { useState, useEffect } from 'react'
+import { Box, Tabs, TabList, TabPanels, Tab, TabPanel, Flex, Heading, useColorModeValue } from '@chakra-ui/react'
+import Sidebar from '../../components/Sidebar'
+import ModelHealthTab from './ModelHealthTab'
+import PerformanceMetricsTab from './PerformanceMetricsTab'
+import ModelFactsTab from './ModelFactsTab'
 
 export default function ModelDashboard({ params }: { params: { id: string } }) {
-  const [modelHealth] = useState(85)
+  const [modelHealth, setModelHealth] = useState(85)
+  const hospitalName = "University Health Network" // This should come from your authentication state
+  const [healthOverTime, setHealthOverTime] = useState<number[]>([])
+  const [timePoints, setTimePoints] = useState<string[]>([])
+
+  const bgColor = useColorModeValue('gray.50', 'gray.800')
+  const textColor = useColorModeValue('gray.800', 'white')
+
+  useEffect(() => {
+    // Simulate fetching health data over time
+    const healthData = [65, 25, 80, 75, 85, 90, 85]
+    setHealthOverTime(healthData)
+    setModelHealth(healthData[healthData.length - 1])
+
+    // Generate time points (for demonstration purposes)
+    const currentDate = new Date()
+    const timePoints = healthData.map((_, index) => {
+      const date = new Date(currentDate.getTime() - (6 - index) * 7 * 24 * 60 * 60 * 1000)
+      return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+    })
+    setTimePoints(timePoints)
+  }, [])
 
   return (
-    <Box p={8}>
-      <Text fontSize="2xl" mb={4}>Model Dashboard - ID: {params.id}</Text>
-      <Tabs>
-        <TabList>
-          <Tab>Model Health</Tab>
-          <Tab>Performance Metrics</Tab>
-          <Tab>Model Facts</Tab>
-        </TabList>
+    <Flex minHeight="100vh" bg={bgColor}>
+      <Sidebar hospitalName={hospitalName} />
+      <Box ml={{ base: 0, md: 60 }} p={{ base: 4, md: 8 }} w="full" transition="margin-left 0.3s">
+        <Heading as="h1" size="xl" mb={6} color={textColor}>
+          Model Dashboard - ID: {params.id}
+        </Heading>
+        <Tabs variant="soft-rounded" colorScheme="blue">
+          <TabList mb="1em">
+            <Tab>Model Health</Tab>
+            <Tab>Performance Metrics</Tab>
+            <Tab>Model Facts</Tab>
+          </TabList>
 
-        <TabPanels>
-          <TabPanel>
-            <VStack spacing={8} align="stretch">
-              <Box textAlign="center">
-                <Text fontSize="xl" mb={2}>Model Health</Text>
-                <Progress value={modelHealth} size="lg" colorScheme="green" />
-                <Text mt={2}>{modelHealth}%</Text>
-              </Box>
-              <Box>
-                <Text fontSize="xl" mb={2}>Model Health Over Time</Text>
-                {/* TODO: Implement bar chart for model health over time */}
-                <Text>Bar chart placeholder</Text>
-              </Box>
-            </VStack>
-          </TabPanel>
-          <TabPanel>
-            <Text>Performance Metrics (To be implemented)</Text>
-          </TabPanel>
-          <TabPanel>
-            <VStack align="stretch" spacing={4}>
-              <Box>
-                <Text fontWeight="bold">Model Name:</Text>
-                <Text>Example Model</Text>
-              </Box>
-              <Box>
-                <Text fontWeight="bold">Summary:</Text>
-                <Text>This is an example AI model for clinical use.</Text>
-              </Box>
-              <Box>
-                <Text fontWeight="bold">Approval Date:</Text>
-                <Text>January 1, 2023</Text>
-              </Box>
-              <Box>
-                <Text fontWeight="bold">Uses and Directions:</Text>
-                <Text>This model is used for...</Text>
-              </Box>
-              <Box>
-                <Text fontWeight="bold">License:</Text>
-                <Text>MIT License</Text>
-              </Box>
-              <Box>
-                <Text fontWeight="bold">Contact Information:</Text>
-                <Text>support@example.com</Text>
-              </Box>
-            </VStack>
-          </TabPanel>
-        </TabPanels>
-      </Tabs>
-    </Box>
+          <TabPanels>
+            <TabPanel>
+              <ModelHealthTab modelHealth={modelHealth} healthOverTime={healthOverTime} timePoints={timePoints} />
+            </TabPanel>
+            <TabPanel>
+              <PerformanceMetricsTab />
+            </TabPanel>
+            <TabPanel>
+              <ModelFactsTab />
+            </TabPanel>
+          </TabPanels>
+        </Tabs>
+      </Box>
+    </Flex>
   )
 }
