@@ -65,25 +65,25 @@ frontend/
 ├── src/
 │   ├── app/
 │   │   ├── api/
-│   │            ├── client.ts
-│   │            └── performance-metrics.ts
+│   │   │   ├── client.ts
+│   │   │   └── performance-metrics.ts
 │   │   ├── components/
-│   │            └── sidebar.tsx
+│   │   │   └── sidebar.tsx
+│   │   ├── home/
+│   │   │   └── page.tsx
+│   │   ├── model/
+│   │   │   └── [id]/
+│   │   │       ├── utils/
+│   │   │       │   ├── color.ts
+│   │   │       │   └── chart.ts
+│   │   │       ├── tabs/
+│   │   │       │   ├── model-facts.tsx
+│   │   │       │   ├── model-health.tsx
+│   │   │       │   └── performance-metrics.tsx
+│   │   │       └── page.tsx
 │   │   ├── page.tsx
 │   │   ├── layout.tsx
-│   │   ├── globals.css
-│   │   └── home/
-│   │       └──  page.tsx
-│   │   └── model/
-│   │       ├── [id]/
-│   │           ├── utils/
-│   │               ├── color.ts
-│   │               └── chart.ts
-│   │           ├── tabs/
-│   │               ├── model-facts.tsx
-│   │               ├── model-health.tsx
-│   │               └── performance-metrics.tsx
-│   │           └── page.tsx
+│   │   └── globals.css
 ├── public/
 │   └── images/
 ├── package.json
