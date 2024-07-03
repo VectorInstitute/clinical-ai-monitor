@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@chakra-ui/icons": "^2.1.1",
+    "axios": "^1.7.2",
     "chart.js": "^4.4.3",
     "next": "14.2.4",
     "plotly.js-dist-min": "^2.33.0",

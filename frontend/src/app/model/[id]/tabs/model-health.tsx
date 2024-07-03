@@ -2,8 +2,8 @@ import React from 'react'
 import { SimpleGrid, Box, Heading, Text, useColorModeValue, Flex, Stat, StatLabel, StatNumber, StatHelpText, StatArrow } from '@chakra-ui/react'
 import { Line } from 'react-chartjs-2'
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend } from 'chart.js'
-import { getColor } from './utils/colorUtils'
-import { getChartData, getChartOptions } from './utils/chartUtils'
+import { getColor } from '../utils/color'
+import { getChartData, getChartOptions } from '../utils/chart'
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend)
 
@@ -59,7 +59,7 @@ const ModelHealthTab: React.FC<ModelHealthTabProps> = ({ modelHealth, healthOver
             </Box>
           </Box>
           <Box bg={cardBgColor} p={6} borderRadius="lg" boxShadow="md" borderColor={borderColor} borderWidth={1}>
-            <Heading as="h3" size="md" mb={4} color={textColor}>Health Insights</Heading>
+            <Heading as="h3" size="md" mb={4} color={textColor}>Recommended action</Heading>
             <Text color={textColor}>
               {modelHealth >= 80 ? 'Your model is performing well. Keep monitoring for any changes.' :
                modelHealth >= 60 ? 'Your model health is good, but there\'s room for improvement.' :

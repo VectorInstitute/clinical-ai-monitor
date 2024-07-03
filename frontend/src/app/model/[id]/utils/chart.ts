@@ -1,5 +1,5 @@
 import { ChartData, ChartOptions } from 'chart.js'
-import { getColor } from './colorUtils'
+import { getColor } from './color'
 
 export const getChartData = (timePoints: string[], healthOverTime: number[]): ChartData<'line'> => ({
   labels: timePoints,

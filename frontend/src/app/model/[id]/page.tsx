@@ -1,10 +1,10 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { Box, Tabs, TabList, TabPanels, Tab, TabPanel, Flex, Heading, useColorModeValue } from '@chakra-ui/react'
-import Sidebar from '../../components/Sidebar'
-import ModelHealthTab from './ModelHealthTab'
-import PerformanceMetricsTab from './PerformanceMetricsTab'
-import ModelFactsTab from './ModelFactsTab'
+import Sidebar from '../../components/sidebar'
+import ModelHealthTab from './tabs/model-health'
+import PerformanceMetricsTab from './tabs/performance-metrics'
+import ModelFactsTab from './tabs/model-facts'
 
 export default function ModelDashboard({ params }: { params: { id: string } }) {
   const [modelHealth, setModelHealth] = useState(85)

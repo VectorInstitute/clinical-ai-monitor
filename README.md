@@ -63,20 +63,27 @@ This project is divided into two main directories: `frontend` for the Next.js ap
 ```
 frontend/
 ├── src/
-│   ├── components/
-│   │   ├── Sidebar.tsx
 │   ├── app/
+│   │   ├── api/
+│   │            ├── client.ts
+│   │            └── performance-metrics.ts
+│   │   ├── components/
+│   │            └── sidebar.tsx
 │   │   ├── page.tsx
 │   │   ├── layout.tsx
 │   │   ├── globals.css
 │   │   └── home/
 │   │       └──  page.tsx
 │   │   └── model/
-│   │       └── [id]/
-│   │           ├── page.tsx
-│   │           ├── ModelFactsTab.tsx
-│   │           ├── ModelHealthTab.tsx
-│   │           └──  PerformanceMetricsTab.tsx
+│   │       ├── [id]/
+│   │           ├── utils/
+│   │               ├── color.ts
+│   │               └── chart.ts
+│   │           ├── tabs/
+│   │               ├── model-facts.tsx
+│   │               ├── model-health.tsx
+│   │               └── performance-metrics.tsx
+│   │           └── page.tsx
 ├── public/
 │   └── images/
 ├── package.json

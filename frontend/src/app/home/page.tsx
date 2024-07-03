@@ -2,7 +2,7 @@
 'use client'
 import { Box, SimpleGrid, Text, Flex, Heading, VStack, useColorModeValue } from '@chakra-ui/react'
 import { useRouter } from 'next/navigation'
-import Sidebar from '../components/Sidebar'
+import Sidebar from '../components/sidebar'
 
 const models = [
   { id: 1, name: 'Model A', description: 'Chest Pneumothorax model' },
