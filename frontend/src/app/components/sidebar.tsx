@@ -1,4 +1,3 @@
-// app/components/Sidebar.tsx
 'use client'
 import React from 'react'
 import {
@@ -17,7 +16,7 @@ import {
   CloseButton,
   Tooltip,
 } from '@chakra-ui/react'
-import { FiHome, FiActivity, FiSettings, FiUser, FiMenu } from 'react-icons/fi'
+import { FiHome, FiSettings, FiUser, FiMenu } from 'react-icons/fi'
 import NextLink from 'next/link'
 
 interface SidebarProps {
@@ -79,6 +78,12 @@ const SidebarContent: React.FC<SidebarContentProps> = ({ hospitalName, onClose, 
         />
         <CloseButton display={{ base: 'flex', md: 'none' }} onClick={onClose} />
       </Flex>
+      <Flex alignItems="center" mx="8" mb="6" flexDirection="column">
+        <Icon as={FiUser} fontSize="24" mb={2} color={textColor} />
+        <Text fontWeight="medium" fontSize="sm" textAlign="center" color={textColor}>
+          {hospitalName}
+        </Text>
+      </Flex>
       <NavItems textColor={textColor} />
       <Flex
         position="absolute"
@@ -89,9 +94,15 @@ const SidebarContent: React.FC<SidebarContentProps> = ({ hospitalName, onClose, 
         alignItems="center"
         flexDirection="column"
       >
-        <Icon as={FiUser} fontSize="24" mb={2} color={textColor} />
-        <Text fontWeight="medium" fontSize="sm" textAlign="center" color={textColor}>
-          {hospitalName}
+        <Image
+          src="/images/vector_logo.png"
+          alt="Vector Institute"
+          width={32}
+          height={12}
+          mb={2}
+        />
+        <Text fontSize="xs" color={textColor} textAlign="center" mt={2}>
+          © {new Date().getFullYear()} Clinical AI Monitor. All rights reserved.
         </Text>
       </Flex>
     </Box>
