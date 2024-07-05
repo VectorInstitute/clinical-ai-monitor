@@ -53,7 +53,7 @@ async def get_performance_metrics():
     collection = []
     for metric in metrics:
         for slice in slices:
-            history = [round(random.uniform(0.5, 1.0), 2) for _ in range(30)]
+            history = [round(random.uniform(0.8, 0.9), 2) for _ in range(30)]
             value = history[-1]
             threshold = 0.6
             collection.append(
