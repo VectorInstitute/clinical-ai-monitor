@@ -65,6 +65,8 @@ frontend/
 ├── src/
 │   ├── app/
 │   │   ├── api/
+│   │   │   ├── auth.ts
+│   │   │   ├── models.ts
 │   │   │   ├── client.ts
 │   │   │   └── performance-metrics.ts
 │   │   ├── components/
@@ -75,11 +77,24 @@ frontend/
 │   │   │   └── [id]/
 │   │   │       ├── utils/
 │   │   │       │   ├── color.ts
+│   │   │       │   ├── statistics.ts
+│   │   │       │   ├── trend.ts
 │   │   │       │   └── chart.ts
+│   │   │       ├── components/
+│   │   │       │   ├── error-message.tsx
+│   │   │       │   ├── loading-spinner.tsx
+│   │   │       │   ├── metric-card.tsx
+│   │   │       │   ├── metric-cards.tsx
+│   │   │       │   ├── metric-selector.tsx
+│   │   │       │   ├── plot-settings.tsx
+│   │   │       │   ├── slice-selector.tsx
+│   │   │       │   ├── time-series-chart.tsx
 │   │   │       ├── tabs/
 │   │   │       │   ├── model-facts.tsx
 │   │   │       │   ├── model-health.tsx
 │   │   │       │   └── performance-metrics.tsx
+│   │   │       ├── types/
+│   │   │       │   └── performance-metrics.ts
 │   │   │       └── page.tsx
 │   │   ├── page.tsx
 │   │   ├── layout.tsx
