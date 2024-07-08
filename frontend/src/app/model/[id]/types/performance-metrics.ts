@@ -9,7 +9,8 @@ export const MetricSchema = z.object({
   threshold: z.number(),
   passed: z.boolean(),
   history: z.array(z.number()),
-  timestamps: z.array(z.string())
+  timestamps: z.array(z.string()),
+  sample_sizes: z.array(z.number())
 });
 
 export const MetricCardsSchema = z.object({

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { Box, useColorModeValue, useTheme } from '@chakra-ui/react';
 import { Metric } from '../types/performance-metrics';
@@ -13,7 +13,7 @@ interface TimeSeriesChartProps {
   showRollingStats: boolean;
   rollingWindow: number;
   height: number;
-  lastNEvaluations: number | null;
+  lastNEvaluations: number;
 }
 
 export const TimeSeriesChart: React.FC<TimeSeriesChartProps> = ({
@@ -25,6 +25,26 @@ export const TimeSeriesChart: React.FC<TimeSeriesChartProps> = ({
   height,
   lastNEvaluations,
 }) => {
+  const [plotSize, setPlotSize] = useState({ width: 0, height });
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!containerRef.current) return;
+
+    const resizeObserver = new ResizeObserver(entries => {
+      for (let entry of entries) {
+        const { width } = entry.contentRect;
+        setPlotSize({ width, height });
+      }
+    });
+
+    resizeObserver.observe(containerRef.current);
+
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, [height]);
+
   const theme = useTheme();
   const textColor = useColorModeValue('gray.800', 'white');
   const gridColor = useColorModeValue('gray.200', 'gray.700');
@@ -38,7 +58,7 @@ export const TimeSeriesChart: React.FC<TimeSeriesChartProps> = ({
       );
 
       if (metric) {
-        const startIndex = lastNEvaluations ? Math.max(0, metric.history.length - lastNEvaluations) : 0;
+        const startIndex = Math.max(0, metric.history.length - lastNEvaluations);
         const filteredHistory = metric.history.slice(startIndex);
         const filteredTimestamps = metric.timestamps.slice(startIndex);
 
@@ -92,30 +112,35 @@ export const TimeSeriesChart: React.FC<TimeSeriesChartProps> = ({
   });
 
   return (
-    <Box width="100%" height={height}>
-      <Plot
-        data={traces}
-        layout={{
-          autosize: true,
-          xaxis: {
-            title: 'Timestamp',
-            gridcolor: gridColor,
-            zeroline: false,
-          },
-          yaxis: {
-            title: 'Value',
-            gridcolor: gridColor,
-            zeroline: false,
-          },
-          legend: { orientation: 'h', y: -0.2 },
-          font: { color: textColor },
-          paper_bgcolor: 'rgba(0,0,0,0)',
-          plot_bgcolor: 'rgba(0,0,0,0)',
-          margin: { l: 50, r: 20, t: 20, b: 50 },
-        }}
-        config={{ responsive: true }}
-        style={{ width: '100%', height: '100%' }}
-      />
+    <Box ref={containerRef} width="100%" height={height}>
+      {plotSize.width > 0 && (
+        <Plot
+          data={traces}
+          layout={{
+            autosize: true,
+            width: plotSize.width,
+            height: plotSize.height,
+            xaxis: {
+              title: 'Timestamp',
+              gridcolor: gridColor,
+              zeroline: false,
+            },
+            yaxis: {
+              title: 'Value',
+              gridcolor: gridColor,
+              zeroline: false,
+            },
+            legend: { orientation: 'h', y: -0.2 },
+            font: { color: textColor },
+            paper_bgcolor: 'rgba(0,0,0,0)',
+            plot_bgcolor: 'rgba(0,0,0,0)',
+            margin: { l: 50, r: 20, t: 20, b: 50 },
+          }}
+          config={{ responsive: true }}
+          style={{ width: '100%', height: '100%' }}
+          useResizeHandler={true}
+        />
+      )}
     </Box>
   );
 };

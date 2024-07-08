@@ -5,30 +5,31 @@ import Sidebar from '../../components/sidebar'
 import ModelHealthTab from './tabs/model-health'
 import PerformanceMetricsTab from './tabs/performance-metrics'
 import ModelFactsTab from './tabs/model-facts'
+import { ModelHealth } from './types/health'
 
 export default function ModelDashboard({ params }: { params: { id: string } }) {
-  const [modelHealth, setModelHealth] = useState(85)
+  const [modelHealth, setModelHealth] = useState<ModelHealth | null>(null)
   const hospitalName = "University Health Network" // This should come from your authentication state
-  const [healthOverTime, setHealthOverTime] = useState<number[]>([])
-  const [timePoints, setTimePoints] = useState<string[]>([])
 
   const bgColor = useColorModeValue('gray.50', 'gray.800')
   const textColor = useColorModeValue('gray.800', 'white')
 
   useEffect(() => {
-    // Simulate fetching health data over time
-    const healthData = [65, 25, 80, 75, 85, 90, 85]
-    setHealthOverTime(healthData)
-    setModelHealth(healthData[healthData.length - 1])
+    const fetchModelHealth = async () => {
+      try {
+        const response = await fetch(`/api/model/health`)
+        if (!response.ok) {
+          throw new Error('Failed to fetch model health')
+        }
+        const data: ModelHealth = await response.json()
+        setModelHealth(data)
+      } catch (error) {
+        console.error('Error fetching model health:', error)
+      }
+    }
 
-    // Generate time points (for demonstration purposes)
-    const currentDate = new Date()
-    const timePoints = healthData.map((_, index) => {
-      const date = new Date(currentDate.getTime() - (6 - index) * 7 * 24 * 60 * 60 * 1000)
-      return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
-    })
-    setTimePoints(timePoints)
-  }, [])
+    fetchModelHealth()
+  }, [params.id])
 
   return (
     <Flex minHeight="100vh" bg={bgColor}>
@@ -46,7 +47,13 @@ export default function ModelDashboard({ params }: { params: { id: string } }) {
 
           <TabPanels>
             <TabPanel>
-              <ModelHealthTab modelHealth={modelHealth} healthOverTime={healthOverTime} timePoints={timePoints} />
+              {modelHealth && (
+                <ModelHealthTab
+                  modelHealth={modelHealth.model_health}
+                  healthOverTime={modelHealth.health_over_time}
+                  timePoints={modelHealth.time_points}
+                />
+              )}
             </TabPanel>
             <TabPanel>
               <PerformanceMetricsTab />

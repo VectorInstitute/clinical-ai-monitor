@@ -35,6 +35,8 @@ class Metric(BaseModel):
         Historical values of the metric.
     timestamps : List[str]
         Timestamps corresponding to the historical values.
+    sample_sizes : List[int]
+        Sample sizes corresponding to the historical values.
     """
 
     name: str
@@ -46,6 +48,7 @@ class Metric(BaseModel):
     passed: bool
     history: List[float]
     timestamps: List[str]
+    sample_sizes: List[int]
 
 
 class MetricCards(BaseModel):
@@ -142,11 +145,28 @@ def generate_timestamps(n: int = 30) -> List[str]:
     ]
 
 
+def generate_sample_sizes(n: int = 30) -> List[int]:
+    """
+    Generate a list of random sample sizes.
+
+    Parameters
+    ----------
+    n : int, optional
+        Number of sample sizes to generate (default is 30).
+
+    Returns
+    -------
+    List[int]
+        List of random sample sizes between 100 and 1000.
+    """
+    return [random.randint(100, 1000) for _ in range(n)]
+
+
 def create_metric(
     name: str, metric_type: str, slice_: str, tooltip: str, threshold: float = 0.6
 ) -> Metric:
     """
-    Create a Metric object with generated history and timestamps.
+    Create a Metric object with generated history, timestamps, and sample sizes.
 
     Parameters
     ----------
@@ -178,6 +198,7 @@ def create_metric(
         passed=value >= threshold,
         history=history,
         timestamps=generate_timestamps(),
+        sample_sizes=generate_sample_sizes(),  # Add this line
     )
 
 
@@ -213,7 +234,7 @@ async def get_performance_metrics() -> PerformanceData:
 
     return PerformanceData(
         overview=Overview(
-            last_n_evals=3,
+            last_n_evals=10,
             mean_std_min_evals=3,
             metric_cards=MetricCards(
                 metrics=metrics,

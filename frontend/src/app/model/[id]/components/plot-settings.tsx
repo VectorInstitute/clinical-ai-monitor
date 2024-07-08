@@ -6,8 +6,8 @@ interface PlotSettingsProps {
   setShowRollingStats: (show: boolean) => void;
   rollingWindow: number;
   setRollingWindow: (window: number) => void;
-  lastNEvaluations: number | null;
-  setLastNEvaluations: (n: number | null) => void;
+  lastNEvaluations: number;
+  setLastNEvaluations: (n: number) => void;
   maxEvaluations: number;
 }
 
@@ -20,6 +20,10 @@ export const PlotSettings: React.FC<PlotSettingsProps> = ({
   setLastNEvaluations,
   maxEvaluations,
 }) => {
+  const handleLastNEvaluationsChange = (value: number) => {
+    setLastNEvaluations(Math.max(1, Math.min(maxEvaluations, value)));
+  };
+
   return (
     <Stack spacing={4}>
       <Stack direction="row" align="center" spacing={4}>
@@ -47,13 +51,13 @@ export const PlotSettings: React.FC<PlotSettingsProps> = ({
         </Stack>
       )}
       <Box>
-        <Text mb={2}>Last N Evaluations: {lastNEvaluations === null ? 'All' : lastNEvaluations}</Text>
+        <Text mb={2}>Last N Evaluations: {lastNEvaluations}</Text>
         <Slider
           min={1}
           max={maxEvaluations}
           step={1}
-          value={lastNEvaluations === null ? maxEvaluations : lastNEvaluations}
-          onChange={(value) => setLastNEvaluations(value === maxEvaluations ? null : value)}
+          value={lastNEvaluations}
+          onChange={handleLastNEvaluationsChange}
         >
           <SliderTrack>
             <SliderFilledTrack />

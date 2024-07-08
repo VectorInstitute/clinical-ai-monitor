@@ -27,7 +27,7 @@ export default function PerformanceMetricsTab() {
   const [selectedSlices, setSelectedSlices] = useState<string[]>(['overall']);
   const [showRollingStats, setShowRollingStats] = useState(false);
   const [rollingWindow, setRollingWindow] = useState(3);
-  const [lastNEvaluations, setLastNEvaluations] = useState<number | null>(null);
+  const [lastNEvaluations, setLastNEvaluations] = useState<number>(20);
 
   const cardColumns = useBreakpointValue({ base: 1, sm: 2, md: 3, lg: 4 });
   const chartHeight = useBreakpointValue({ base: 300, md: 400, lg: 500 });
@@ -43,7 +43,7 @@ export default function PerformanceMetricsTab() {
         const validatedData = PerformanceDataSchema.parse(jsonData);
         setData(validatedData);
         setSelectedMetrics([validatedData.overview.metric_cards.metrics[0]]);
-        setLastNEvaluations(validatedData.overview.last_n_evals);
+        setLastNEvaluations(Math.min(20, validatedData.overview.last_n_evals));
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An error occurred');
       } finally {
