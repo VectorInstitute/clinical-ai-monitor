@@ -2,21 +2,13 @@ import { z } from 'zod';
 
 export const MetricConfigSchema = z.object({
   name: z.string(),
-  type: z.enum(['binary', 'continuous']),
+  type: z.literal('binary'),
 });
 
 export const SubgroupConditionSchema = z.object({
-  value: z.union([z.string(), z.number(), z.array(z.union([z.string(), z.number()]))]).optional(),
-  min_value: z.union([z.string(), z.number()]).optional(),
-  max_value: z.union([z.string(), z.number()]).optional(),
-  min_inclusive: z.boolean().default(true),
-  max_inclusive: z.boolean().default(true),
-  year: z.union([z.number(), z.array(z.number())]).optional(),
-  month: z.union([z.number(), z.array(z.number())]).optional(),
-  day: z.union([z.number(), z.array(z.number())]).optional(),
-  hour: z.union([z.number(), z.array(z.number())]).optional(),
-  negate: z.boolean().default(false),
-  keep_nulls: z.boolean().default(false),
+  column: z.string(),
+  operator: z.enum(['eq', 'gt', 'lt', 'gte', 'lte']),
+  value: z.union([z.string(), z.number()]),
 });
 
 export const SubgroupConfigSchema = z.object({

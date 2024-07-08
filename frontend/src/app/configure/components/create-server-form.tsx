@@ -1,15 +1,9 @@
 import React from 'react';
-import { Formik, Form, FieldArray, Field } from 'formik';
+import { Formik, Form } from 'formik';
 import { toFormikValidationSchema } from 'zod-formik-adapter';
 import {
   Button,
   VStack,
-  FormControl,
-  FormLabel,
-  Input,
-  Select,
-  IconButton,
-  Flex,
   useToast,
   Modal,
   ModalOverlay,
@@ -18,12 +12,13 @@ import {
   ModalFooter,
   ModalBody,
   ModalCloseButton,
-  Tooltip,
 } from '@chakra-ui/react';
-import { AddIcon, DeleteIcon, InfoIcon } from '@chakra-ui/icons';
 import { useModelContext } from '../../context/model';
 import { useRouter } from 'next/navigation';
 import { ServerConfigSchema } from '../types/configure';
+import { MetricsSection } from './metrics-section';
+import { SubgroupsSection } from './subgroups-section';
+import { ServerInfoSection } from './server-info-section';
 
 const initialValues = {
   server_name: '',
@@ -87,147 +82,36 @@ const CreateServerForm: React.FC<CreateServerFormProps> = ({ isOpen, onClose }) 
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} size="xl">
+    <Modal isOpen={isOpen} onClose={onClose}>
       <ModalOverlay />
       <ModalContent>
         <ModalHeader>Create Evaluation Server</ModalHeader>
         <ModalCloseButton />
-        <ModalBody>
-          <Formik
-            initialValues={initialValues}
-            validationSchema={toFormikValidationSchema(ServerConfigSchema)}
-            onSubmit={handleSubmit}
-          >
-            {({ values, errors, touched, isSubmitting }) => (
-              <Form>
-                <VStack spacing={6} align="stretch">
-                  <FormControl isInvalid={errors.server_name && touched.server_name}>
-                    <FormLabel htmlFor="server_name">Server Name</FormLabel>
-                    <Field
-                      as={Input}
-                      id="server_name"
-                      name="server_name"
-                      placeholder="Enter server name"
-                    />
-                  </FormControl>
-
-                  <FormControl isInvalid={errors.model_name && touched.model_name}>
-                    <FormLabel htmlFor="model_name">Model Name</FormLabel>
-                    <Field
-                      as={Input}
-                      id="model_name"
-                      name="model_name"
-                      placeholder="Enter model name"
-                    />
-                  </FormControl>
-
-                  <FormControl isInvalid={errors.model_description && touched.model_description}>
-                    <FormLabel htmlFor="model_description">Model Description</FormLabel>
-                    <Field
-                      as={Input}
-                      id="model_description"
-                      name="model_description"
-                      placeholder="Enter model description"
-                    />
-                  </FormControl>
-
-                  <FieldArray name="metrics">
-                    {({ push, remove }) => (
-                      <VStack align="stretch">
-                        <Flex align="center">
-                          <FormLabel mb={0}>Metrics</FormLabel>
-                          <Tooltip label="Add metrics to evaluate your model's performance">
-                            <InfoIcon ml={2} />
-                          </Tooltip>
-                        </Flex>
-                        {values.metrics.map((_, index) => (
-                          <Flex key={index} mb={2}>
-                            <Field
-                              as={Input}
-                              name={`metrics.${index}.name`}
-                              placeholder="Metric name"
-                              mr={2}
-                            />
-                            <Field
-                              as={Select}
-                              name={`metrics.${index}.type`}
-                              mr={2}
-                            >
-                              <option value="binary">Binary</option>
-                              <option value="continuous">Continuous</option>
-                            </Field>
-                            <IconButton
-                              aria-label="Remove metric"
-                              icon={<DeleteIcon />}
-                              onClick={() => remove(index)}
-                            />
-                          </Flex>
-                        ))}
-                        <Button
-                          leftIcon={<AddIcon />}
-                          onClick={() => push({ name: '', type: 'binary' })}
-                        >
-                          Add Metric
-                        </Button>
-                      </VStack>
-                    )}
-                  </FieldArray>
-
-                  <FieldArray name="subgroups">
-                    {({ push, remove }) => (
-                      <VStack align="stretch">
-                        <Flex align="center">
-                          <FormLabel mb={0}>Subgroups</FormLabel>
-                          <Tooltip label="Define subgroups to analyze model performance across different segments">
-                            <InfoIcon ml={2} />
-                          </Tooltip>
-                        </Flex>
-                        {values.subgroups.map((_, index) => (
-                          <Flex key={index} mb={2}>
-                            <Field
-                              as={Input}
-                              name={`subgroups.${index}.name`}
-                              placeholder="Subgroup name"
-                              mr={2}
-                            />
-                            <Field
-                              as={Input}
-                              name={`subgroups.${index}.condition.value`}
-                              placeholder="Condition value"
-                              mr={2}
-                            />
-                            <IconButton
-                              aria-label="Remove subgroup"
-                              icon={<DeleteIcon />}
-                              onClick={() => remove(index)}
-                            />
-                          </Flex>
-                        ))}
-                        <Button
-                          leftIcon={<AddIcon />}
-                          onClick={() => push({ name: '', condition: { value: '' } })}
-                        >
-                          Add Subgroup
-                        </Button>
-                      </VStack>
-                    )}
-                  </FieldArray>
+        <Formik
+          initialValues={initialValues}
+          validationSchema={toFormikValidationSchema(ServerConfigSchema)}
+          onSubmit={handleSubmit}
+        >
+          {({ isSubmitting }) => (
+            <Form>
+              <ModalBody>
+                <VStack spacing={4}>
+                  <ServerInfoSection />
+                  <MetricsSection />
+                  <SubgroupsSection />
                 </VStack>
-                <ModalFooter>
-                  <Button onClick={onClose} mr={3}>Cancel</Button>
-                  <Button
-                    type="submit"
-                    colorScheme="blue"
-                    isLoading={isSubmitting}
-                    loadingText="Creating..."
-                  >
-                    Create Evaluation Server
-                  </Button>
-                </ModalFooter>
-              </Form>
-            )}
-          </Formik>
-        </ModalBody>
+              </ModalBody>
+              <ModalFooter>
+                <Button variant="ghost" mr={3} onClick={onClose}>
+                  Cancel
+                </Button>
+                <Button type="submit" colorScheme="blue" isLoading={isSubmitting}>
+                  Create Evaluation Server
+                </Button>
+              </ModalFooter>
+            </Form>
+          )}
+        </Formik>
       </ModalContent>
     </Modal>
   );

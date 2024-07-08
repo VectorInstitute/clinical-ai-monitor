@@ -1,16 +1,17 @@
-import React from 'react';
-import { Formik, Form, FieldArray, Field } from 'formik';
-import { toFormikValidationSchema } from 'zod-formik-adapter';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Button,
   VStack,
   FormControl,
   FormLabel,
-  Input,
   Select,
-  IconButton,
-  Flex,
   useToast,
+  AlertDialog,
+  AlertDialogBody,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogContent,
+  AlertDialogOverlay,
   Modal,
   ModalOverlay,
   ModalContent,
@@ -18,219 +19,163 @@ import {
   ModalFooter,
   ModalBody,
   ModalCloseButton,
-  Tooltip,
 } from '@chakra-ui/react';
-import { AddIcon, DeleteIcon, InfoIcon } from '@chakra-ui/icons';
 import { useModelContext } from '../../context/model';
-import { useRouter } from 'next/navigation';
-import { ServerConfigSchema } from '../types/configure';
 
-const initialValues = {
-  server_name: '',
-  model_name: '',
-  model_description: '',
-  metrics: [{ name: '', type: 'binary' }],
-  subgroups: [],
-};
-
-interface CreateServerFormProps {
+interface DeleteServerFormProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-const CreateServerForm: React.FC<CreateServerFormProps> = ({ isOpen, onClose }) => {
-  const toast = useToast();
-  const router = useRouter();
-  const { addModel } = useModelContext();
+interface ServerOption {
+  name: string;
+  serverName: string;
+}
 
-  const handleSubmit = async (values, { setSubmitting }) => {
+const DeleteServerForm: React.FC<DeleteServerFormProps> = ({ isOpen, onClose }) => {
+  const toast = useToast();
+  const { removeModel } = useModelContext();
+  const [selectedServer, setSelectedServer] = useState('');
+  const [serverOptions, setServerOptions] = useState<ServerOption[]>([]);
+  const [isAlertOpen, setIsAlertOpen] = useState(false);
+  const cancelRef = useRef();
+
+  useEffect(() => {
+    if (isOpen) {
+      fetchEvaluationServers();
+    }
+  }, [isOpen]);
+
+  const fetchEvaluationServers = async () => {
     try {
-      const response = await fetch('/api/create_evaluation_server', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(values),
+      const response = await fetch('/api/evaluation_servers');
+      if (!response.ok) {
+        throw new Error('Failed to fetch evaluation servers');
+      }
+      const data = await response.json();
+      setServerOptions(data.servers);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to fetch evaluation servers",
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      });
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!selectedServer) {
+      toast({
+        title: "Error",
+        description: "Please select a server to delete.",
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    setIsAlertOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    try {
+      const response = await fetch(`/api/delete_evaluation_server/${selectedServer}`, {
+        method: 'DELETE',
       });
 
       if (!response.ok) {
-        throw new Error('Failed to create evaluation server');
+        throw new Error('Failed to delete evaluation server');
       }
 
-      addModel({
-        name: values.model_name,
-        description: values.model_description,
-        serverName: values.server_name,
-      });
+      removeModel(selectedServer);
 
       toast({
-        title: "Evaluation server created.",
-        description: "Your new evaluation server has been successfully configured.",
+        title: "Evaluation server deleted.",
+        description: "The selected evaluation server has been successfully deleted.",
         status: "success",
         duration: 5000,
         isClosable: true,
       });
 
+      setIsAlertOpen(false);
       onClose();
-      router.push('/home');
     } catch (error) {
       toast({
         title: "Error",
-        description: error.message,
+        description: error instanceof Error ? error.message : "An error occurred",
         status: "error",
         duration: 5000,
         isClosable: true,
       });
-    } finally {
-      setSubmitting(false);
     }
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} size="xl">
-      <ModalOverlay />
-      <ModalContent>
-        <ModalHeader>Create Evaluation Server</ModalHeader>
-        <ModalCloseButton />
-        <ModalBody>
-          <Formik
-            initialValues={initialValues}
-            validationSchema={toFormikValidationSchema(ServerConfigSchema)}
-            onSubmit={handleSubmit}
-          >
-            {({ values, errors, touched, isSubmitting }) => (
-              <Form>
-                <VStack spacing={6} align="stretch">
-                  <FormControl isInvalid={errors.server_name && touched.server_name}>
-                    <FormLabel htmlFor="server_name">Server Name</FormLabel>
-                    <Field
-                      as={Input}
-                      id="server_name"
-                      name="server_name"
-                      placeholder="Enter server name"
-                    />
-                  </FormControl>
+    <>
+      <Modal isOpen={isOpen} onClose={onClose}>
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>Delete Evaluation Server</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
+            <VStack spacing={6} align="stretch">
+              <FormControl>
+                <FormLabel htmlFor="server_select">Select Server to Delete</FormLabel>
+                <Select
+                  id="server_select"
+                  value={selectedServer}
+                  onChange={(e) => setSelectedServer(e.target.value)}
+                  placeholder="Select a server"
+                >
+                  {serverOptions.map((server) => (
+                    <option key={server.serverName} value={server.serverName}>
+                      {server.name} ({server.serverName})
+                    </option>
+                  ))}
+                </Select>
+              </FormControl>
+            </VStack>
+          </ModalBody>
+          <ModalFooter>
+            <Button onClick={onClose} mr={3}>Cancel</Button>
+            <Button onClick={handleDelete} colorScheme="red" isDisabled={!selectedServer}>
+              Delete Server
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
 
-                  <FormControl isInvalid={errors.model_name && touched.model_name}>
-                    <FormLabel htmlFor="model_name">Model Name</FormLabel>
-                    <Field
-                      as={Input}
-                      id="model_name"
-                      name="model_name"
-                      placeholder="Enter model name"
-                    />
-                  </FormControl>
+      <AlertDialog
+        isOpen={isAlertOpen}
+        leastDestructiveRef={cancelRef}
+        onClose={() => setIsAlertOpen(false)}
+      >
+        <AlertDialogOverlay>
+          <AlertDialogContent>
+            <AlertDialogHeader fontSize="lg" fontWeight="bold">
+              Delete Evaluation Server
+            </AlertDialogHeader>
 
-                  <FormControl isInvalid={errors.model_description && touched.model_description}>
-                    <FormLabel htmlFor="model_description">Model Description</FormLabel>
-                    <Field
-                      as={Input}
-                      id="model_description"
-                      name="model_description"
-                      placeholder="Enter model description"
-                    />
-                  </FormControl>
+            <AlertDialogBody>
+              Are you sure you want to delete this evaluation server? This action cannot be undone.
+            </AlertDialogBody>
 
-                  <FieldArray name="metrics">
-                    {({ push, remove }) => (
-                      <VStack align="stretch">
-                        <Flex align="center">
-                          <FormLabel mb={0}>Metrics</FormLabel>
-                          <Tooltip label="Add metrics to evaluate your model's performance">
-                            <InfoIcon ml={2} />
-                          </Tooltip>
-                        </Flex>
-                        {values.metrics.map((_, index) => (
-                          <Flex key={index} mb={2}>
-                            <Field
-                              as={Input}
-                              name={`metrics.${index}.name`}
-                              placeholder="Metric name"
-                              mr={2}
-                            />
-                            <Field
-                              as={Select}
-                              name={`metrics.${index}.type`}
-                              mr={2}
-                            >
-                              <option value="binary">Binary</option>
-                              <option value="continuous">Continuous</option>
-                            </Field>
-                            <IconButton
-                              aria-label="Remove metric"
-                              icon={<DeleteIcon />}
-                              onClick={() => remove(index)}
-                            />
-                          </Flex>
-                        ))}
-                        <Button
-                          leftIcon={<AddIcon />}
-                          onClick={() => push({ name: '', type: 'binary' })}
-                        >
-                          Add Metric
-                        </Button>
-                      </VStack>
-                    )}
-                  </FieldArray>
-
-                  <FieldArray name="subgroups">
-                    {({ push, remove }) => (
-                      <VStack align="stretch">
-                        <Flex align="center">
-                          <FormLabel mb={0}>Subgroups</FormLabel>
-                          <Tooltip label="Define subgroups to analyze model performance across different segments">
-                            <InfoIcon ml={2} />
-                          </Tooltip>
-                        </Flex>
-                        {values.subgroups.map((_, index) => (
-                          <Flex key={index} mb={2}>
-                            <Field
-                              as={Input}
-                              name={`subgroups.${index}.name`}
-                              placeholder="Subgroup name"
-                              mr={2}
-                            />
-                            <Field
-                              as={Input}
-                              name={`subgroups.${index}.condition.value`}
-                              placeholder="Condition value"
-                              mr={2}
-                            />
-                            <IconButton
-                              aria-label="Remove subgroup"
-                              icon={<DeleteIcon />}
-                              onClick={() => remove(index)}
-                            />
-                          </Flex>
-                        ))}
-                        <Button
-                          leftIcon={<AddIcon />}
-                          onClick={() => push({ name: '', condition: { value: '' } })}
-                        >
-                          Add Subgroup
-                        </Button>
-                      </VStack>
-                    )}
-                  </FieldArray>
-                </VStack>
-                <ModalFooter>
-                  <Button onClick={onClose} mr={3}>Cancel</Button>
-                  <Button
-                    type="submit"
-                    colorScheme="blue"
-                    isLoading={isSubmitting}
-                    loadingText="Creating..."
-                  >
-                    Create Evaluation Server
-                  </Button>
-                </ModalFooter>
-              </Form>
-            )}
-          </Formik>
-        </ModalBody>
-      </ModalContent>
-    </Modal>
+            <AlertDialogFooter>
+              <Button ref={cancelRef} onClick={() => setIsAlertOpen(false)}>
+                Cancel
+              </Button>
+              <Button colorScheme="red" onClick={confirmDelete} ml={3}>
+                Delete
+              </Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialogOverlay>
+      </AlertDialog>
+    </>
   );
 };
 
-export default CreateServerForm;
+export default DeleteServerForm;
