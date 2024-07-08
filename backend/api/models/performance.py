@@ -2,13 +2,9 @@
 
 import random
 from datetime import datetime, timedelta
-from typing import List
+from typing import Any, Dict, List
 
-from fastapi import FastAPI
 from pydantic import BaseModel
-
-
-app = FastAPI()
 
 
 class Metric(BaseModel):
@@ -198,19 +194,18 @@ def create_metric(
         passed=value >= threshold,
         history=history,
         timestamps=generate_timestamps(),
-        sample_sizes=generate_sample_sizes(),  # Add this line
+        sample_sizes=generate_sample_sizes(),
     )
 
 
-@app.get("/api/performance_metrics", response_model=PerformanceData)
-async def get_performance_metrics() -> PerformanceData:
+async def get_performance_metrics() -> Dict[str, Any]:
     """
     Generate and return performance metrics data.
 
     Returns
     -------
-    PerformanceData
-        An object containing overview and metric data.
+    Dict[str, Any]
+        A dictionary containing overview and metric data.
     """
     metrics = ["Accuracy", "Precision", "Recall", "F1 Score"]
     tooltips = [
@@ -232,7 +227,7 @@ async def get_performance_metrics() -> PerformanceData:
         for slice_ in slices
     ]
 
-    return PerformanceData(
+    performance_data = PerformanceData(
         overview=Overview(
             last_n_evals=10,
             mean_std_min_evals=3,
@@ -245,3 +240,5 @@ async def get_performance_metrics() -> PerformanceData:
             ),
         )
     )
+
+    return performance_data.dict()

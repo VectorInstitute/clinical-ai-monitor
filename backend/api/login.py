@@ -4,7 +4,7 @@ FastAPI application for user authentication.
 This module provides endpoints for user login and authentication.
 """
 
-from typing import Dict, List, Optional
+from typing import Annotated, Dict, List, Optional
 
 from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
@@ -35,9 +35,7 @@ class User(BaseModel):
 USERS: List[Dict[str, str]] = [{"username": "hospital1", "password": "password123"}]
 
 
-def get_current_user(
-    credentials: HTTPBasicCredentials = Depends(security),
-) -> Optional[Dict[str, str]]:
+def get_current_user(credentials: HTTPBasicCredentials) -> Optional[Dict[str, str]]:
     """
     Authenticate and return the current user.
 
@@ -69,14 +67,16 @@ def get_current_user(
 
 
 @app.post("/login", summary="User login")
-def login(current_user: Dict[str, str] = Depends(get_current_user)) -> Dict[str, str]:
+def login(
+    credentials: Annotated[HTTPBasicCredentials, Depends(security)],
+) -> Dict[str, str]:
     """
     Endpoint for user login.
 
     Parameters
     ----------
-    current_user : Dict[str, str]
-        The authenticated user, obtained from the get_current_user dependency.
+    credentials : HTTPBasicCredentials
+        The credentials provided by the user.
 
     Returns
     -------
@@ -88,4 +88,7 @@ def login(current_user: Dict[str, str] = Depends(get_current_user)) -> Dict[str,
     HTTPException
         If the login fails due to invalid credentials.
     """
+    get_current_user(
+        credentials
+    )  # This will raise an HTTPException if credentials are invalid
     return {"message": "Login successful"}
