@@ -48,15 +48,21 @@ const CreateServerForm: React.FC<CreateServerFormProps> = ({ isOpen, onClose }) 
         body: JSON.stringify(values),
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        throw new Error('Failed to create evaluation server');
+        throw new Error(data.detail || 'Failed to create evaluation server');
       }
 
-      addModel({
-        name: values.model_name,
-        description: values.model_description,
-        serverName: values.server_name,
-      });
+      await addModel(
+        {
+          name: values.model_name,
+          description: values.model_description,
+          serverName: values.server_name,
+        },
+        values.metrics,
+        values.subgroups
+      );
 
       toast({
         title: "Evaluation server created.",
@@ -105,7 +111,11 @@ const CreateServerForm: React.FC<CreateServerFormProps> = ({ isOpen, onClose }) 
                 <Button variant="ghost" mr={3} onClick={onClose}>
                   Cancel
                 </Button>
-                <Button type="submit" colorScheme="blue" isLoading={isSubmitting}>
+                <Button
+                  colorScheme="blue"
+                  type="submit"
+                  isLoading={isSubmitting}
+                >
                   Create Evaluation Server
                 </Button>
               </ModalFooter>

@@ -1,6 +1,7 @@
 'use client'
 
 import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
+import { ServerConfig, MetricConfig, SubgroupConfig } from '../configure/types/configure';
 
 interface Model {
   id: number;
@@ -11,7 +12,7 @@ interface Model {
 
 interface ModelContextType {
   models: Model[];
-  addModel: (model: Omit<Model, 'id'>) => Promise<void>;
+  addModel: (model: Omit<Model, 'id'>, metrics: MetricConfig[], subgroups: SubgroupConfig[]) => Promise<void>;
   removeModel: (serverName: string) => Promise<void>;
   fetchModels: () => Promise<void>;
 }
@@ -33,18 +34,20 @@ export const ModelProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     try {
       const response = await fetch('/api/evaluation_servers');
       if (!response.ok) {
-        throw new Error('Failed to fetch evaluation servers');
+        const errorData = await response.json();
+        throw new Error(errorData.detail || 'Failed to fetch evaluation servers');
       }
       const data = await response.json();
-      const fetchedModels = data.servers.map((server: string, index: number) => ({
+      const fetchedModels = data.servers.map((server: any, index: number) => ({
         id: index + 1,
-        name: server,
-        description: 'Fetched from server',
-        serverName: server,
+        name: server.model_name,
+        description: server.model_description,
+        serverName: server.server_name,
       }));
       setModels(fetchedModels);
     } catch (error) {
       console.error('Error fetching models:', error);
+      throw error;
     }
   };
 
@@ -52,30 +55,35 @@ export const ModelProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     fetchModels();
   }, []);
 
-  const addModel = async (newModel: Omit<Model, 'id'>) => {
+  const addModel = async (newModel: Omit<Model, 'id'>, metrics: MetricConfig[], subgroups: SubgroupConfig[]) => {
     try {
+      const serverConfig: ServerConfig = {
+        server_name: newModel.serverName,
+        model_name: newModel.name,
+        model_description: newModel.description,
+        metrics: metrics,
+        subgroups: subgroups,
+      };
+
       const response = await fetch('/api/create_evaluation_server', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          server_name: newModel.serverName,
-          model_name: newModel.name,
-          model_description: newModel.description,
-          metrics: [], // Add metrics configuration here
-          subgroups: [], // Add subgroups configuration here
-        }),
+        body: JSON.stringify(serverConfig),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to create evaluation server');
+        const errorData = await response.json();
+        throw new Error(errorData.detail || 'Failed to create evaluation server');
       }
 
+      const createdServer = await response.json();
       setModels(prevModels => [
         ...prevModels,
-        { ...newModel, id: prevModels.length + 1 }
+        { ...newModel, id: prevModels.length + 1 },
       ]);
+      return createdServer;
     } catch (error) {
       console.error('Error adding model:', error);
       throw error;
@@ -89,7 +97,8 @@ export const ModelProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       });
 
       if (!response.ok) {
-        throw new Error('Failed to delete evaluation server');
+        const errorData = await response.json();
+        throw new Error(errorData.detail || 'Failed to delete evaluation server');
       }
 
       setModels(prevModels => prevModels.filter(model => model.serverName !== serverName));
