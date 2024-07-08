@@ -1,6 +1,7 @@
-// app/layout.tsx
 'use client'
+
 import { ChakraProvider } from '@chakra-ui/react'
+import { ModelProvider } from './context/model'
 
 export default function RootLayout({
   children,
@@ -10,7 +11,11 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <ChakraProvider>{children}</ChakraProvider>
+        <ChakraProvider>
+          <ModelProvider>
+            {children}
+          </ModelProvider>
+        </ChakraProvider>
       </body>
     </html>
   )

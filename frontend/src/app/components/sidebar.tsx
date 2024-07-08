@@ -113,7 +113,7 @@ const NavItems = ({ textColor }) => {
   return (
     <VStack spacing={1} align="stretch">
       <NavItem icon={FiHome} href="/home" textColor={textColor}>Dashboard</NavItem>
-      <NavItem icon={FiSettings} href="/settings" textColor={textColor}>Settings</NavItem>
+      <NavItem icon={FiSettings} href="/configure" textColor={textColor}>Configure</NavItem>
     </VStack>
   )
 }

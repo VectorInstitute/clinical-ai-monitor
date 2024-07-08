@@ -1,44 +1,16 @@
 'use client'
-import { useState, useEffect } from 'react'
-import { Box, Tabs, TabList, TabPanels, Tab, TabPanel, Flex, Heading, useColorModeValue, useToast } from '@chakra-ui/react'
+import { useState } from 'react'
+import { Box, Tabs, TabList, TabPanels, Tab, TabPanel, Flex, Heading, useColorModeValue } from '@chakra-ui/react'
 import Sidebar from '../../components/sidebar'
 import ModelHealthTab from './tabs/model-health'
 import PerformanceMetricsTab from './tabs/performance-metrics'
 import ModelFactsTab from './tabs/model-facts'
-import { ModelHealth, validateModelHealth } from './types/health'
 
 export default function ModelDashboard({ params }: { params: { id: string } }) {
-  const [modelHealth, setModelHealth] = useState<ModelHealth | null>(null)
   const hospitalName = "University Health Network" // This should come from your authentication state
-  const toast = useToast()
 
   const bgColor = useColorModeValue('gray.50', 'gray.800')
   const textColor = useColorModeValue('gray.800', 'white')
-
-  useEffect(() => {
-    const fetchModelHealth = async () => {
-      try {
-        const response = await fetch(`/api/model/${params.id}/health`)
-        if (!response.ok) {
-          throw new Error('Failed to fetch model health')
-        }
-        const data = await response.json()
-        const validatedData = validateModelHealth(data)
-        setModelHealth(validatedData)
-      } catch (error) {
-        console.error('Error fetching model health:', error)
-        toast({
-          title: "Error",
-          description: "Failed to fetch model health data",
-          status: "error",
-          duration: 5000,
-          isClosable: true,
-        })
-      }
-    }
-
-    fetchModelHealth()
-  }, [params.id, toast])
 
   return (
     <Flex minHeight="100vh" bg={bgColor}>
@@ -56,13 +28,7 @@ export default function ModelDashboard({ params }: { params: { id: string } }) {
 
           <TabPanels>
             <TabPanel>
-              {modelHealth && (
-                <ModelHealthTab
-                  modelHealth={modelHealth.model_health}
-                  healthOverTime={modelHealth.health_over_time}
-                  timePoints={modelHealth.time_points}
-                />
-              )}
+              <ModelHealthTab modelId={params.id} />
             </TabPanel>
             <TabPanel>
               <PerformanceMetricsTab />

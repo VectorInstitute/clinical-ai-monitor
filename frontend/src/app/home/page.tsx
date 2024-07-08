@@ -1,23 +1,20 @@
-// app/home/page.tsx
 'use client'
-import { Box, SimpleGrid, Text, Flex, Heading, VStack, useColorModeValue } from '@chakra-ui/react'
+import { Box, SimpleGrid, Text, Flex, Heading, VStack, useColorModeValue, Button, Center } from '@chakra-ui/react'
 import { useRouter } from 'next/navigation'
 import Sidebar from '../components/sidebar'
-
-const models = [
-  { id: 1, name: 'Model A', description: 'Chest Pneumothorax model' },
-  { id: 2, name: 'Model B', description: 'Wrist x-ray model' },
-  { id: 3, name: 'Model C', description: 'Delrium risk calculator model' },
-]
+import { useModelContext } from '../context/model'
+import Link from 'next/link'
 
 export default function HomePage() {
   const router = useRouter()
+  const { models, isLoading } = useModelContext()
   const hospitalName = "University Health Network" // This should come from your authentication state
 
   const bgColor = useColorModeValue('gray.50', 'gray.800')
   const cardBgColor = useColorModeValue('white', 'gray.700')
   const cardBorderColor = useColorModeValue('gray.200', 'gray.600')
   const textColor = useColorModeValue('gray.800', 'white')
+  const accentColor = useColorModeValue('blue.500', 'blue.300')
 
   return (
     <Flex minHeight="100vh" bg={bgColor}>
@@ -30,40 +27,63 @@ export default function HomePage() {
       >
         <VStack spacing={8} align="stretch">
           <Heading as="h1" size="xl" color={textColor}>
-            Deployed Models
+            Clinical AI Model Monitoring Dashboard
           </Heading>
-          <SimpleGrid
-            columns={{ base: 1, sm: 2, lg: 3 }}
-            spacing={{ base: 4, lg: 8 }}
-          >
-            {models.map((model) => (
-              <Box
-                key={model.id}
-                p={6}
-                shadow="md"
-                borderWidth="1px"
-                borderRadius="lg"
-                bg={cardBgColor}
-                borderColor={cardBorderColor}
-                onClick={() => router.push(`/model/${model.id}`)}
-                cursor="pointer"
-                transition="all 0.3s"
-                _hover={{
-                  shadow: 'lg',
-                  transform: 'translateY(-5px)'
-                }}
-              >
-                <VStack align="start" spacing={3}>
-                  <Heading as="h3" size="md" color={textColor}>
-                    {model.name}
-                  </Heading>
-                  <Text fontSize="sm" color={useColorModeValue('gray.600', 'gray.300')}>
-                    {model.description}
-                  </Text>
-                </VStack>
-              </Box>
-            ))}
-          </SimpleGrid>
+          {isLoading ? (
+            <Center>
+              <Text>Loading models...</Text>
+            </Center>
+          ) : models.length === 0 ? (
+            <Center flexDirection="column" p={8} bg={cardBgColor} borderRadius="lg" shadow="md">
+              <Text fontSize="lg" mb={4} textAlign="center">
+                No models are currently configured for monitoring.
+              </Text>
+              <Text fontSize="md" mb={6} textAlign="center" color={useColorModeValue('gray.600', 'gray.400')}>
+                To start monitoring a model, you need to configure its evaluation parameters.
+              </Text>
+              <Link href="/configure" passHref>
+                <Button colorScheme="blue" size="lg">
+                  Configure a New Model
+                </Button>
+              </Link>
+            </Center>
+          ) : (
+            <SimpleGrid
+              columns={{ base: 1, sm: 2, lg: 3 }}
+              spacing={{ base: 4, lg: 8 }}
+            >
+              {models.map((model) => (
+                <Box
+                  key={model.id}
+                  p={6}
+                  shadow="md"
+                  borderWidth="1px"
+                  borderRadius="lg"
+                  bg={cardBgColor}
+                  borderColor={cardBorderColor}
+                  onClick={() => router.push(`/model/${model.id}`)}
+                  cursor="pointer"
+                  transition="all 0.3s"
+                  _hover={{
+                    shadow: 'lg',
+                    transform: 'translateY(-5px)'
+                  }}
+                >
+                  <VStack align="start" spacing={3}>
+                    <Heading as="h3" size="md" color={textColor}>
+                      {model.name}
+                    </Heading>
+                    <Text fontSize="sm" color={useColorModeValue('gray.600', 'gray.300')}>
+                      {model.description}
+                    </Text>
+                    <Text fontSize="xs" color={useColorModeValue('gray.500', 'gray.400')}>
+                      Server: {model.serverName}
+                    </Text>
+                  </VStack>
+                </Box>
+              ))}
+            </SimpleGrid>
+          )}
         </VStack>
       </Box>
     </Flex>
