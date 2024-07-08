@@ -56,7 +56,7 @@ export default function PerformanceMetricsTab() {
   const renderMetricCards = useMemo(() => {
     if (!data) return null;
     return (
-      <SimpleGrid columns={cardColumns} spacing={4}>
+      <SimpleGrid columns={cardColumns} spacing={4} width="100%">
         {data.overview.metric_cards.collection
           .filter((metric) => metric.slice === 'overall')
           .map((metric) => (
@@ -71,7 +71,7 @@ export default function PerformanceMetricsTab() {
   if (!data) return null;
 
   return (
-    <VStack spacing={8} align="stretch">
+    <VStack spacing={8} align="stretch" width="100%">
       <Box>
         <Heading as="h2" size="lg" mb={1}>
           How is your model doing?
@@ -85,7 +85,7 @@ export default function PerformanceMetricsTab() {
 
       <Divider my={8} />
 
-      <Box>
+      <Box width="100%">
         <Heading as="h3" size="lg" mb={1}>
           How is your model doing over time?
         </Heading>
