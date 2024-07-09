@@ -8,6 +8,7 @@ from pydantic import BaseModel
 
 from backend.api.models.configure import (
     EvaluationInput,
+    EvaluationResult,
     ServerConfig,
     create_evaluation_server,
     delete_evaluation_server,
@@ -22,33 +23,56 @@ router = APIRouter()
 
 
 class ServerLog(BaseModel):
+    """
+    Server log model.
+
+    Parameters
+    ----------
+    id : str
+        Unique identifier for the server log.
+    server_name : str
+        Name of the server.
+    created_at : datetime
+        Timestamp when the server was created.
+    last_evaluated : datetime
+        Timestamp of the last evaluation.
+    evaluation_count : int
+        Number of evaluations performed.
+    """
+
     id: str
-    serverName: str
-    createdAt: datetime
-    lastEvaluated: datetime
-    evaluationCount: int
+    server_name: str
+    created_at: datetime
+    last_evaluated: datetime
+    evaluation_count: int
+
 
 @router.get("/server-logs", response_model=List[ServerLog])
-async def get_server_logs():
-    # This is a mock implementation. Replace with actual database queries.
-    logs = [
+async def get_server_logs() -> List[ServerLog]:
+    """
+    Get server logs.
+
+    Returns
+    -------
+    List[ServerLog]
+        A list of server logs.
+    """
+    return [
         ServerLog(
             id="1",
-            serverName="Server1",
-            createdAt=datetime.now(),
-            lastEvaluated=datetime.now(),
-            evaluationCount=10
+            server_name="Server1",
+            created_at=datetime.now(),
+            last_evaluated=datetime.now(),
+            evaluation_count=10,
         ),
         ServerLog(
             id="2",
-            serverName="Server2",
-            createdAt=datetime.now(),
-            lastEvaluated=datetime.now(),
-            evaluationCount=5
+            server_name="Server2",
+            created_at=datetime.now(),
+            last_evaluated=datetime.now(),
+            evaluation_count=5,
         ),
-        # Add more mock data as needed
     ]
-    return logs
 
 
 @router.post("/create_evaluation_server", response_model=Dict[str, str])
@@ -74,9 +98,11 @@ async def create_server(config: ServerConfig) -> Dict[str, str]:
     try:
         return create_evaluation_server(config)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Internal server error: {str(e)}"
+        ) from e
 
 
 @router.get("/evaluation_servers", response_model=Dict[str, List[Dict[str, str]]])
@@ -93,7 +119,7 @@ async def get_evaluation_servers() -> Dict[str, List[Dict[str, str]]]:
 
 
 @router.post("/evaluate/{server_name}", response_model=Dict[str, Any])
-async def evaluate(server_name: str, data: EvaluationInput) -> Dict[str, Any]:
+async def evaluate(server_name: str, data: EvaluationInput) -> EvaluationResult:
     """
     Evaluate a model using the specified evaluation server configuration.
 
@@ -106,7 +132,7 @@ async def evaluate(server_name: str, data: EvaluationInput) -> Dict[str, Any]:
 
     Returns
     -------
-    Dict[str, Any]
+    EvaluationResult
         The evaluation results.
 
     Raises
@@ -117,15 +143,22 @@ async def evaluate(server_name: str, data: EvaluationInput) -> Dict[str, Any]:
     try:
         return evaluate_model(server_name, data)
     except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=404, detail=str(e)) from e
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Internal server error: {str(e)}"
+        ) from e
 
 
-@router.get("/performance_metrics", response_model=Dict[str, Any])
-async def performance_metrics() -> Dict[str, Any]:
+@router.get("/performance_metrics/{server_name}", response_model=Dict[str, Any])
+async def performance_metrics(server_name: str) -> Dict[str, Any]:
     """
     Retrieve performance metrics for the model.
+
+    Parameters
+    ----------
+    server_name : str
+        The name of the evaluation server.
 
     Returns
     -------
@@ -138,11 +171,11 @@ async def performance_metrics() -> Dict[str, Any]:
         If there's an error retrieving performance metrics.
     """
     try:
-        return await get_performance_metrics()
+        return await get_performance_metrics(server_name)
     except Exception as e:
         raise HTTPException(
             status_code=500, detail=f"Error retrieving performance metrics: {str(e)}"
-        )
+        ) from e
 
 
 @router.get("/model/{model_id}/health", response_model=ModelHealth)
@@ -172,7 +205,7 @@ async def model_health(model_id: str) -> ModelHealth:
     except Exception as e:
         raise HTTPException(
             status_code=500, detail=f"Error retrieving model health: {str(e)}"
-        )
+        ) from e
 
 
 @router.delete("/delete_evaluation_server/{server_name}", response_model=Dict[str, str])
@@ -198,6 +231,8 @@ async def delete_server(server_name: str) -> Dict[str, str]:
     try:
         return delete_evaluation_server(server_name)
     except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=404, detail=str(e)) from e
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Internal server error: {str(e)}"
+        ) from e

@@ -9,7 +9,7 @@ from cyclops.evaluate.metrics import create_metric
 from cyclops.evaluate.metrics.experimental import MetricDict
 from cyclops.report.utils import flatten_results_dict
 from datasets.arrow_dataset import Dataset
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field
 
 
 class MetricConfig(BaseModel):
@@ -51,14 +51,16 @@ class EvaluationInput(BaseModel):
         ..., description="Additional metadata for the evaluation"
     )
 
-    @validator("preds_prob", "target")
-    def check_list_length(cls, v):
+    @classmethod
+    def check_list_length(cls, v: List[Any]) -> List[Any]:
+        """Validate that the list is not empty."""
         if len(v) == 0:
             raise ValueError("List must not be empty")
         return v
 
-    @validator("metadata")
-    def check_metadata(cls, v):
+    @classmethod
+    def check_metadata(cls, v: Dict[str, List[Any]]) -> Dict[str, List[Any]]:
+        """Validate that the metadata is not empty."""
         if not v:
             raise ValueError("Metadata must not be empty")
         return v
@@ -75,7 +77,10 @@ class EvaluationResult(BaseModel):
 
 
 class EvaluationServer:
+    """Evaluation server class."""
+
     def __init__(self, config: ServerConfig):
+        """Initialize the EvaluationServer."""
         self.config = config
         self.metrics = MetricDict(
             [create_metric(metric.name, experimental=True) for metric in config.metrics]
@@ -84,11 +89,12 @@ class EvaluationServer:
         self.evaluation_history: List[EvaluationResult] = []
 
     def _create_slice_spec(self) -> SliceSpec:
-        spec_list = []
-        for subgroup in self.config.subgroups:
-            feature = list(subgroup.condition.keys())[0]
-            spec = {feature: subgroup.condition[feature]}
-            spec_list.append({subgroup.name: spec})
+        """Create a SliceSpec from the subgroup configurations."""
+        spec_list = [
+            {subgroup.name: {feature: subgroup.condition[feature]}}
+            for subgroup in self.config.subgroups
+            for feature in subgroup.condition
+        ]
         return SliceSpec(spec_list)
 
     def evaluate(self, data: EvaluationInput) -> EvaluationResult:
@@ -123,7 +129,7 @@ class EvaluationServer:
         evaluation_result = EvaluationResult(
             server_name=self.config.server_name,
             model_name=self.config.model_name,
-            metrics=[metric for metric in self.metrics],
+            metrics=[metric.name for metric in self.metrics.metrics],
             subgroups=[subgroup.name for subgroup in self.config.subgroups],
             evaluation_result=results_flat,
         )
