@@ -1,15 +1,15 @@
 'use client'
 import React, { useEffect, useState } from 'react'
-import { 
-  Box, 
-  SimpleGrid, 
-  Text, 
-  Flex, 
-  Heading, 
-  VStack, 
-  useColorModeValue, 
-  Button, 
-  Center, 
+import {
+  Box,
+  SimpleGrid,
+  Text,
+  Flex,
+  Heading,
+  VStack,
+  useColorModeValue,
+  Button,
+  Center,
   Spinner,
   Container,
   Divider,
