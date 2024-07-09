@@ -1,8 +1,10 @@
 """Backend API routes."""
 
+from datetime import datetime
 from typing import Any, Dict, List
 
 from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel
 
 from backend.api.models.configure import (
     EvaluationInput,
@@ -17,6 +19,36 @@ from backend.api.models.performance import get_performance_metrics
 
 
 router = APIRouter()
+
+
+class ServerLog(BaseModel):
+    id: str
+    serverName: str
+    createdAt: datetime
+    lastEvaluated: datetime
+    evaluationCount: int
+
+@router.get("/server-logs", response_model=List[ServerLog])
+async def get_server_logs():
+    # This is a mock implementation. Replace with actual database queries.
+    logs = [
+        ServerLog(
+            id="1",
+            serverName="Server1",
+            createdAt=datetime.now(),
+            lastEvaluated=datetime.now(),
+            evaluationCount=10
+        ),
+        ServerLog(
+            id="2",
+            serverName="Server2",
+            createdAt=datetime.now(),
+            lastEvaluated=datetime.now(),
+            evaluationCount=5
+        ),
+        # Add more mock data as needed
+    ]
+    return logs
 
 
 @router.post("/create_evaluation_server", response_model=Dict[str, str])

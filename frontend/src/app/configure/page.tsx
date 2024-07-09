@@ -5,29 +5,28 @@ import {
   Box,
   VStack,
   Heading,
-  Button,
   useColorModeValue,
   Flex,
-  Text,
   SimpleGrid,
   Icon,
   Tooltip,
   useDisclosure,
 } from '@chakra-ui/react';
-import { FiPlus, FiTrash2, FiInfo } from 'react-icons/fi';
+import { FiPlus, FiTrash2, FiInfo, FiList } from 'react-icons/fi';
+import { useRouter } from 'next/navigation';
 import Sidebar from '../components/sidebar';
 import CreateServerForm from './components/create-server-form';
 import DeleteServerForm from './components/delete-server-form';
+import ConfigCard from './components/config-card';
 
 export default function ConfigurationPage() {
   const { isOpen: isCreateOpen, onOpen: onCreateOpen, onClose: onCreateClose } = useDisclosure();
   const { isOpen: isDeleteOpen, onOpen: onDeleteOpen, onClose: onDeleteClose } = useDisclosure();
+  const router = useRouter();
   const hospitalName = "University Health Network"; // This should come from your authentication state
 
   const bgColor = useColorModeValue('gray.50', 'gray.800');
-  const cardBgColor = useColorModeValue('white', 'gray.700');
   const textColor = useColorModeValue('gray.800', 'white');
-  const borderColor = useColorModeValue('gray.200', 'gray.600');
 
   return (
     <Flex minHeight="100vh" bg={bgColor}>
@@ -47,7 +46,7 @@ export default function ConfigurationPage() {
               <Icon as={FiInfo} color={textColor} boxSize={6} />
             </Tooltip>
           </Flex>
-          <SimpleGrid columns={{ base: 1, md: 2 }} spacing={8}>
+          <SimpleGrid columns={{ base: 1, md: 3 }} spacing={8}>
             <ConfigCard
               title="Create New Server"
               description="Set up a new model monitoring server with custom metrics and subgroups."
@@ -64,6 +63,14 @@ export default function ConfigurationPage() {
               buttonColor="red"
               onClick={onDeleteOpen}
             />
+            <ConfigCard
+              title="View Server Logs"
+              description="Check logs and statistics for your evaluation servers."
+              icon={FiList}
+              buttonText="View Logs"
+              buttonColor="green"
+              onClick={() => router.push('/configure/logs')}
+            />
           </SimpleGrid>
         </VStack>
       </Box>
@@ -72,55 +79,3 @@ export default function ConfigurationPage() {
     </Flex>
   );
 }
-
-interface ConfigCardProps {
-  title: string;
-  description: string;
-  icon: React.ElementType;
-  buttonText: string;
-  buttonColor: string;
-  onClick: () => void;
-}
-
-const ConfigCard: React.FC<ConfigCardProps> = ({
-  title,
-  description,
-  icon,
-  buttonText,
-  buttonColor,
-  onClick,
-}) => {
-  const cardBgColor = useColorModeValue('white', 'gray.700');
-  const borderColor = useColorModeValue('gray.200', 'gray.600');
-  const textColor = useColorModeValue('gray.800', 'white');
-
-  return (
-    <Box
-      bg={cardBgColor}
-      p={6}
-      borderRadius="lg"
-      shadow="md"
-      borderWidth={1}
-      borderColor={borderColor}
-      transition="all 0.3s"
-      _hover={{ transform: 'translateY(-5px)', shadow: 'lg' }}
-    >
-      <VStack spacing={4} align="stretch">
-        <Flex align="center">
-          <Icon as={icon} boxSize={8} color={`${buttonColor}.500`} mr={4} />
-          <Heading as="h3" size="md" color={textColor}>
-            {title}
-          </Heading>
-        </Flex>
-        <Text color={textColor}>{description}</Text>
-        <Button
-          colorScheme={buttonColor}
-          onClick={onClick}
-          leftIcon={<Icon as={icon} />}
-        >
-          {buttonText}
-        </Button>
-      </VStack>
-    </Box>
-  );
-};

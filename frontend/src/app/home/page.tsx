@@ -1,10 +1,25 @@
 'use client'
 import React, { useEffect, useState } from 'react'
-import { Box, SimpleGrid, Text, Flex, Heading, VStack, useColorModeValue, Button, Center, Spinner } from '@chakra-ui/react'
+import { 
+  Box, 
+  SimpleGrid, 
+  Text, 
+  Flex, 
+  Heading, 
+  VStack, 
+  useColorModeValue, 
+  Button, 
+  Center, 
+  Spinner,
+  Container,
+  Divider,
+  Icon
+} from '@chakra-ui/react'
 import { useRouter } from 'next/navigation'
 import Sidebar from '../components/sidebar'
 import { useModelContext } from '../context/model'
 import Link from 'next/link'
+import { FiMonitor, FiAlertCircle } from 'react-icons/fi'
 
 export default function HomePage() {
   const router = useRouter()
@@ -17,6 +32,7 @@ export default function HomePage() {
   const cardBorderColor = useColorModeValue('gray.200', 'gray.600')
   const textColor = useColorModeValue('gray.800', 'white')
   const accentColor = useColorModeValue('blue.500', 'blue.300')
+  const dividerColor = useColorModeValue('gray.200', 'gray.600')
 
   useEffect(() => {
     const loadModels = async () => {
@@ -43,14 +59,15 @@ export default function HomePage() {
     if (models.length === 0) {
       return (
         <Center flexDirection="column" p={8} bg={cardBgColor} borderRadius="lg" shadow="md">
-          <Text fontSize="lg" mb={4} textAlign="center">
-            No models are currently configured for monitoring.
+          <Icon as={FiAlertCircle} boxSize={12} color={accentColor} mb={4} />
+          <Text fontSize="xl" fontWeight="bold" mb={4} textAlign="center">
+            No Models Configured
           </Text>
           <Text fontSize="md" mb={6} textAlign="center" color={useColorModeValue('gray.600', 'gray.400')}>
             To start monitoring a model, you need to configure its evaluation parameters.
           </Text>
           <Link href="/configure" passHref>
-            <Button colorScheme="blue" size="lg">
+            <Button colorScheme="blue" size="lg" leftIcon={<FiMonitor />}>
               Configure a New Model
             </Button>
           </Link>
@@ -99,16 +116,28 @@ export default function HomePage() {
       <Sidebar hospitalName={hospitalName} />
       <Box
         ml={{ base: 0, md: 60 }}
-        p={{ base: 4, md: 8 }}
         w="full"
         transition="margin-left 0.3s"
       >
-        <VStack spacing={8} align="stretch">
-          <Heading as="h1" size="xl" color={textColor}>
-            Clinical AI Model Monitoring Dashboard
-          </Heading>
-          {renderContent()}
-        </VStack>
+        <Container maxW="container.xl" py={8}>
+          <VStack spacing={8} align="stretch">
+            <Box bg={cardBgColor} p={8} borderRadius="lg" shadow="md">
+              <Heading as="h1" size="xl" color={textColor} mb={4}>
+                AI Model Monitoring Hub
+              </Heading>
+              <Text fontSize="lg" color={useColorModeValue('gray.600', 'gray.400')}>
+                Monitor and manage your clinical AI models in real-time.
+              </Text>
+            </Box>
+            <Divider borderColor={dividerColor} />
+            <Box>
+              <Heading as="h2" size="lg" color={textColor} mb={6}>
+                Monitored Models
+              </Heading>
+              {renderContent()}
+            </Box>
+          </VStack>
+        </Container>
       </Box>
     </Flex>
   )
