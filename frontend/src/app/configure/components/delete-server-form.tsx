@@ -27,45 +27,21 @@ interface DeleteServerFormProps {
   onClose: () => void;
 }
 
-interface ServerOption {
-  name: string;
-  serverName: string;
-}
-
 const DeleteServerForm: React.FC<DeleteServerFormProps> = ({ isOpen, onClose }) => {
   const toast = useToast();
-  const { removeModel } = useModelContext();
+  const { removeModel, models, fetchModels } = useModelContext();
   const [selectedServer, setSelectedServer] = useState('');
-  const [serverOptions, setServerOptions] = useState<ServerOption[]>([]);
   const [isAlertOpen, setIsAlertOpen] = useState(false);
-  const cancelRef = useRef();
+  const [isLoading, setIsLoading] = useState(false);
+  const cancelRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     if (isOpen) {
-      fetchEvaluationServers();
+      fetchModels();
     }
-  }, [isOpen]);
+  }, [isOpen, fetchModels]);
 
-  const fetchEvaluationServers = async () => {
-    try {
-      const response = await fetch('/api/evaluation_servers');
-      if (!response.ok) {
-        throw new Error('Failed to fetch evaluation servers');
-      }
-      const data = await response.json();
-      setServerOptions(data.servers);
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to fetch evaluation servers",
-        status: "error",
-        duration: 5000,
-        isClosable: true,
-      });
-    }
-  };
-
-  const handleDelete = async () => {
+  const handleDelete = () => {
     if (!selectedServer) {
       toast({
         title: "Error",
@@ -81,16 +57,9 @@ const DeleteServerForm: React.FC<DeleteServerFormProps> = ({ isOpen, onClose }) 
   };
 
   const confirmDelete = async () => {
+    setIsLoading(true);
     try {
-      const response = await fetch(`/api/delete_evaluation_server/${selectedServer}`, {
-        method: 'DELETE',
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to delete evaluation server');
-      }
-
-      removeModel(selectedServer);
+      await removeModel(selectedServer);
 
       toast({
         title: "Evaluation server deleted.",
@@ -105,11 +74,13 @@ const DeleteServerForm: React.FC<DeleteServerFormProps> = ({ isOpen, onClose }) 
     } catch (error) {
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "An error occurred",
+        description: error instanceof Error ? error.message : "An error occurred while deleting the server",
         status: "error",
         duration: 5000,
         isClosable: true,
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -129,10 +100,11 @@ const DeleteServerForm: React.FC<DeleteServerFormProps> = ({ isOpen, onClose }) 
                   value={selectedServer}
                   onChange={(e) => setSelectedServer(e.target.value)}
                   placeholder="Select a server"
+                  isDisabled={isLoading}
                 >
-                  {serverOptions.map((server) => (
-                    <option key={server.serverName} value={server.serverName}>
-                      {server.name} ({server.serverName})
+                  {models.map((model) => (
+                    <option key={model.serverName} value={model.serverName}>
+                      {model.name} ({model.serverName})
                     </option>
                   ))}
                 </Select>
@@ -140,8 +112,13 @@ const DeleteServerForm: React.FC<DeleteServerFormProps> = ({ isOpen, onClose }) 
             </VStack>
           </ModalBody>
           <ModalFooter>
-            <Button onClick={onClose} mr={3}>Cancel</Button>
-            <Button onClick={handleDelete} colorScheme="red" isDisabled={!selectedServer}>
+            <Button onClick={onClose} mr={3} isDisabled={isLoading}>Cancel</Button>
+            <Button
+              onClick={handleDelete}
+              colorScheme="red"
+              isDisabled={!selectedServer || isLoading}
+              isLoading={isLoading}
+            >
               Delete Server
             </Button>
           </ModalFooter>
@@ -164,10 +141,10 @@ const DeleteServerForm: React.FC<DeleteServerFormProps> = ({ isOpen, onClose }) 
             </AlertDialogBody>
 
             <AlertDialogFooter>
-              <Button ref={cancelRef} onClick={() => setIsAlertOpen(false)}>
+              <Button ref={cancelRef} onClick={() => setIsAlertOpen(false)} isDisabled={isLoading}>
                 Cancel
               </Button>
-              <Button colorScheme="red" onClick={confirmDelete} ml={3}>
+              <Button colorScheme="red" onClick={confirmDelete} ml={3} isLoading={isLoading}>
                 Delete
               </Button>
             </AlertDialogFooter>
