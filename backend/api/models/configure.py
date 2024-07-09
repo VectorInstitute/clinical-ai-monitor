@@ -64,6 +64,16 @@ class EvaluationInput(BaseModel):
         return v
 
 
+class EvaluationResult(BaseModel):
+    """Evaluation result for a server."""
+
+    server_name: str
+    model_name: str
+    metrics: List[str]
+    subgroups: List[str]
+    evaluation_result: Dict[str, Any]
+
+
 class EvaluationServer:
     def __init__(self, config: ServerConfig):
         self.config = config
@@ -71,6 +81,7 @@ class EvaluationServer:
             [create_metric(metric.name, experimental=True) for metric in config.metrics]
         )
         self.slice_spec = self._create_slice_spec()
+        self.evaluation_history: List[EvaluationResult] = []
 
     def _create_slice_spec(self) -> SliceSpec:
         spec_list = []
@@ -80,12 +91,69 @@ class EvaluationServer:
             spec_list.append({subgroup.name: spec})
         return SliceSpec(spec_list)
 
+    def evaluate(self, data: EvaluationInput) -> EvaluationResult:
+        """
+        Evaluate the model using the provided input data.
+
+        Parameters
+        ----------
+        data : EvaluationInput
+            The input data for evaluation.
+
+        Returns
+        -------
+        EvaluationResult
+            The evaluation results.
+        """
+        df = pd.DataFrame(
+            {"preds_prob": data.preds_prob, "target": data.target, **data.metadata}
+        )
+        dataset = Dataset.from_pandas(df)
+
+        result = evaluator.evaluate(
+            dataset=dataset,
+            metrics=self.metrics,
+            slice_spec=self.slice_spec,
+            target_columns="target",
+            prediction_columns="preds_prob",
+        )
+
+        results_flat = flatten_results_dict(results=result)
+
+        evaluation_result = EvaluationResult(
+            server_name=self.config.server_name,
+            model_name=self.config.model_name,
+            metrics=[metric for metric in self.metrics],
+            subgroups=[subgroup.name for subgroup in self.config.subgroups],
+            evaluation_result=results_flat,
+        )
+
+        self.evaluation_history.append(evaluation_result)
+        return evaluation_result
+
 
 evaluation_servers: Dict[str, EvaluationServer] = {}
 
 
 def create_evaluation_server(config: ServerConfig) -> Dict[str, str]:
-    """Create a new evaluation server configuration."""
+    """
+    Create a new evaluation server configuration.
+
+    Parameters
+    ----------
+    config : ServerConfig
+        The configuration for the new evaluation server.
+
+    Returns
+    -------
+    Dict[str, str]
+        A dictionary containing a success message.
+
+    Raises
+    ------
+    ValueError
+        If a server with the given name already exists.
+    """
     if config.server_name in evaluation_servers:
         raise ValueError(f"Server with name '{config.server_name}' already exists")
 
@@ -94,7 +162,24 @@ def create_evaluation_server(config: ServerConfig) -> Dict[str, str]:
 
 
 def delete_evaluation_server(server_name: str) -> Dict[str, str]:
-    """Delete an evaluation server configuration."""
+    """
+    Delete an evaluation server configuration.
+
+    Parameters
+    ----------
+    server_name : str
+        The name of the evaluation server to delete.
+
+    Returns
+    -------
+    Dict[str, str]
+        A dictionary containing a success message.
+
+    Raises
+    ------
+    ValueError
+        If the server with the given name doesn't exist.
+    """
     if server_name not in evaluation_servers:
         raise ValueError(f"Evaluation server '{server_name}' not found")
 
@@ -103,7 +188,14 @@ def delete_evaluation_server(server_name: str) -> Dict[str, str]:
 
 
 def list_evaluation_servers() -> Dict[str, List[Dict[str, str]]]:
-    """List all created evaluation servers."""
+    """
+    List all created evaluation servers.
+
+    Returns
+    -------
+    Dict[str, List[Dict[str, str]]]
+        A dictionary containing a list of server details.
+    """
     return {
         "servers": [
             {
@@ -116,7 +208,7 @@ def list_evaluation_servers() -> Dict[str, List[Dict[str, str]]]:
     }
 
 
-def evaluate_model(server_name: str, data: EvaluationInput) -> Dict[str, Any]:
+def evaluate_model(server_name: str, data: EvaluationInput) -> EvaluationResult:
     """
     Evaluate a model using the specified evaluation server configuration.
 
@@ -129,7 +221,7 @@ def evaluate_model(server_name: str, data: EvaluationInput) -> Dict[str, Any]:
 
     Returns
     -------
-    Dict[str, Any]
+    EvaluationResult
         The evaluation results.
 
     Raises
@@ -141,33 +233,4 @@ def evaluate_model(server_name: str, data: EvaluationInput) -> Dict[str, Any]:
         raise ValueError(f"Evaluation server '{server_name}' not found")
 
     server = evaluation_servers[server_name]
-
-    # Create a DataFrame from the input data
-    df = pd.DataFrame(
-        {"preds_prob": data.preds_prob, "target": data.target, **data.metadata}
-    )
-
-    # Create a Dataset object from the DataFrame
-    dataset = Dataset.from_pandas(df)
-
-    # Evaluate the model
-    result = evaluator.evaluate(
-        dataset=dataset,
-        metrics=server.metrics,
-        slice_spec=server.slice_spec,
-        target_columns="target",
-        prediction_columns="preds_prob",
-    )
-
-    # Flatten the results
-    results_flat = flatten_results_dict(results=result)
-
-    # Prepare the final result
-    final_result = {
-        "server_name": server_name,
-        "model_name": server.config.model_name,
-        "metrics": [metric for metric in server.metrics],
-        "subgroups": [subgroup.name for subgroup in server.config.subgroups],
-        "evaluation_result": results_flat,
-    }
-    return final_result
+    return server.evaluate(data)
