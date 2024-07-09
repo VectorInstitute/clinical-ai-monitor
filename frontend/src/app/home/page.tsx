@@ -126,7 +126,7 @@ export default function HomePage() {
                 AI Model Monitoring Hub
               </Heading>
               <Text fontSize="lg" color={useColorModeValue('gray.600', 'gray.400')}>
-                Monitor and manage your clinical AI models in real-time.
+                Monitor your clinical AI models in real-time.
               </Text>
             </Box>
             <Divider borderColor={dividerColor} />
