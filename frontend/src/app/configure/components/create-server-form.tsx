@@ -24,7 +24,7 @@ const initialValues = {
   server_name: '',
   model_name: '',
   model_description: '',
-  metrics: [{ name: '', type: 'binary' }],
+  metrics: [],
   subgroups: [],
 };
 
@@ -38,22 +38,8 @@ const CreateServerForm: React.FC<CreateServerFormProps> = ({ isOpen, onClose }) 
   const router = useRouter();
   const { addModel } = useModelContext();
 
-  const handleSubmit = async (values, { setSubmitting }) => {
+  const handleSubmit = async (values, { setSubmitting, setFieldError }) => {
     try {
-      const response = await fetch('/api/create_evaluation_server', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(values),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.detail || 'Failed to create evaluation server');
-      }
-
       await addModel(
         {
           name: values.model_name,
@@ -75,13 +61,17 @@ const CreateServerForm: React.FC<CreateServerFormProps> = ({ isOpen, onClose }) 
       onClose();
       router.push('/home');
     } catch (error) {
-      toast({
-        title: "Error",
-        description: error.message,
-        status: "error",
-        duration: 5000,
-        isClosable: true,
-      });
+      if (error.message.includes('already exists')) {
+        setFieldError('server_name', 'Server name already exists');
+      } else {
+        toast({
+          title: "Error",
+          description: error.message,
+          status: "error",
+          duration: 5000,
+          isClosable: true,
+        });
+      }
     } finally {
       setSubmitting(false);
     }

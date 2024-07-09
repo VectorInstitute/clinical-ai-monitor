@@ -1,5 +1,5 @@
 import React from 'react';
-import { FieldArray } from 'formik';
+import { FieldArray, Field } from 'formik';
 import {
   FormControl,
   FormLabel,
@@ -18,15 +18,20 @@ export const MetricsSection: React.FC = () => (
         <FormLabel>Metrics</FormLabel>
         {form.values.metrics.map((_, index) => (
           <Flex key={index} mb={2}>
-            <Input
+            <Field
+              as={Input}
               name={`metrics.${index}.name`}
               placeholder="Metric name"
               mr={2}
             />
-            <Select name={`metrics.${index}.type`} mr={2}>
+            <Field
+              as={Select}
+              name={`metrics.${index}.type`}
+              mr={2}
+            >
               <option value="binary">Binary</option>
               <option value="continuous">Continuous</option>
-            </Select>
+            </Field>
             <IconButton
               aria-label="Remove metric"
               icon={<DeleteIcon />}

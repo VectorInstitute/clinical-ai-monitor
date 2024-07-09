@@ -96,7 +96,7 @@ export const ModelProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         throw new Error(errorData.detail || 'Failed to create evaluation server');
       }
 
-      // Immediately update the local state
+      // Only update the local state if the server creation was successful
       setModels(prevModels => [
         ...prevModels,
         { ...newModel, id: prevModels.length + 1 }
@@ -109,7 +109,7 @@ export const ModelProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       await fetchModels();
     } catch (error) {
       console.error('Error adding model:', error);
-      throw error;
+      throw error; // Re-throw the error so it can be caught in the component
     }
   }, [fetchModels]);
 
@@ -145,7 +145,7 @@ export const ModelProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   }), [models, addModel, removeModel, fetchModels, isLoading]);
 
   return (
-    <ModelContext.Provider value={contextValue}>
+    <ModelContext.Provider value={{ models, addModel, removeModel, fetchModels, isLoading }}>
       {children}
     </ModelContext.Provider>
   );

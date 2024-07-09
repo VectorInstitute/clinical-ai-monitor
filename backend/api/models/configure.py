@@ -166,9 +166,8 @@ def evaluate_model(server_name: str, data: EvaluationInput) -> Dict[str, Any]:
     final_result = {
         "server_name": server_name,
         "model_name": server.config.model_name,
-        "metrics": [metric.name for metric in server.metrics.metrics],
+        "metrics": [metric for metric in server.metrics],
         "subgroups": [subgroup.name for subgroup in server.config.subgroups],
         "evaluation_result": results_flat,
     }
-
     return final_result

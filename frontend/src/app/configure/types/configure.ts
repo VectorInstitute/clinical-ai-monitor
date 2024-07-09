@@ -2,14 +2,10 @@ import { z } from 'zod';
 
 export const MetricConfigSchema = z.object({
   name: z.string(),
-  type: z.literal('binary'),
+  type: z.string(),
 });
 
-export const SubgroupConditionSchema = z.object({
-  column: z.string(),
-  operator: z.enum(['eq', 'gt', 'lt', 'gte', 'lte']),
-  value: z.union([z.string(), z.number()]),
-});
+export const SubgroupConditionSchema = z.record(z.any());
 
 export const SubgroupConfigSchema = z.object({
   name: z.string(),
