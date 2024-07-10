@@ -71,8 +71,18 @@ frontend/
 │   │   │   └── performance-metrics.ts
 │   │   ├── components/
 │   │   │   └── sidebar.tsx
+│   │   ├── configure/
+│   │   │   └── components/
+│   │   │       ├── config-card.tsx
+│   │   │       ├── delete-server-form.tsx
+│   │   │       ├── metrics-section.tsx
+│   │   │       ├── server-info-section.tsx
+│   │   │       ├── subgroups-section.tsx
+│   │   │       └── create-server-form.tsx
 │   │   ├── home/
 │   │   │   └── page.tsx
+│   │   ├── context/
+│   │   │   └── model.tsx
 │   │   ├── model/
 │   │   │   └── [id]/
 │   │   │       ├── utils/
@@ -94,6 +104,7 @@ frontend/
 │   │   │       │   ├── model-health.tsx
 │   │   │       │   └── performance-metrics.tsx
 │   │   │       ├── types/
+│   │   │       │   ├── health.ts
 │   │   │       │   └── performance-metrics.ts
 │   │   │       └── page.tsx
 │   │   ├── page.tsx
@@ -115,7 +126,10 @@ frontend/
 backend/
 ├── api/
 │   ├── main.py
-│   ├── models.py
+│   ├── models/
+│   │   ├── performance.py
+│   │   ├── health.py
+│   │   └── configure.py
 │   ├── routes.py
 │   └── login.py
 ```
