@@ -120,7 +120,7 @@ async def get_evaluation_endpoints() -> Dict[str, List[Dict[str, str]]]:
     return list_evaluation_endpoints()
 
 
-@router.post("/evaluate/{endpoint_name}", response_model=Dict[str, Any])
+@router.post("/evaluate/{endpoint_name}", response_model=EvaluationResult)
 async def evaluate(endpoint_name: str, data: EvaluationInput) -> EvaluationResult:
     """
     Evaluate a model using the specified evaluation endpoint configuration.
@@ -174,29 +174,6 @@ async def get_performance_metrics_for_endpoint(endpoint_name: str) -> Dict[str, 
     """
     try:
         return await get_performance_metrics(endpoint_name)
-    except Exception as e:
-        raise HTTPException(
-            status_code=500, detail=f"Error retrieving performance metrics: {str(e)}"
-        ) from e
-
-
-@router.get("/performance_metrics", response_model=Dict[str, Any])
-async def performance_metrics() -> Dict[str, Any]:
-    """
-    Retrieve performance metrics for the model.
-
-    Returns
-    -------
-    Dict[str, Any]
-        Dict containing performance metrics.
-
-    Raises
-    ------
-    HTTPException
-        If there's an error retrieving performance metrics.
-    """
-    try:
-        return await get_performance_metrics()
     except Exception as e:
         raise HTTPException(
             status_code=500, detail=f"Error retrieving performance metrics: {str(e)}"

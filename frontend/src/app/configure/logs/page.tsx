@@ -24,10 +24,10 @@ import Sidebar from '../../components/sidebar';
 
 interface EndpointLog {
   id: string;
-  endpointName: string;
-  createdAt: string;
-  lastEvaluated: string;
-  evaluationCount: number;
+  endpoint_name: string;
+  created_at: string;
+  last_evaluated: string;
+  evaluation_count: number;
 }
 
 const PAGE_SIZE = 10;
@@ -101,10 +101,10 @@ export default function EndpointLogsPage() {
                   <Tbody>
                     {paginatedLogs.map((log) => (
                       <Tr key={log.id}>
-                        <Td>{log.endpointName}</Td>
-                        <Td>{new Date(log.createdAt).toLocaleString()}</Td>
-                        <Td>{new Date(log.lastEvaluated).toLocaleString()}</Td>
-                        <Td isNumeric>{log.evaluationCount}</Td>
+                        <Td>{log.endpoint_name}</Td>
+                        <Td>{new Date(log.created_at).toLocaleString()}</Td>
+                        <Td>{new Date(log.last_evaluated).toLocaleString()}</Td>
+                        <Td isNumeric>{log.evaluation_count}</Td>
                       </Tr>
                     ))}
                   </Tbody>
