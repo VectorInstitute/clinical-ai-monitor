@@ -1,19 +1,19 @@
 'use client'
 
 import React, { createContext, useState, useContext, ReactNode, useEffect, useCallback, useMemo } from 'react';
-import { ServerConfig, MetricConfig, SubgroupConfig } from '../configure/types/configure';
+import { EndpointConfig, MetricConfig, SubgroupConfig } from '../configure/types/configure';
 
 interface Model {
   id: number;
   name: string;
   description: string;
-  serverName: string;
+  endpointName: string;
 }
 
 interface ModelContextType {
   models: Model[];
   addModel: (model: Omit<Model, 'id'>, metrics: MetricConfig[], subgroups: SubgroupConfig[]) => Promise<void>;
-  removeModel: (serverName: string) => Promise<void>;
+  removeModel: (endpointName: string) => Promise<void>;
   fetchModels: () => Promise<void>;
   isLoading: boolean;
 }
@@ -38,16 +38,16 @@ export const ModelProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const fetchModels = useCallback(async () => {
     setIsLoading(true);
     try {
-      const response = await fetch('/api/evaluation_servers');
+      const response = await fetch('/api/evaluation_endpoints');
       if (!response.ok) {
-        throw new Error('Failed to fetch evaluation servers');
+        throw new Error('Failed to fetch evaluation endpoints');
       }
       const data = await response.json();
-      const fetchedModels = data.servers.map((server: any, index: number) => ({
+      const fetchedModels = data.endpoints.map((endpoint: any, index: number) => ({
         id: index + 1,
-        name: server.model_name,
-        description: server.model_description,
-        serverName: server.server_name,
+        name: endpoint.model_name,
+        description: endpoint.model_description,
+        endpointName: endpoint.endpoint_name,
       }));
       setModels(fetchedModels);
       localStorage.setItem(CACHE_KEY, JSON.stringify({ data: fetchedModels, timestamp: Date.now() }));
@@ -75,59 +75,55 @@ export const ModelProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
   const addModel = useCallback(async (newModel: Omit<Model, 'id'>, metrics: MetricConfig[], subgroups: SubgroupConfig[]) => {
     try {
-      const serverConfig: ServerConfig = {
-        server_name: newModel.serverName,
+      const endpointConfig: EndpointConfig = {
+        endpoint_name: newModel.endpointName,
         model_name: newModel.name,
         model_description: newModel.description,
         metrics,
         subgroups,
       };
 
-      const response = await fetch('/api/create_evaluation_server', {
+      const response = await fetch('/api/create_evaluation_endpoint', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(serverConfig),
+        body: JSON.stringify(endpointConfig),
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.detail || 'Failed to create evaluation server');
+        throw new Error(errorData.detail || 'Failed to create evaluation endpoint');
       }
 
-      // Only update the local state if the server creation was successful
       setModels(prevModels => [
         ...prevModels,
         { ...newModel, id: prevModels.length + 1 }
       ]);
 
-      // Clear the cache to ensure fresh data on next fetch
       localStorage.removeItem(CACHE_KEY);
-
-      // Fetch updated data from the server
       await fetchModels();
     } catch (error) {
       console.error('Error adding model:', error);
-      throw error; // Re-throw the error so it can be caught in the component
+      throw error;
     }
   }, [fetchModels]);
 
-  const removeModel = useCallback(async (serverName: string) => {
+  const removeModel = useCallback(async (endpointName: string) => {
     setIsLoading(true);
     try {
-      const response = await fetch(`/api/delete_evaluation_server/${serverName}`, {
+      const response = await fetch(`/api/delete_evaluation_endpoint/${endpointName}`, {
         method: 'DELETE',
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.detail || 'Failed to delete evaluation server');
+        throw new Error(errorData.detail || 'Failed to delete evaluation endpoint');
       }
 
-      setModels(prevModels => prevModels.filter(model => model.serverName !== serverName));
-      localStorage.removeItem(CACHE_KEY); // Clear cache after deletion
-      await fetchModels(); // Fetch updated data from the server
+      setModels(prevModels => prevModels.filter(model => model.endpointName !== endpointName));
+      localStorage.removeItem(CACHE_KEY);
+      await fetchModels();
     } catch (error) {
       console.error('Error removing model:', error);
       throw error;
@@ -145,7 +141,7 @@ export const ModelProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   }), [models, addModel, removeModel, fetchModels, isLoading]);
 
   return (
-    <ModelContext.Provider value={{ models, addModel, removeModel, fetchModels, isLoading }}>
+    <ModelContext.Provider value={contextValue}>
       {children}
     </ModelContext.Provider>
   );

@@ -15,25 +15,25 @@ import {
 } from '@chakra-ui/react';
 import { useModelContext } from '../../context/model';
 import { useRouter } from 'next/navigation';
-import { ServerConfigSchema } from '../types/configure';
+import { EndpointConfigSchema } from '../types/configure';
 import { MetricsSection } from './metrics-section';
 import { SubgroupsSection } from './subgroups-section';
-import { ServerInfoSection } from './server-info-section';
+import { EndpointInfoSection } from './endpoint-info-section';
 
 const initialValues = {
-  server_name: '',
+  endpoint_name: '',
   model_name: '',
   model_description: '',
   metrics: [],
   subgroups: [],
 };
 
-interface CreateServerFormProps {
+interface CreateEndpointFormProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-const CreateServerForm: React.FC<CreateServerFormProps> = ({ isOpen, onClose }) => {
+const CreateEndpointForm: React.FC<CreateEndpointFormProps> = ({ isOpen, onClose }) => {
   const toast = useToast();
   const router = useRouter();
   const { addModel } = useModelContext();
@@ -44,15 +44,15 @@ const CreateServerForm: React.FC<CreateServerFormProps> = ({ isOpen, onClose }) 
         {
           name: values.model_name,
           description: values.model_description,
-          serverName: values.server_name,
+          endpointName: values.endpoint_name,
         },
         values.metrics,
         values.subgroups
       );
 
       toast({
-        title: "Evaluation server created.",
-        description: "Your new evaluation server has been successfully configured.",
+        title: "Evaluation endpoint created.",
+        description: "Your new evaluation endpoint has been successfully configured.",
         status: "success",
         duration: 5000,
         isClosable: true,
@@ -62,7 +62,7 @@ const CreateServerForm: React.FC<CreateServerFormProps> = ({ isOpen, onClose }) 
       router.push('/home');
     } catch (error) {
       if (error.message.includes('already exists')) {
-        setFieldError('server_name', 'Server name already exists');
+        setFieldError('endpoint_name', 'Endpoint name already exists');
       } else {
         toast({
           title: "Error",
@@ -81,18 +81,18 @@ const CreateServerForm: React.FC<CreateServerFormProps> = ({ isOpen, onClose }) 
     <Modal isOpen={isOpen} onClose={onClose}>
       <ModalOverlay />
       <ModalContent>
-        <ModalHeader>Create Evaluation Server</ModalHeader>
+        <ModalHeader>Create Evaluation Endpoint</ModalHeader>
         <ModalCloseButton />
         <Formik
           initialValues={initialValues}
-          validationSchema={toFormikValidationSchema(ServerConfigSchema)}
+          validationSchema={toFormikValidationSchema(EndpointConfigSchema)}
           onSubmit={handleSubmit}
         >
           {({ isSubmitting }) => (
             <Form>
               <ModalBody>
                 <VStack spacing={4}>
-                  <ServerInfoSection />
+                  <EndpointInfoSection />
                   <MetricsSection />
                   <SubgroupsSection />
                 </VStack>
@@ -106,7 +106,7 @@ const CreateServerForm: React.FC<CreateServerFormProps> = ({ isOpen, onClose }) 
                   type="submit"
                   isLoading={isSubmitting}
                 >
-                  Create Evaluation Server
+                  Create Evaluation Endpoint
                 </Button>
               </ModalFooter>
             </Form>
@@ -117,4 +117,4 @@ const CreateServerForm: React.FC<CreateServerFormProps> = ({ isOpen, onClose }) 
   );
 };
 
-export default CreateServerForm;
+export default CreateEndpointForm;

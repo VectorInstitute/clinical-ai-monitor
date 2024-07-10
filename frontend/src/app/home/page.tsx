@@ -102,7 +102,7 @@ export default function HomePage() {
                 {model.description}
               </Text>
               <Text fontSize="xs" color={useColorModeValue('gray.500', 'gray.400')}>
-                Server: {model.serverName}
+                Endpoint: {model.endpointName}
               </Text>
             </VStack>
           </Box>

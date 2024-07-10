@@ -12,8 +12,8 @@ export const SubgroupConfigSchema = z.object({
   condition: SubgroupConditionSchema,
 });
 
-export const ServerConfigSchema = z.object({
-  server_name: z.string(),
+export const EndpointConfigSchema = z.object({
+  endpoint_name: z.string(),
   model_name: z.string(),
   model_description: z.string(),
   metrics: z.array(MetricConfigSchema),
@@ -23,4 +23,4 @@ export const ServerConfigSchema = z.object({
 export type MetricConfig = z.infer<typeof MetricConfigSchema>;
 export type SubgroupCondition = z.infer<typeof SubgroupConditionSchema>;
 export type SubgroupConfig = z.infer<typeof SubgroupConfigSchema>;
-export type ServerConfig = z.infer<typeof ServerConfigSchema>;
+export type EndpointConfig = z.infer<typeof EndpointConfigSchema>;

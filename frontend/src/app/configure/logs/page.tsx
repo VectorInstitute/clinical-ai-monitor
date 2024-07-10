@@ -22,9 +22,9 @@ import {
 import { FiChevronLeft, FiChevronRight } from 'react-icons/fi';
 import Sidebar from '../../components/sidebar';
 
-interface ServerLog {
+interface EndpointLog {
   id: string;
-  serverName: string;
+  endpointName: string;
   createdAt: string;
   lastEvaluated: string;
   evaluationCount: number;
@@ -32,8 +32,8 @@ interface ServerLog {
 
 const PAGE_SIZE = 10;
 
-export default function ServerLogsPage() {
-  const [logs, setLogs] = useState<ServerLog[]>([]);
+export default function EndpointLogsPage() {
+  const [logs, setLogs] = useState<EndpointLog[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -46,14 +46,14 @@ export default function ServerLogsPage() {
     const fetchLogs = async () => {
       setIsLoading(true);
       try {
-        const response = await fetch('/api/server-logs');
+        const response = await fetch('/api/endpoint_logs');
         if (!response.ok) {
-          throw new Error('Failed to fetch server logs');
+          throw new Error('Failed to fetch endpoint logs');
         }
         const data = await response.json();
         setLogs(data);
       } catch (err) {
-        setError('An error occurred while fetching server logs');
+        setError('An error occurred while fetching endpoint logs');
         console.error(err);
       } finally {
         setIsLoading(false);
@@ -77,7 +77,7 @@ export default function ServerLogsPage() {
       >
         <VStack spacing={8} align="stretch">
           <Heading as="h1" size="xl" color={textColor}>
-            Server Logs
+            Endpoint Logs
           </Heading>
           {isLoading ? (
             <Flex justify="center" align="center" height="300px">
@@ -89,10 +89,10 @@ export default function ServerLogsPage() {
             <>
               <TableContainer>
                 <Table variant="simple">
-                  <TableCaption>Server Logs and Statistics</TableCaption>
+                  <TableCaption>Endpoint Logs and Statistics</TableCaption>
                   <Thead>
                     <Tr bg={tableHeaderBg}>
-                      <Th>Server Name</Th>
+                      <Th>Endpoint Name</Th>
                       <Th>Created At</Th>
                       <Th>Last Evaluated</Th>
                       <Th isNumeric>Evaluation Count</Th>
@@ -101,7 +101,7 @@ export default function ServerLogsPage() {
                   <Tbody>
                     {paginatedLogs.map((log) => (
                       <Tr key={log.id}>
-                        <Td>{log.serverName}</Td>
+                        <Td>{log.endpointName}</Td>
                         <Td>{new Date(log.createdAt).toLocaleString()}</Td>
                         <Td>{new Date(log.lastEvaluated).toLocaleString()}</Td>
                         <Td isNumeric>{log.evaluationCount}</Td>

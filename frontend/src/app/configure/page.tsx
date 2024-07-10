@@ -15,8 +15,8 @@ import {
 import { FiPlus, FiTrash2, FiInfo, FiList } from 'react-icons/fi';
 import { useRouter } from 'next/navigation';
 import Sidebar from '../components/sidebar';
-import CreateServerForm from './components/create-server-form';
-import DeleteServerForm from './components/delete-server-form';
+import CreateEndpointForm from './components/create-endpoint-form';
+import DeleteEndpointForm from './components/delete-endpoint-form';
 import ConfigCard from './components/config-card';
 
 export default function ConfigurationPage() {
@@ -40,32 +40,32 @@ export default function ConfigurationPage() {
         <VStack spacing={8} align="stretch">
           <Flex justify="space-between" align="center">
             <Heading as="h1" size="xl" color={textColor}>
-              Configure Monitoring Servers
+              Configure Monitoring Endpoints
             </Heading>
-            <Tooltip label="Manage your model monitoring servers here" placement="top">
+            <Tooltip label="Manage your model monitoring endpoints here" placement="top">
               <Icon as={FiInfo} color={textColor} boxSize={6} />
             </Tooltip>
           </Flex>
           <SimpleGrid columns={{ base: 1, md: 3 }} spacing={8}>
             <ConfigCard
-              title="Create New Server"
-              description="Set up a new model monitoring server with custom metrics and subgroups."
+              title="Create New Endpoint"
+              description="Set up a new model monitoring endpoint with custom metrics and subgroups."
               icon={FiPlus}
-              buttonText="Create Server"
+              buttonText="Create Endpoint"
               buttonColor="blue"
               onClick={onCreateOpen}
             />
             <ConfigCard
-              title="Delete Existing Server"
-              description="Remove a model monitoring server that is no longer needed."
+              title="Delete Existing Endpoint"
+              description="Remove a model monitoring endpoint that is no longer needed."
               icon={FiTrash2}
-              buttonText="Delete Server"
+              buttonText="Delete Endpoint"
               buttonColor="red"
               onClick={onDeleteOpen}
             />
             <ConfigCard
-              title="View Server Logs"
-              description="Check logs and statistics for your evaluation servers."
+              title="View Endpoint Logs"
+              description="Check logs and statistics for your evaluation endpoints."
               icon={FiList}
               buttonText="View Logs"
               buttonColor="green"
@@ -74,8 +74,8 @@ export default function ConfigurationPage() {
           </SimpleGrid>
         </VStack>
       </Box>
-      <CreateServerForm isOpen={isCreateOpen} onClose={onCreateClose} />
-      <DeleteServerForm isOpen={isDeleteOpen} onClose={onDeleteClose} />
+      <CreateEndpointForm isOpen={isCreateOpen} onClose={onCreateClose} />
+      <DeleteEndpointForm isOpen={isDeleteOpen} onClose={onDeleteClose} />
     </Flex>
   );
 }

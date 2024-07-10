@@ -19,62 +19,58 @@ import {
   ModalFooter,
   ModalBody,
   ModalCloseButton,
+  FormErrorMessage,
 } from '@chakra-ui/react';
 import { useModelContext } from '../../context/model';
 
-interface DeleteServerFormProps {
+interface DeleteEndpointFormProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-const DeleteServerForm: React.FC<DeleteServerFormProps> = ({ isOpen, onClose }) => {
+const DeleteEndpointForm: React.FC<DeleteEndpointFormProps> = ({ isOpen, onClose }) => {
   const toast = useToast();
   const { removeModel, models, fetchModels } = useModelContext();
-  const [selectedServer, setSelectedServer] = useState('');
+  const [selectedEndpoint, setSelectedEndpoint] = useState('');
   const [isAlertOpen, setIsAlertOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const cancelRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     if (isOpen) {
       fetchModels();
+      setSelectedEndpoint('');
+      setError(null);
     }
   }, [isOpen, fetchModels]);
 
   const handleDelete = () => {
-    if (!selectedServer) {
-      toast({
-        title: "Error",
-        description: "Please select a server to delete.",
-        status: "error",
-        duration: 5000,
-        isClosable: true,
-      });
+    if (!selectedEndpoint) {
+      setError("Please select an endpoint to delete.");
       return;
     }
-
+    setError(null);
     setIsAlertOpen(true);
   };
 
   const confirmDelete = async () => {
     setIsLoading(true);
     try {
-      await removeModel(selectedServer);
-
+      await removeModel(selectedEndpoint);
       toast({
-        title: "Evaluation server deleted.",
-        description: "The selected evaluation server has been successfully deleted.",
+        title: "Evaluation endpoint deleted.",
+        description: "The selected evaluation endpoint has been successfully deleted.",
         status: "success",
         duration: 5000,
         isClosable: true,
       });
-
       setIsAlertOpen(false);
       onClose();
     } catch (error) {
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "An error occurred while deleting the server",
+        description: error instanceof Error ? error.message : "An error occurred while deleting the endpoint",
         status: "error",
         duration: 5000,
         isClosable: true,
@@ -89,25 +85,29 @@ const DeleteServerForm: React.FC<DeleteServerFormProps> = ({ isOpen, onClose }) 
       <Modal isOpen={isOpen} onClose={onClose}>
         <ModalOverlay />
         <ModalContent>
-          <ModalHeader>Delete Evaluation Server</ModalHeader>
+          <ModalHeader>Delete Evaluation Endpoint</ModalHeader>
           <ModalCloseButton />
           <ModalBody>
             <VStack spacing={6} align="stretch">
-              <FormControl>
-                <FormLabel htmlFor="server_select">Select Server to Delete</FormLabel>
+              <FormControl isInvalid={!!error}>
+                <FormLabel htmlFor="endpoint_select">Select Endpoint to Delete</FormLabel>
                 <Select
-                  id="server_select"
-                  value={selectedServer}
-                  onChange={(e) => setSelectedServer(e.target.value)}
-                  placeholder="Select a server"
+                  id="endpoint_select"
+                  value={selectedEndpoint}
+                  onChange={(e) => {
+                    setSelectedEndpoint(e.target.value);
+                    setError(null);
+                  }}
+                  placeholder="Select an endpoint"
                   isDisabled={isLoading}
                 >
                   {models.map((model) => (
-                    <option key={model.serverName} value={model.serverName}>
-                      {model.name} ({model.serverName})
+                    <option key={model.endpointName} value={model.endpointName}>
+                      {model.name} ({model.endpointName})
                     </option>
                   ))}
                 </Select>
+                {error && <FormErrorMessage>{error}</FormErrorMessage>}
               </FormControl>
             </VStack>
           </ModalBody>
@@ -116,10 +116,10 @@ const DeleteServerForm: React.FC<DeleteServerFormProps> = ({ isOpen, onClose }) 
             <Button
               onClick={handleDelete}
               colorScheme="red"
-              isDisabled={!selectedServer || isLoading}
+              isDisabled={!selectedEndpoint || isLoading}
               isLoading={isLoading}
             >
-              Delete Server
+              Delete Endpoint
             </Button>
           </ModalFooter>
         </ModalContent>
@@ -133,11 +133,11 @@ const DeleteServerForm: React.FC<DeleteServerFormProps> = ({ isOpen, onClose }) 
         <AlertDialogOverlay>
           <AlertDialogContent>
             <AlertDialogHeader fontSize="lg" fontWeight="bold">
-              Delete Evaluation Server
+              Delete Evaluation Endpoint
             </AlertDialogHeader>
 
             <AlertDialogBody>
-              Are you sure you want to delete this evaluation server? This action cannot be undone.
+              Are you sure you want to delete this evaluation endpoint? This action cannot be undone.
             </AlertDialogBody>
 
             <AlertDialogFooter>
@@ -155,4 +155,4 @@ const DeleteServerForm: React.FC<DeleteServerFormProps> = ({ isOpen, onClose }) 
   );
 };
 
-export default DeleteServerForm;
+export default DeleteEndpointForm;
