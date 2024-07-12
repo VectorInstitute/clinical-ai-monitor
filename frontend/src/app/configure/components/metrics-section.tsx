@@ -9,6 +9,7 @@ import {
   Button,
   Text,
   VStack,
+  FormErrorMessage,
 } from '@chakra-ui/react';
 import { AddIcon, DeleteIcon } from '@chakra-ui/icons';
 
@@ -34,12 +35,12 @@ const METRIC_NAMES = [
 const METRIC_TYPES = ['binary', 'multilabel', 'multiclass'];
 
 export const MetricsSection: React.FC = () => {
-  const { values, errors } = useFormikContext<{ metrics: Array<{ name: string; type: string }> }>();
+  const { values, errors, touched } = useFormikContext<{ metrics: Array<{ name: string; type: string }> }>();
 
   return (
     <FieldArray name="metrics">
       {({ push, remove }) => (
-        <FormControl>
+        <FormControl isInvalid={!!(errors.metrics && touched.metrics)}>
           <FormLabel>Metrics</FormLabel>
           <VStack align="stretch" spacing={2}>
             {values.metrics.map((metric, index) => (
@@ -78,7 +79,7 @@ export const MetricsSection: React.FC = () => {
               </Flex>
             ))}
             {errors.metrics && typeof errors.metrics === 'string' && (
-              <Text color="red.500">{errors.metrics}</Text>
+              <FormErrorMessage>{errors.metrics}</FormErrorMessage>
             )}
           </VStack>
           <Button
@@ -88,6 +89,11 @@ export const MetricsSection: React.FC = () => {
           >
             Add Metric
           </Button>
+          {values.metrics.length === 0 && (
+            <Text color="red.500" mt={2}>
+              At least one metric is required.
+            </Text>
+          )}
         </FormControl>
       )}
     </FieldArray>

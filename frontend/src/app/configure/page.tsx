@@ -19,7 +19,7 @@ import CreateEndpointForm from './components/create-endpoint-form';
 import DeleteEndpointForm from './components/delete-endpoint-form';
 import ConfigCard from './components/config-card';
 
-export default function ConfigurationPage() {
+const ConfigurationPage: React.FC = () => {
   const { isOpen: isCreateOpen, onOpen: onCreateOpen, onClose: onCreateClose } = useDisclosure();
   const { isOpen: isDeleteOpen, onOpen: onDeleteOpen, onClose: onDeleteClose } = useDisclosure();
   const router = useRouter();
@@ -27,6 +27,33 @@ export default function ConfigurationPage() {
 
   const bgColor = useColorModeValue('gray.50', 'gray.800');
   const textColor = useColorModeValue('gray.800', 'white');
+
+  const configCards = [
+    {
+      title: "Create New Endpoint",
+      description: "Set up a new model monitoring endpoint with custom metrics and subgroups.",
+      icon: FiPlus,
+      buttonText: "Create Endpoint",
+      buttonColor: "blue",
+      onClick: onCreateOpen,
+    },
+    {
+      title: "Delete Existing Endpoint",
+      description: "Remove a model monitoring endpoint that is no longer needed.",
+      icon: FiTrash2,
+      buttonText: "Delete Endpoint",
+      buttonColor: "red",
+      onClick: onDeleteOpen,
+    },
+    {
+      title: "View Endpoint Logs",
+      description: "Check logs and statistics for your evaluation endpoints.",
+      icon: FiList,
+      buttonText: "View Logs",
+      buttonColor: "green",
+      onClick: () => router.push('/configure/logs'),
+    },
+  ];
 
   return (
     <Flex minHeight="100vh" bg={bgColor}>
@@ -47,30 +74,9 @@ export default function ConfigurationPage() {
             </Tooltip>
           </Flex>
           <SimpleGrid columns={{ base: 1, md: 3 }} spacing={8}>
-            <ConfigCard
-              title="Create New Endpoint"
-              description="Set up a new model monitoring endpoint with custom metrics and subgroups."
-              icon={FiPlus}
-              buttonText="Create Endpoint"
-              buttonColor="blue"
-              onClick={onCreateOpen}
-            />
-            <ConfigCard
-              title="Delete Existing Endpoint"
-              description="Remove a model monitoring endpoint that is no longer needed."
-              icon={FiTrash2}
-              buttonText="Delete Endpoint"
-              buttonColor="red"
-              onClick={onDeleteOpen}
-            />
-            <ConfigCard
-              title="View Endpoint Logs"
-              description="Check logs and statistics for your evaluation endpoints."
-              icon={FiList}
-              buttonText="View Logs"
-              buttonColor="green"
-              onClick={() => router.push('/configure/logs')}
-            />
+            {configCards.map((card, index) => (
+              <ConfigCard key={index} {...card} />
+            ))}
           </SimpleGrid>
         </VStack>
       </Box>
@@ -79,3 +85,5 @@ export default function ConfigurationPage() {
     </Flex>
   );
 }
+
+export default ConfigurationPage;

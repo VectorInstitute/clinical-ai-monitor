@@ -1,5 +1,5 @@
 import React from 'react';
-import { Formik, Form } from 'formik';
+import { Formik, Form, FormikHelpers } from 'formik';
 import { toFormikValidationSchema } from 'zod-formik-adapter';
 import {
   Button,
@@ -12,15 +12,16 @@ import {
   ModalFooter,
   ModalBody,
   ModalCloseButton,
+  Text,
 } from '@chakra-ui/react';
 import { useModelContext } from '../../context/model';
 import { useRouter } from 'next/navigation';
-import { EndpointConfigSchema } from '../types/configure';
+import { EndpointConfigSchema, EndpointConfig } from '../types/configure';
 import { MetricsSection } from './metrics-section';
 import { SubgroupsSection } from './subgroups-section';
 import { EndpointInfoSection } from './endpoint-info-section';
 
-const initialValues = {
+const initialValues: EndpointConfig = {
   endpoint_name: '',
   model_name: '',
   model_description: '',
@@ -38,8 +39,16 @@ const CreateEndpointForm: React.FC<CreateEndpointFormProps> = ({ isOpen, onClose
   const router = useRouter();
   const { addModel } = useModelContext();
 
-  const handleSubmit = async (values, { setSubmitting, setFieldError }) => {
+  const handleSubmit = async (
+    values: EndpointConfig,
+    { setSubmitting, setFieldError }: FormikHelpers<EndpointConfig>
+  ) => {
     try {
+      if (values.metrics.length === 0) {
+        setFieldError('metrics', 'At least one metric is required');
+        return;
+      }
+
       await addModel(
         {
           name: values.model_name,
@@ -61,12 +70,12 @@ const CreateEndpointForm: React.FC<CreateEndpointFormProps> = ({ isOpen, onClose
       onClose();
       router.push('/home');
     } catch (error) {
-      if (error.message.includes('already exists')) {
+      if (error instanceof Error && error.message.includes('already exists')) {
         setFieldError('endpoint_name', 'Endpoint name already exists');
       } else {
         toast({
           title: "Error",
-          description: error.message,
+          description: error instanceof Error ? error.message : 'An unknown error occurred',
           status: "error",
           duration: 5000,
           isClosable: true,
@@ -88,13 +97,18 @@ const CreateEndpointForm: React.FC<CreateEndpointFormProps> = ({ isOpen, onClose
           validationSchema={toFormikValidationSchema(EndpointConfigSchema)}
           onSubmit={handleSubmit}
         >
-          {({ isSubmitting }) => (
+          {({ isSubmitting, errors, touched }) => (
             <Form>
               <ModalBody>
                 <VStack spacing={4}>
                   <EndpointInfoSection />
                   <MetricsSection />
                   <SubgroupsSection />
+                  {Object.keys(errors).length > 0 && touched.endpoint_name && (
+                    <Text color="red.500">
+                      Please fill in all required fields correctly before submitting.
+                    </Text>
+                  )}
                 </VStack>
               </ModalBody>
               <ModalFooter>
