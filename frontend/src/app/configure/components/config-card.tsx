@@ -9,11 +9,12 @@ import {
   Text,
   Icon,
 } from '@chakra-ui/react';
+import { IconType } from 'react-icons';
 
 interface ConfigCardProps {
   title: string;
   description: string;
-  icon: React.ElementType;
+  icon: IconType;
   buttonText: string;
   buttonColor: string;
   onClick: () => void;
