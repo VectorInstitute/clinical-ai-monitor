@@ -1,4 +1,3 @@
-// src/app/api/models.ts
 import apiClient from './client';
 
 export const getModels = async () => {

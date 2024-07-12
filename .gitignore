@@ -40,3 +40,4 @@ next-env.d.ts
 **__pycache__**
 .mypy_cache/
 .venv/
+**endpoint_data**

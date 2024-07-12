@@ -9,7 +9,6 @@ import {
   useBreakpointValue,
   Divider,
 } from '@chakra-ui/react';
-import { z } from 'zod';
 import { ErrorMessage } from '../components/error-message';
 import { LoadingSpinner } from '../components/loading-spinner';
 import { MetricCard } from '../components/metric-card';
@@ -17,10 +16,16 @@ import { MetricSelector } from '../components/metric-selector';
 import { SliceSelector } from '../components/slice-selector';
 import { PlotSettings } from '../components/plot-settings';
 import { TimeSeriesChart } from '../components/time-series-chart';
-import { PerformanceDataSchema } from '../types/performance-metrics';
+import { getPerformanceMetrics } from '../../../api/performance-metrics';
+import { PerformanceData } from '../types/performance-metrics';
 
-export default function PerformanceMetricsTab() {
-  const [data, setData] = useState<z.infer<typeof PerformanceDataSchema> | null>(null);
+interface PerformanceMetricsTabProps {
+  endpointName: string;
+}
+
+export default function PerformanceMetricsTab({ endpointName }: PerformanceMetricsTabProps) {
+  console.log(`PerformanceMetricsTab: endpointName = ${endpointName}`);
+  const [data, setData] = useState<PerformanceData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedMetrics, setSelectedMetrics] = useState<string[]>([]);
@@ -35,15 +40,11 @@ export default function PerformanceMetricsTab() {
   useEffect(() => {
     const fetchPerformanceMetrics = async () => {
       try {
-        const response = await fetch('/api/performance_metrics');
-        if (!response.ok) {
-          throw new Error('Failed to fetch performance metrics');
-        }
-        const jsonData = await response.json();
-        const validatedData = PerformanceDataSchema.parse(jsonData);
-        setData(validatedData);
-        setSelectedMetrics([validatedData.overview.metric_cards.metrics[0]]);
-        setLastNEvaluations(Math.min(20, validatedData.overview.last_n_evals));
+        setIsLoading(true);
+        const fetchedData = await getPerformanceMetrics(endpointName);
+        setData(fetchedData);
+        setSelectedMetrics([fetchedData.overview.metric_cards.metrics[0]]);
+        setLastNEvaluations(Math.min(20, fetchedData.overview.last_n_evals));
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An error occurred');
       } finally {
@@ -51,7 +52,7 @@ export default function PerformanceMetricsTab() {
       }
     };
     fetchPerformanceMetrics();
-  }, []);
+  }, [endpointName]);
 
   const renderMetricCards = useMemo(() => {
     if (!data) return null;

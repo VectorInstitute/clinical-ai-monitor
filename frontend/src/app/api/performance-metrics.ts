@@ -1,17 +1,18 @@
-import type { NextApiRequest, NextApiResponse } from 'next'
-import apiClient from './client'
-import { PerformanceData } from '../model/[id]/types/performance-metrics'
+import { AxiosError } from 'axios';
+import { PerformanceDataSchema, PerformanceData } from '../model/[id]/types/performance-metrics';
+import apiClient from './client';
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse<PerformanceData | { error: string }>) {
+export const getPerformanceMetrics = async (endpointName: string): Promise<PerformanceData> => {
   try {
-    const backendResponse = await apiClient.get<PerformanceData>('/performance-metrics')
-    res.status(200).json(backendResponse.data)
+    const response = await apiClient.get<PerformanceData>(`/performance_metrics/${endpointName}`);
+    const validatedData = PerformanceDataSchema.parse(response.data);
+    return validatedData;
   } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch performance metrics' })
+    if (error instanceof AxiosError) {
+      console.error('Axios error:', error.response?.status, error.response?.data);
+      throw new Error(`Failed to fetch performance metrics: ${error.message}`);
+    }
+    console.error('Unexpected error:', error);
+    throw new Error('An unexpected error occurred while fetching performance metrics');
   }
-}
-
-export const getPerformanceMetrics = async (): Promise<PerformanceData> => {
-  const response = await apiClient.get<PerformanceData>('/performance-metrics')
-  return response.data
-}
+};
