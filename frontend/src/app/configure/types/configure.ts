@@ -6,14 +6,16 @@ export const MetricConfigSchema = z.object({
 });
 
 export const SubgroupConditionSchema = z.object({
-  column: z.string().min(1, "Column name is required"),
-  type: z.string().min(1, "Condition type is required"),
+  type: z.enum(['value', 'range', 'contains', 'year', 'month', 'day'], {
+    errorMap: () => ({ message: "Invalid condition type" })
+  }),
   value: z.union([z.string(), z.number()]).optional(),
   min_value: z.number().optional(),
   max_value: z.number().optional(),
 });
 
 export const SubgroupConfigSchema = z.object({
+  column: z.string().min(1, "Column name is required"),
   condition: SubgroupConditionSchema,
 });
 

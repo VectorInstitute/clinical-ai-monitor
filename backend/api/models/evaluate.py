@@ -3,7 +3,7 @@
 import json
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, TypedDict, Union, cast
 
 import numpy as np
 import pandas as pd
@@ -11,11 +11,14 @@ from cyclops.data.slicer import SliceSpec
 from cyclops.evaluate import evaluator
 from cyclops.evaluate.metrics import create_metric
 from cyclops.evaluate.metrics.experimental import MetricDict
-from cyclops.report.utils import flatten_results_dict
 from datasets.arrow_dataset import Dataset
 from pydantic import BaseModel, Field, validator
 
-from backend.api.models.config import EndpointConfig
+from backend.api.models.config import (
+    ConditionType,
+    EndpointConfig,
+    SubgroupCondition,
+)
 
 
 # Define the path for storing endpoint data
@@ -24,7 +27,18 @@ DATA_DIR.mkdir(exist_ok=True)
 
 
 class EvaluationInput(BaseModel):
-    """Input data for evaluation."""
+    """
+    Input data for evaluation.
+
+    Attributes
+    ----------
+    preds_prob : List[float]
+        The predicted probabilities.
+    target : List[float]
+        The target values.
+    metadata : Dict[str, List[Any]]
+        Additional metadata for the evaluation.
+    """
 
     preds_prob: List[float] = Field(..., description="The predicted probabilities")
     target: List[float] = Field(..., description="The target values")
@@ -33,7 +47,9 @@ class EvaluationInput(BaseModel):
     )
 
 
-def deep_convert_numpy(obj: Any) -> Any:  # noqa: PLR0911
+def deep_convert_numpy(
+    obj: Any,
+) -> Union[int, float, List[Any], Dict[str, Any], str, Any]:
     """
     Recursively convert numpy types to Python native types.
 
@@ -44,56 +60,68 @@ def deep_convert_numpy(obj: Any) -> Any:  # noqa: PLR0911
 
     Returns
     -------
-    Any
+    Union[int, float, List[Any], Dict[str, Any], str, Any]
         The converted object.
     """
-    if isinstance(obj, np.integer):
-        return int(obj)
-    if isinstance(obj, np.floating):
-        return float(obj)
-    if isinstance(obj, np.ndarray):
-        return obj.tolist()
-    if isinstance(obj, dict):
-        return {key: deep_convert_numpy(value) for key, value in obj.items()}
-    if isinstance(obj, list):
-        return [deep_convert_numpy(item) for item in obj]
-    if isinstance(obj, datetime):
-        return obj.isoformat()
+    conversion_map: Dict[type, Callable[[Any], Any]] = {
+        np.integer: int,
+        np.floating: float,
+        np.ndarray: lambda x: x.tolist(),
+        dict: lambda x: {key: deep_convert_numpy(value) for key, value in x.items()},
+        list: lambda x: [deep_convert_numpy(item) for item in x],
+        datetime: lambda x: x.isoformat(),
+    }
+
+    for type_, converter in conversion_map.items():
+        if isinstance(obj, type_):
+            return converter(obj)
     return obj
 
 
 class EvaluationResult(BaseModel):
-    """Evaluation result for an endpoint."""
+    """
+    Evaluation result for an endpoint.
 
-    endpoint_name: str
-    model_name: str
+    Attributes
+    ----------
+    metrics : List[str]
+        List of metric names.
+    subgroups : List[str]
+        List of subgroup names.
+    evaluation_result : Dict[str, Any]
+        The evaluation result dictionary.
+    timestamp : datetime
+        Timestamp of the evaluation.
+    sample_size : int
+        The sample size used for evaluation.
+    """
+
     metrics: List[str]
     subgroups: List[str]
     evaluation_result: Dict[str, Any]
     timestamp: datetime
+    sample_size: int
 
     @validator("evaluation_result", pre=True)
     @classmethod
     def process_evaluation_result(cls, v: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Flatten the nested evaluation result dictionary and convert numpy types.
-
-        Parameters
-        ----------
-        v : Dict[str, Any]
-            The nested evaluation result dictionary.
-
-        Returns
-        -------
-        Dict[str, Any]
-            The flattened evaluation result dictionary with converted numpy types.
-        """
-        flattened = flatten_results_dict(v)
-        return deep_convert_numpy(flattened)
+        """Process the evaluation result dictionary."""
+        return cast(Dict[str, Any], deep_convert_numpy(v))
 
 
 class EndpointLog(BaseModel):
-    """Log entry for an endpoint."""
+    """
+    Log entry for an endpoint.
+
+    Attributes
+    ----------
+    timestamp : datetime
+        Timestamp of the log entry.
+    action : str
+        Action performed.
+    details : Optional[Dict[str, Any]]
+        Additional details of the action.
+    """
 
     timestamp: datetime
     action: str
@@ -101,7 +129,18 @@ class EndpointLog(BaseModel):
 
 
 class EndpointData(BaseModel):
-    """Data for an endpoint, including configuration, evaluation history, and logs."""
+    """
+    Data for an endpoint, including configuration, evaluation history, and logs.
+
+    Attributes
+    ----------
+    config : EndpointConfig
+        Configuration of the endpoint.
+    evaluation_history : List[EvaluationResult]
+        List of evaluation results.
+    logs : List[EndpointLog]
+        List of log entries.
+    """
 
     config: EndpointConfig
     evaluation_history: List[EvaluationResult] = []
@@ -121,14 +160,16 @@ class EvaluationEndpoint:
             The configuration for the evaluation endpoint.
         """
         self.config = config
-        self.metrics = MetricDict(
-            [
-                create_metric(f"{metric.type}_{metric.name}", experimental=True)
+        self.metrics: MetricDict = MetricDict(
+            {
+                f"{metric.type}_{metric.name}": create_metric(
+                    f"{metric.type}_{metric.name}", experimental=True
+                )
                 for metric in config.metrics
-            ]
+            }
         )
         self.slice_spec = self._create_slice_spec()
-        self.data = EndpointData(config=config)
+        self.data = self._load_data() or EndpointData(config=config)
         self._save_data()
 
     def _create_slice_spec(self) -> SliceSpec:
@@ -140,10 +181,55 @@ class EvaluationEndpoint:
         SliceSpec
             The created slice specification.
         """
-        spec_list = [
-            {subgroup.column: subgroup.condition} for subgroup in self.config.subgroups
-        ]
+        spec_list = []
+        for subgroup in self.config.subgroups:
+            condition_dict = self._convert_condition_to_dict(subgroup.condition)
+            spec_list.append({subgroup.column: condition_dict})
         return SliceSpec(spec_list)
+
+    @staticmethod
+    def _convert_condition_to_dict(condition: SubgroupCondition) -> Dict[str, Any]:
+        """
+        Convert SubgroupCondition to a dictionary compatible with SliceSpec.
+
+        Parameters
+        ----------
+        condition : SubgroupCondition
+            The subgroup condition to convert.
+
+        Returns
+        -------
+        Dict[str, Any]
+            The converted condition dictionary.
+
+        Raises
+        ------
+        ValueError
+            If the condition is invalid or missing required values.
+        """
+        condition_dict: Dict[str, Any] = {"type": condition.type.value}
+        if condition.type == ConditionType.RANGE:
+            if condition.min_value is None and condition.max_value is None:
+                raise ValueError("Range condition must have a min_value or max_value")
+            if condition.min_value is not None:
+                condition_dict["min_value"] = condition.min_value
+            if condition.max_value is not None:
+                condition_dict["max_value"] = condition.max_value
+        elif condition.type in (
+            ConditionType.VALUE,
+            ConditionType.CONTAINS,
+            ConditionType.YEAR,
+            ConditionType.MONTH,
+            ConditionType.DAY,
+        ):
+            if condition.value is None:
+                raise ValueError(
+                    f"{condition.type.value.capitalize()} condition must have a value"
+                )
+            condition_dict["value"] = condition.value
+        else:
+            raise ValueError(f"Invalid condition type: {condition.type}")
+        return condition_dict
 
     def evaluate(self, data: EvaluationInput) -> Dict[str, Any]:
         """
@@ -162,6 +248,7 @@ class EvaluationEndpoint:
         df = pd.DataFrame(
             {"preds_prob": data.preds_prob, "target": data.target, **data.metadata}
         )
+        df["target"] = df["target"].astype(int)
         dataset = Dataset.from_pandas(df)
         result = evaluator.evaluate(
             dataset=dataset,
@@ -170,24 +257,34 @@ class EvaluationEndpoint:
             target_columns="target",
             prediction_columns="preds_prob",
         )
+        sample_size = len(data.preds_prob)
         evaluation_result = EvaluationResult(
-            endpoint_name=self.config.endpoint_name,
-            model_name=self.config.model_name,
             metrics=[f"{metric.type}_{metric.name}" for metric in self.config.metrics],
             subgroups=[subgroup.column for subgroup in self.config.subgroups],
             evaluation_result=result,
             timestamp=datetime.now(),
+            sample_size=sample_size,
         )
         self.data.evaluation_history.append(evaluation_result)
         self.data.logs.append(EndpointLog(timestamp=datetime.now(), action="evaluated"))
         self._save_data()
         return evaluation_result.dict()
 
+    def _load_data(self) -> Optional[EndpointData]:
+        """Load endpoint data from JSON file."""
+        file_path = DATA_DIR / f"{self.config.endpoint_name}.json"
+        if file_path.exists():
+            with open(file_path, "r") as f:
+                data = json.load(f)
+            return EndpointData(**data)
+        return None
+
     def _save_data(self) -> None:
         """Save endpoint data to JSON file."""
         file_path = DATA_DIR / f"{self.config.endpoint_name}.json"
+        serializable_data = self.data.dict()
         with open(file_path, "w") as f:
-            json.dump(deep_convert_numpy(self.data.dict()), f)
+            json.dump(deep_convert_numpy(serializable_data), f)
 
     @classmethod
     def load(cls, endpoint_name: str) -> "EvaluationEndpoint":
@@ -214,9 +311,9 @@ class EvaluationEndpoint:
             raise ValueError(f"Endpoint '{endpoint_name}' not found")
         with open(file_path, "r") as f:
             data = json.load(f)
-        endpoint_data = EndpointData(**data)
-        endpoint = cls(endpoint_data.config)
-        endpoint.data = endpoint_data
+        config = EndpointConfig(**data["config"])
+        endpoint = cls(config)
+        endpoint.data = EndpointData(**data)
         return endpoint
 
 
@@ -229,7 +326,7 @@ def load_all_endpoints() -> Dict[str, EvaluationEndpoint]:
     Dict[str, EvaluationEndpoint]
         A dictionary of all loaded endpoints.
     """
-    endpoints = {}
+    endpoints: Dict[str, EvaluationEndpoint] = {}
     for file_path in DATA_DIR.glob("*.json"):
         endpoint_name = file_path.stem
         try:
@@ -255,21 +352,20 @@ def create_evaluation_endpoint(config: EndpointConfig) -> Dict[str, str]:
     Returns
     -------
     Dict[str, str]
-        A dictionary containing a success message.
-
-    Raises
-    ------
-    ValueError
-        If an endpoint with the given name already exists.
+        A dictionary containing a success message or an error message.
     """
-    print(config)
-    if config.endpoint_name in evaluation_endpoints:
-        raise ValueError(f"Endpoint with name '{config.endpoint_name}' already exists")
-    endpoint = EvaluationEndpoint(config)
-    evaluation_endpoints[config.endpoint_name] = endpoint
-    return {
-        "message": f"Evaluation endpoint '{config.endpoint_name}' created successfully"
-    }
+    try:
+        if config.endpoint_name in evaluation_endpoints:
+            raise ValueError(
+                f"Endpoint with name '{config.endpoint_name}' already exists"
+            )
+        endpoint = EvaluationEndpoint(config)
+        evaluation_endpoints[config.endpoint_name] = endpoint
+        return {
+            "message": f"Evaluation endpoint '{config.endpoint_name}' created successfully"
+        }
+    except Exception as e:
+        return {"error": str(e)}
 
 
 def delete_evaluation_endpoint(endpoint_name: str) -> Dict[str, str]:
@@ -300,13 +396,21 @@ def delete_evaluation_endpoint(endpoint_name: str) -> Dict[str, str]:
     return {"message": f"Evaluation endpoint '{endpoint_name}' deleted successfully"}
 
 
-def list_evaluation_endpoints() -> Dict[str, List[Dict[str, str]]]:
+class EndpointDetails(TypedDict):
+    """Details for an evaluation endpoint."""
+
+    endpoint_name: str
+    model_name: str
+    model_description: str
+
+
+def list_evaluation_endpoints() -> Dict[str, List[EndpointDetails]]:
     """
     List all created evaluation endpoints.
 
     Returns
     -------
-    Dict[str, List[Dict[str, str]]]
+    Dict[str, List[EndpointDetails]]
         A dictionary containing a list of endpoint details.
     """
     return {

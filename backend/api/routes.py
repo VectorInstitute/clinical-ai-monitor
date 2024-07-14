@@ -6,6 +6,7 @@ from fastapi import APIRouter, HTTPException
 
 from backend.api.models.config import EndpointConfig
 from backend.api.models.evaluate import (
+    EndpointDetails,
     EndpointLog,
     EvaluationInput,
     create_evaluation_endpoint,
@@ -42,7 +43,10 @@ async def create_endpoint(config: EndpointConfig) -> Dict[str, str]:
         If there's an error during endpoint creation.
     """
     try:
-        return create_evaluation_endpoint(config)
+        result = create_evaluation_endpoint(config)
+        if "error" in result:
+            raise HTTPException(status_code=400, detail=result["error"])
+        return result
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
     except Exception as e:
@@ -51,14 +55,14 @@ async def create_endpoint(config: EndpointConfig) -> Dict[str, str]:
         ) from e
 
 
-@router.get("/evaluation_endpoints", response_model=Dict[str, List[Dict[str, str]]])
-async def get_evaluation_endpoints() -> Dict[str, List[Dict[str, str]]]:
+@router.get("/evaluation_endpoints", response_model=Dict[str, List[EndpointDetails]])
+async def get_evaluation_endpoints() -> Dict[str, List[EndpointDetails]]:
     """
     List all created evaluation endpoints.
 
     Returns
     -------
-    Dict[str, List[Dict[str, str]]]
+    Dict[str, List[EndpointDetails]]
         A dictionary containing a list of all evaluation endpoints.
     """
     return list_evaluation_endpoints()

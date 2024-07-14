@@ -46,15 +46,15 @@ export const SubgroupsSection: React.FC = () => {
           {values.subgroups.map((subgroup: SubgroupConfig, index: number) => (
             <Box key={index} borderWidth="1px" borderRadius="lg" p={4} mb={4}>
               <VStack spacing={2} align="stretch">
-                <Field name={`subgroups.${index}.condition.column`}>
+                <Field name={`subgroups.${index}.column`}>
                   {({ field, form }) => (
-                    <FormControl isInvalid={!!(form.errors.subgroups?.[index]?.condition?.column && form.touched.subgroups?.[index]?.condition?.column)}>
+                    <FormControl isInvalid={!!(form.errors.subgroups?.[index]?.column && form.touched.subgroups?.[index]?.column)}>
                       <TooltipLabel
                         label="Column"
                         tooltip="The name of the column in your dataset to apply the condition"
                       />
                       <Input {...field} placeholder="Column name" />
-                      <FormErrorMessage>{typeof form.errors.subgroups?.[index]?.condition?.column === 'string' ? form.errors.subgroups[index].condition.column : null}</FormErrorMessage>
+                      <FormErrorMessage>{form.errors.subgroups?.[index]?.column}</FormErrorMessage>
                     </FormControl>
                   )}
                 </Field>
@@ -72,7 +72,7 @@ export const SubgroupsSection: React.FC = () => {
                           </option>
                         ))}
                       </Select>
-                      <FormErrorMessage>{typeof form.errors.subgroups?.[index]?.condition?.type === 'string' ? form.errors.subgroups[index].condition.type : null}</FormErrorMessage>
+                      <FormErrorMessage>{form.errors.subgroups?.[index]?.condition?.type}</FormErrorMessage>
                     </FormControl>
                   )}
                 </Field>
@@ -85,7 +85,7 @@ export const SubgroupsSection: React.FC = () => {
                           tooltip="The exact value to match in the column"
                         />
                         <Input {...field} placeholder="Value" />
-                        <FormErrorMessage>{typeof form.errors.subgroups?.[index]?.condition?.value === 'string' ? form.errors.subgroups[index].condition.value : null}</FormErrorMessage>
+                        <FormErrorMessage>{form.errors.subgroups?.[index]?.condition?.value}</FormErrorMessage>
                       </FormControl>
                     )}
                   </Field>
@@ -97,7 +97,7 @@ export const SubgroupsSection: React.FC = () => {
                         <FormControl isInvalid={!!(form.errors.subgroups?.[index]?.condition?.min_value && form.touched.subgroups?.[index]?.condition?.min_value)}>
                           <TooltipLabel
                             label="Min Value"
-                            tooltip="The minimum value of the range (inclusive)"
+                            tooltip="The minimum value of the range (inclusive). Leave empty for -Inf."
                           />
                           <Input {...field} placeholder="Min value" type="number" />
                           <FormErrorMessage>{form.errors.subgroups?.[index]?.condition?.min_value}</FormErrorMessage>
@@ -109,7 +109,7 @@ export const SubgroupsSection: React.FC = () => {
                         <FormControl isInvalid={!!(form.errors.subgroups?.[index]?.condition?.max_value && form.touched.subgroups?.[index]?.condition?.max_value)}>
                           <TooltipLabel
                             label="Max Value"
-                            tooltip="The maximum value of the range (inclusive)"
+                            tooltip="The maximum value of the range (inclusive). Leave empty for +Inf."
                           />
                           <Input {...field} placeholder="Max value" type="number" />
                           <FormErrorMessage>{form.errors.subgroups?.[index]?.condition?.max_value}</FormErrorMessage>
@@ -142,7 +142,7 @@ export const SubgroupsSection: React.FC = () => {
           ))}
           <Button
             leftIcon={<AddIcon />}
-            onClick={() => push({ condition: { column: '', type: '' } })}
+            onClick={() => push({ column: '', condition: { type: 'value', value: '' } })}
           >
             Add Subgroup
           </Button>

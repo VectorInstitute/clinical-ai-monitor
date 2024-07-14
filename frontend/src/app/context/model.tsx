@@ -96,6 +96,9 @@ export const ModelProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         throw new Error(errorData.detail || 'Failed to create evaluation endpoint');
       }
 
+      const responseData = await response.json();
+      console.log('API success response:', responseData);
+
       setModels(prevModels => [
         ...prevModels,
         { ...newModel, id: prevModels.length + 1 }

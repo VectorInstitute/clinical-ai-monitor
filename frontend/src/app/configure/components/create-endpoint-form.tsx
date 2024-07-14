@@ -70,12 +70,23 @@ const CreateEndpointForm: React.FC<CreateEndpointFormProps> = ({ isOpen, onClose
       onClose();
       router.push('/home');
     } catch (error) {
-      if (error instanceof Error && error.message.includes('already exists')) {
-        setFieldError('endpoint_name', 'Endpoint name already exists');
+      console.error('Error in handleSubmit:', error);
+      if (error instanceof Error) {
+        if (error.message.includes('already exists')) {
+          setFieldError('endpoint_name', 'Endpoint name already exists');
+        } else {
+          toast({
+            title: "Error",
+            description: error.message,
+            status: "error",
+            duration: 5000,
+            isClosable: true,
+          });
+        }
       } else {
         toast({
           title: "Error",
-          description: error instanceof Error ? error.message : 'An unknown error occurred',
+          description: 'An unknown error occurred',
           status: "error",
           duration: 5000,
           isClosable: true,
