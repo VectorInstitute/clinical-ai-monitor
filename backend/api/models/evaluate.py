@@ -111,21 +111,24 @@ class EvaluationResult(BaseModel):
 
 class EndpointLog(BaseModel):
     """
-    Log entry for an endpoint.
+    Represents a log entry for an endpoint.
 
     Attributes
     ----------
     timestamp : datetime
-        Timestamp of the log entry.
+        The timestamp of the log entry.
     action : str
-        Action performed.
-    details : Optional[Dict[str, Any]]
-        Additional details of the action.
+        The action performed.
+    details : Dict[str, str], optional
+        Additional details about the action.
+    endpoint_name : str
+        The name of the endpoint associated with this log.
     """
 
     timestamp: datetime
     action: str
-    details: Optional[Dict[str, Any]] = None
+    details: Optional[Dict[str, str]] = None
+    endpoint_name: str
 
 
 class EndpointData(BaseModel):
@@ -270,7 +273,13 @@ class EvaluationEndpoint:
             sample_size=sample_size,
         )
         self.data.evaluation_history.append(evaluation_result)
-        self.data.logs.append(EndpointLog(timestamp=datetime.now(), action="evaluated"))
+        self.data.logs.append(
+            EndpointLog(
+                timestamp=datetime.now(),
+                action="evaluated",
+                endpoint_name=self.config.endpoint_name,
+            )
+        )
         self._save_data()
         return evaluation_result.dict()
 
@@ -456,26 +465,29 @@ def evaluate_model(endpoint_name: str, data: EvaluationInput) -> Dict[str, Any]:
     return endpoint.evaluate(data)
 
 
-def get_endpoint_logs(endpoint_name: str) -> List[EndpointLog]:
+def get_endpoint_logs() -> List[EndpointLog]:
     """
-    Get logs for a specific endpoint.
-
-    Parameters
-    ----------
-    endpoint_name : str
-        The name of the evaluation endpoint.
+    Get logs for all endpoints.
 
     Returns
     -------
     List[EndpointLog]
-        A list of logs for the specified endpoint.
-
-    Raises
-    ------
-    ValueError
-        If the specified endpoint does not exist.
+        A list of logs for all endpoints.
     """
-    if endpoint_name not in evaluation_endpoints:
-        raise ValueError(f"Evaluation endpoint '{endpoint_name}' not found")
-    endpoint = evaluation_endpoints[endpoint_name]
-    return endpoint.data.logs
+    all_logs = []
+    for _, endpoint in evaluation_endpoints.items():
+        endpoint_logs = [
+            EndpointLog(
+                timestamp=log.timestamp,
+                action=log.action,
+                details=log.details,
+                endpoint_name=log.endpoint_name,
+            )
+            for log in endpoint.data.logs
+        ]
+        all_logs.extend(endpoint_logs)
+
+    # Sort logs by timestamp in descending order (most recent first)
+    all_logs.sort(key=lambda x: x.timestamp, reverse=True)
+
+    return all_logs

@@ -100,20 +100,15 @@ async def evaluate(endpoint_name: str, data: EvaluationInput) -> Dict[str, Any]:
         ) from e
 
 
-@router.get("/endpoint_logs/{endpoint_name}", response_model=List[EndpointLog])
-async def endpoint_logs(endpoint_name: str) -> List[EndpointLog]:
+@router.get("/endpoint_logs", response_model=List[EndpointLog])
+async def endpoint_logs() -> List[EndpointLog]:
     """
-    Get logs for a specific endpoint.
-
-    Parameters
-    ----------
-    endpoint_name : str
-        The name of the endpoint to retrieve logs for.
+    Get logs for all endpoints.
 
     Returns
     -------
     List[EndpointLog]
-        A list of logs for the specified endpoint.
+        A list of logs for all endpoints.
 
     Raises
     ------
@@ -121,9 +116,7 @@ async def endpoint_logs(endpoint_name: str) -> List[EndpointLog]:
         If there's an error retrieving the logs.
     """
     try:
-        return get_endpoint_logs(endpoint_name)
-    except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e)) from e
+        return get_endpoint_logs()
     except Exception as e:
         raise HTTPException(
             status_code=500, detail=f"Internal server error: {str(e)}"
