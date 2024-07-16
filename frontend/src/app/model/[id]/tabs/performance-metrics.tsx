@@ -16,8 +16,7 @@ import { MetricSelector } from '../components/metric-selector';
 import { SliceSelector } from '../components/slice-selector';
 import { PlotSettings } from '../components/plot-settings';
 import { TimeSeriesChart } from '../components/time-series-chart';
-import { getPerformanceMetrics } from '../../../api/performance-metrics';
-import { PerformanceData } from '../types/performance-metrics';
+import { PerformanceData, PerformanceDataSchema } from '../types/performance-metrics';
 
 interface PerformanceMetricsTabProps {
   endpointName: string;
@@ -41,10 +40,15 @@ export default function PerformanceMetricsTab({ endpointName }: PerformanceMetri
     const fetchPerformanceMetrics = async () => {
       try {
         setIsLoading(true);
-        const fetchedData = await getPerformanceMetrics(endpointName);
-        setData(fetchedData);
-        setSelectedMetrics([fetchedData.overview.metric_cards.metrics[0]]);
-        setLastNEvaluations(Math.min(20, fetchedData.overview.last_n_evals));
+        const response = await fetch(`/api/performance_metrics/${endpointName}`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch performance metrics');
+        }
+        const fetchedData = await response.json();
+        const validatedData = PerformanceDataSchema.parse(fetchedData);
+        setData(validatedData);
+        setSelectedMetrics([validatedData.overview.metric_cards.metrics[0]]);
+        setLastNEvaluations(Math.min(20, validatedData.overview.last_n_evals));
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An error occurred');
       } finally {

@@ -17,7 +17,6 @@ export const MetricCardsSchema = z.object({
   metrics: z.array(z.string()),
   tooltips: z.array(z.string()),
   slices: z.array(z.string()),
-  values: z.array(z.string()),
   collection: z.array(MetricSchema)
 });
 

@@ -83,10 +83,13 @@ class Overview(BaseModel):
         Number of recent evaluations.
     metric_cards : MetricCards
         Collection of metric cards.
+    mean_std_min_evals : int
+        Minimum number of evaluations for mean and standard deviation.
     """
 
     last_n_evals: int
     metric_cards: MetricCards
+    mean_std_min_evals: int
 
 
 class PerformanceData(BaseModel):
@@ -167,14 +170,16 @@ def create_metric(
         sample_sizes.append(eval_result["sample_size"])
 
     latest_value = history[-1] if history else 0.0
-
+    threshold = 0.6
     return Metric(
         name=metric,
         type=metric.split("_")[0],  # Assuming format like "binary_accuracy"
         slice=slice_,
         tooltip=f"{metric} for {slice_}",
         value=latest_value,
-        passed=latest_value >= 0.6,  # You may want to make this threshold configurable
+        threshold=threshold,
+        passed=latest_value
+        >= threshold,  # You may want to make this threshold configurable
         history=history,
         timestamps=timestamps,
         sample_sizes=sample_sizes,
@@ -232,7 +237,8 @@ async def get_performance_metrics(endpoint_name: str) -> Dict[str, Any]:
     )
 
     overview = Overview(
-        last_n_evals=len(evaluation_history),
+        last_n_evals=3,
+        mean_std_min_evals=3,
         metric_cards=metric_cards,
     )
 
