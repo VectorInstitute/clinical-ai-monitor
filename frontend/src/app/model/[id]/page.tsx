@@ -21,9 +21,10 @@ import ModelFactsTab from './tabs/model-facts'
 import { useModelContext } from '../../context/model'
 
 interface Model {
-  id: number;
+  modelId: string;
   endpointName: string;
-  // Add other model properties as needed
+  modelName: string;
+  modelDescription: string;
 }
 
 interface ModelDashboardProps {
@@ -43,7 +44,7 @@ export default function ModelDashboard({ params }: ModelDashboardProps): JSX.Ele
 
   useEffect(() => {
     if (models.length > 0) {
-      const foundModel = models.find(m => m.id.toString() === params.id)
+      const foundModel = models.find(m => m.modelId === params.id)
       setModel(foundModel || null)
     }
   }, [models, params.id])
@@ -83,7 +84,7 @@ export default function ModelDashboard({ params }: ModelDashboardProps): JSX.Ele
               <ModelHealthTab modelId={params.id} />
             </TabPanel>
             <TabPanel>
-              <PerformanceMetricsTab endpointName={model.endpointName} />
+              <PerformanceMetricsTab modelId={params.id} />
             </TabPanel>
             <TabPanel>
               <ModelFactsTab modelId={params.id} />

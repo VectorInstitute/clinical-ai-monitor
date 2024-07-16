@@ -2,13 +2,13 @@
 
 import json
 from pathlib import Path
-from typing import Any, Dict, List, cast
+from typing import Any, Dict, List, Optional, cast
 
 from fastapi import HTTPException
 from pydantic import BaseModel, Field
 
 
-DATA_DIR = Path("endpoint_data")
+DATA_DIR = Path("evaluation_data")
 
 
 class Metric(BaseModel):
@@ -44,7 +44,7 @@ class Metric(BaseModel):
     slice: str
     tooltip: str
     value: float
-    threshold: float = Field(default=0.6)
+    threshold: Optional[float] = Field(default=0.6)
     passed: bool
     history: List[float]
     timestamps: List[str]
@@ -81,11 +81,14 @@ class Overview(BaseModel):
     ----------
     last_n_evals : int
         Number of recent evaluations.
+    mean_std_min_evals : int
+        Minimum number of evaluations for mean and standard deviation.
     metric_cards : MetricCards
         Collection of metric cards.
     """
 
     last_n_evals: int
+    mean_std_min_evals: int
     metric_cards: MetricCards
 
 
@@ -158,37 +161,39 @@ def create_metric(
 
     for eval_result in evaluation_history:
         value = (
-            eval_result["evaluation_result"]["model_for_preds_prob"]
+            eval_result.get("evaluation_result", {})
+            .get("model_for_preds_prob", {})
             .get(slice_, {})
             .get(metric, 0.0)
         )
         history.append(value)
-        timestamps.append(eval_result["timestamp"])
-        sample_sizes.append(eval_result["sample_size"])
+        timestamps.append(eval_result.get("timestamp", ""))
+        sample_sizes.append(eval_result.get("sample_size", 0))
 
     latest_value = history[-1] if history else 0.0
-
+    threshold = 0.6  # You may want to make this configurable or fetch from a config
     return Metric(
         name=metric,
         type=metric.split("_")[0],  # Assuming format like "binary_accuracy"
         slice=slice_,
         tooltip=f"{metric} for {slice_}",
         value=latest_value,
-        passed=latest_value >= 0.6,  # You may want to make this threshold configurable
+        threshold=threshold,
+        passed=latest_value >= threshold,
         history=history,
         timestamps=timestamps,
         sample_sizes=sample_sizes,
     )
 
 
-async def get_performance_metrics(endpoint_name: str) -> Dict[str, Any]:
+async def get_performance_metrics(model_id: str) -> Dict[str, Any]:
     """
-    Retrieve performance metrics for a specific endpoint from the JSON file.
+    Retrieve performance metrics for a specific model from the JSON file.
 
     Parameters
     ----------
-    endpoint_name : str
-        The name of the evaluation endpoint to get performance metrics for.
+    model_id : str
+        The ID of the model to get performance metrics for.
 
     Returns
     -------
@@ -198,43 +203,75 @@ async def get_performance_metrics(endpoint_name: str) -> Dict[str, Any]:
     Raises
     ------
     HTTPException
-        If the endpoint file is not found or there's an error processing the data.
+        If the file is not found or there's an error processing the data.
     """
-    file_path = DATA_DIR / f"{endpoint_name}.json"
+    file_path = DATA_DIR / f"model_{model_id}.json"
 
     if not file_path.exists():
-        raise HTTPException(
-            status_code=404, detail=f"Evaluation endpoint '{endpoint_name}' not found"
-        )
+        raise HTTPException(status_code=404, detail=f"Model '{model_id}' not found")
 
-    data = load_json_file(file_path)
-    evaluation_history: List[Dict[str, Any]] = data.get("evaluation_history", [])
+    try:
+        data = load_json_file(file_path)
+    except HTTPException as e:
+        raise HTTPException(
+            status_code=500, detail=f"Error loading model data: {str(e)}"
+        ) from e
+
+    evaluation_history = data.get("evaluation_history", {})
 
     if not evaluation_history:
         raise HTTPException(
             status_code=404,
-            detail=f"No evaluation history for endpoint '{endpoint_name}'",
+            detail=f"No evaluation history for model '{model_id}'",
         )
 
-    latest_evaluation = evaluation_history[-1]
-    metrics: List[str] = latest_evaluation["metrics"]
-    slices: List[str] = latest_evaluation["subgroups"] + ["overall"]
+    # Get the first endpoint_id (assuming there's at least one)
+    first_endpoint_id = next(iter(evaluation_history.keys()), None)
+    if not first_endpoint_id:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No endpoint data found for model '{model_id}'",
+        )
 
-    metric_cards = MetricCards(
-        metrics=metrics,
-        tooltips=[f"Tooltip for {metric}" for metric in metrics],
-        slices=slices,
-        collection=[
-            create_metric(metric, slice_, evaluation_history)
-            for metric in metrics
-            for slice_ in slices
-        ],
-    )
+    endpoint_history = evaluation_history[first_endpoint_id]
+    if not endpoint_history:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Empty evaluation history for model '{model_id}' and endpoint '{first_endpoint_id}'",
+        )
 
-    overview = Overview(
-        last_n_evals=len(evaluation_history),
-        metric_cards=metric_cards,
-    )
+    latest_evaluation = endpoint_history[-1]
+    metrics: List[str] = latest_evaluation.get("metrics", [])
+    slices: List[str] = latest_evaluation.get("subgroups", [])
 
-    performance_data = PerformanceData(overview=overview)
-    return performance_data.dict()
+    if not metrics or not slices:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Invalid evaluation data structure for model '{model_id}'",
+        )
+
+    try:
+        metric_cards = MetricCards(
+            metrics=metrics,
+            tooltips=[f"Tooltip for {metric}" for metric in metrics],
+            slices=slices,
+            collection=[
+                create_metric(metric, slice_, endpoint_history)
+                for metric in metrics
+                for slice_ in slices
+            ],
+        )
+
+        overview = Overview(
+            last_n_evals=10,
+            mean_std_min_evals=3,
+            metric_cards=metric_cards,
+        )
+
+        performance_data = PerformanceData(overview=overview)
+        return performance_data.dict()
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error processing performance metrics: {str(e)}",
+        ) from e

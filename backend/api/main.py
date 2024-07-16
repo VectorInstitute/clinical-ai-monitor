@@ -9,7 +9,7 @@ from backend.api.routes import router as api_router
 app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:8091"],  # Add your frontend URL
+    allow_origins=["http://0.0.0.0:8091"],  # Add your frontend URL
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

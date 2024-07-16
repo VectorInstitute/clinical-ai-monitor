@@ -1,19 +1,20 @@
 'use client'
 
 import React, { createContext, useState, useContext, ReactNode, useEffect, useCallback, useMemo } from 'react';
-import { EndpointConfig, MetricConfig, SubgroupConfig } from '../configure/types/configure';
+import { EndpointConfig } from '../configure/types/configure';
+import { getEndpoints, createEndpoint, deleteEndpoint } from '../api/models';
 
 interface Model {
-  id: number;
-  name: string;
-  description: string;
+  modelId: string;
   endpointName: string;
+  modelName: string;
+  modelDescription: string;
 }
 
 interface ModelContextType {
   models: Model[];
-  addModel: (model: Omit<Model, 'id'>, metrics: MetricConfig[], subgroups: SubgroupConfig[]) => Promise<void>;
-  removeModel: (endpointName: string) => Promise<void>;
+  addModel: (config: EndpointConfig) => Promise<void>;
+  removeModel: (modelId: string) => Promise<void>;
   fetchModels: () => Promise<void>;
   isLoading: boolean;
 }
@@ -38,16 +39,12 @@ export const ModelProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const fetchModels = useCallback(async () => {
     setIsLoading(true);
     try {
-      const response = await fetch('/api/evaluation_endpoints');
-      if (!response.ok) {
-        throw new Error('Failed to fetch evaluation endpoints');
-      }
-      const data = await response.json();
-      const fetchedModels = data.endpoints.map((endpoint: any, index: number) => ({
-        id: index + 1,
-        name: endpoint.model_name,
-        description: endpoint.model_description,
+      const data = await getEndpoints();
+      const fetchedModels = data.endpoints.map((endpoint: any) => ({
+        modelId: endpoint.model_id,
         endpointName: endpoint.endpoint_name,
+        modelName: endpoint.model_name,
+        modelDescription: endpoint.model_description,
       }));
       setModels(fetchedModels);
       localStorage.setItem(CACHE_KEY, JSON.stringify({ data: fetchedModels, timestamp: Date.now() }));
@@ -73,63 +70,35 @@ export const ModelProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     }
   }, [fetchModels]);
 
-  const addModel = useCallback(async (newModel: Omit<Model, 'id'>, metrics: MetricConfig[], subgroups: SubgroupConfig[]) => {
+  const addModel = useCallback(async (config: EndpointConfig) => {
     try {
-      const endpointConfig: EndpointConfig = {
-        endpoint_name: newModel.endpointName,
-        model_name: newModel.name,
-        model_description: newModel.description,
-        metrics,
-        subgroups,
-      };
-
-      const response = await fetch('/api/create_evaluation_endpoint', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(endpointConfig),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || 'Failed to create evaluation endpoint');
-      }
-
-      const responseData = await response.json();
+      const responseData = await createEndpoint(config);
       console.log('API success response:', responseData);
-
-      setModels(prevModels => [
-        ...prevModels,
-        { ...newModel, id: prevModels.length + 1 }
-      ]);
-
-      localStorage.removeItem(CACHE_KEY);
       await fetchModels();
     } catch (error) {
       console.error('Error adding model:', error);
-      throw error;
+      if (error instanceof Error) {
+        throw new Error(`Failed to add model: ${error.message}`);
+      } else {
+        throw new Error('An unknown error occurred while adding the model');
+      }
     }
   }, [fetchModels]);
 
-  const removeModel = useCallback(async (endpointName: string) => {
+  const removeModel = useCallback(async (modelId: string) => {
     setIsLoading(true);
     try {
-      const response = await fetch(`/api/delete_evaluation_endpoint/${endpointName}`, {
-        method: 'DELETE',
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || 'Failed to delete evaluation endpoint');
-      }
-
-      setModels(prevModels => prevModels.filter(model => model.endpointName !== endpointName));
+      await deleteEndpoint(modelId);
+      setModels(prevModels => prevModels.filter(model => model.modelId !== modelId));
       localStorage.removeItem(CACHE_KEY);
       await fetchModels();
     } catch (error) {
       console.error('Error removing model:', error);
-      throw error;
+      if (error instanceof Error) {
+        throw new Error(`Failed to remove model: ${error.message}`);
+      } else {
+        throw new Error('An unknown error occurred while removing the model');
+      }
     } finally {
       setIsLoading(false);
     }

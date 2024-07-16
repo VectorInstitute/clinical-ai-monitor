@@ -1,12 +1,14 @@
+'use client';
 import React from 'react'
 import { SimpleGrid, Box, Heading, Text, useColorModeValue, Flex, Stat, StatLabel, StatNumber, StatHelpText, StatArrow, useToast } from '@chakra-ui/react'
 import { Line } from 'react-chartjs-2'
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, ChartOptions } from 'chart.js'
 import { getColor } from '../utils/color'
 import { getChartData, getChartOptions } from '../utils/chart'
-import { ModelHealth } from '../types/health'
+import { ModelHealth, validateModelHealth } from '../types/health'
 import { ErrorMessage } from '../components/error-message'
 import { LoadingSpinner } from '../components/loading-spinner'
+import { getModelHealth } from '../../../api/models'
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend)
 
@@ -27,12 +29,9 @@ const ModelHealthTab: React.FC<ModelHealthTabProps> = ({ modelId }) => {
   React.useEffect(() => {
     const fetchModelHealth = async () => {
       try {
-        const response = await fetch(`/api/model/${modelId}/health`)
-        if (!response.ok) {
-          throw new Error('Failed to fetch model health')
-        }
-        const data = await response.json()
-        setModelHealth(data)
+        const data = await getModelHealth(modelId);
+        const validatedData = validateModelHealth(data)
+        setModelHealth(validatedData)
       } catch (error) {
         console.error('Error fetching model health:', error)
         setError('Failed to fetch model health data')

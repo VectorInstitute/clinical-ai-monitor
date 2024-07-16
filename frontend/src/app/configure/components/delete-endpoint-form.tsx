@@ -102,8 +102,8 @@ const DeleteEndpointForm: React.FC<DeleteEndpointFormProps> = ({ isOpen, onClose
                   isDisabled={isLoading}
                 >
                   {models.map((model) => (
-                    <option key={model.endpointName} value={model.endpointName}>
-                      {model.name} ({model.endpointName})
+                    <option key={model.modelId} value={model.modelId}>
+                      {model.modelName} ({model.endpointName})
                     </option>
                   ))}
                 </Select>

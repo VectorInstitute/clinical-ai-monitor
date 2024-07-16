@@ -1,5 +1,5 @@
 'use client'
-import React, { useEffect, useState } from 'react'
+import React from 'react'
 import {
   Box,
   SimpleGrid,
@@ -13,7 +13,9 @@ import {
   Spinner,
   Container,
   Divider,
-  Icon
+  Icon,
+  Alert,
+  AlertIcon,
 } from '@chakra-ui/react'
 import { useRouter } from 'next/navigation'
 import Sidebar from '../components/sidebar'
@@ -23,8 +25,7 @@ import { FiMonitor, FiAlertCircle } from 'react-icons/fi'
 
 export default function HomePage() {
   const router = useRouter()
-  const { models, fetchModels } = useModelContext()
-  const [isLoading, setIsLoading] = useState(true)
+  const { models, isLoading, error } = useModelContext()
   const hospitalName = "University Health Network" // This should come from your authentication state
 
   const bgColor = useColorModeValue('gray.50', 'gray.800')
@@ -34,25 +35,21 @@ export default function HomePage() {
   const accentColor = useColorModeValue('blue.500', 'blue.300')
   const dividerColor = useColorModeValue('gray.200', 'gray.600')
 
-  useEffect(() => {
-    const loadModels = async () => {
-      try {
-        await fetchModels()
-      } catch (error) {
-        console.error('Failed to fetch models:', error)
-      } finally {
-        setIsLoading(false)
-      }
-    }
-    loadModels()
-  }, [fetchModels])
-
   const renderContent = () => {
     if (isLoading) {
       return (
         <Center h="50vh">
           <Spinner size="xl" color={accentColor} />
         </Center>
+      )
+    }
+
+    if (error) {
+      return (
+        <Alert status="error">
+          <AlertIcon />
+          {error}
+        </Alert>
       )
     }
 
@@ -79,14 +76,14 @@ export default function HomePage() {
       <SimpleGrid columns={{ base: 1, sm: 2, lg: 3 }} spacing={{ base: 4, lg: 8 }}>
         {models.map((model) => (
           <Box
-            key={model.id}
+            key={model.modelId}
             p={6}
             shadow="md"
             borderWidth="1px"
             borderRadius="lg"
             bg={cardBgColor}
             borderColor={cardBorderColor}
-            onClick={() => router.push(`/model/${model.id}`)}
+            onClick={() => router.push(`/model/${model.modelId}`)}
             cursor="pointer"
             transition="all 0.3s"
             _hover={{
@@ -96,10 +93,10 @@ export default function HomePage() {
           >
             <VStack align="start" spacing={3}>
               <Heading as="h3" size="md" color={textColor}>
-                {model.name}
+                {model.modelName}
               </Heading>
               <Text fontSize="sm" color={useColorModeValue('gray.600', 'gray.300')}>
-                {model.description}
+                {model.modelDescription}
               </Text>
               <Text fontSize="xs" color={useColorModeValue('gray.500', 'gray.400')}>
                 Endpoint: {model.endpointName}

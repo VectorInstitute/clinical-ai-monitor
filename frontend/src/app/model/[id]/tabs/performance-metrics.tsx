@@ -16,15 +16,15 @@ import { MetricSelector } from '../components/metric-selector';
 import { SliceSelector } from '../components/slice-selector';
 import { PlotSettings } from '../components/plot-settings';
 import { TimeSeriesChart } from '../components/time-series-chart';
-import { getPerformanceMetrics } from '../../../api/performance-metrics';
+import { getModelPerformance } from '../../../api/models';
 import { PerformanceData } from '../types/performance-metrics';
 
 interface PerformanceMetricsTabProps {
-  endpointName: string;
+  modelId: string;
 }
 
-export default function PerformanceMetricsTab({ endpointName }: PerformanceMetricsTabProps) {
-  console.log(`PerformanceMetricsTab: endpointName = ${endpointName}`);
+export default function PerformanceMetricsTab({ modelId }: PerformanceMetricsTabProps) {
+  console.log(`PerformanceMetricsTab: modelId = ${modelId}`);
   const [data, setData] = useState<PerformanceData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -41,18 +41,19 @@ export default function PerformanceMetricsTab({ endpointName }: PerformanceMetri
     const fetchPerformanceMetrics = async () => {
       try {
         setIsLoading(true);
-        const fetchedData = await getPerformanceMetrics(endpointName);
+        setError(null);
+        const fetchedData = await getModelPerformance(modelId);
         setData(fetchedData);
         setSelectedMetrics([fetchedData.overview.metric_cards.metrics[0]]);
         setLastNEvaluations(Math.min(20, fetchedData.overview.last_n_evals));
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'An error occurred');
+        setError(err instanceof Error ? err.message : 'An unknown error occurred');
       } finally {
         setIsLoading(false);
       }
     };
     fetchPerformanceMetrics();
-  }, [endpointName]);
+  }, [modelId]);
 
   const renderMetricCards = useMemo(() => {
     if (!data) return null;
@@ -69,7 +70,7 @@ export default function PerformanceMetricsTab({ endpointName }: PerformanceMetri
 
   if (isLoading) return <LoadingSpinner />;
   if (error) return <ErrorMessage message={error} />;
-  if (!data) return null;
+  if (!data) return <Text>No data available</Text>;
 
   return (
     <VStack spacing={8} align="stretch" width="100%">

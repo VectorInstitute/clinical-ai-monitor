@@ -20,6 +20,7 @@ export const SubgroupConfigSchema = z.object({
 });
 
 export const EndpointConfigSchema = z.object({
+  model_id: z.string().optional(),
   endpoint_name: z.string().min(1, "Endpoint name is required"),
   model_name: z.string().min(1, "Model name is required"),
   model_description: z.string(),
@@ -27,7 +28,14 @@ export const EndpointConfigSchema = z.object({
   subgroups: z.array(SubgroupConfigSchema),
 });
 
+export const EvaluationInputSchema = z.object({
+  preds_prob: z.array(z.number()),
+  target: z.array(z.number()),
+  metadata: z.record(z.string(), z.array(z.any())),
+});
+
 export type MetricConfig = z.infer<typeof MetricConfigSchema>;
 export type SubgroupCondition = z.infer<typeof SubgroupConditionSchema>;
 export type SubgroupConfig = z.infer<typeof SubgroupConfigSchema>;
 export type EndpointConfig = z.infer<typeof EndpointConfigSchema>;
+export type EvaluationInput = z.infer<typeof EvaluationInputSchema>;

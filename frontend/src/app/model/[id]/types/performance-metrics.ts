@@ -6,7 +6,7 @@ export const MetricSchema = z.object({
   slice: z.string(),
   tooltip: z.string(),
   value: z.number(),
-  threshold: z.number(),
+  threshold: z.number().optional(),
   passed: z.boolean(),
   history: z.array(z.number()),
   timestamps: z.array(z.string()),
@@ -17,7 +17,6 @@ export const MetricCardsSchema = z.object({
   metrics: z.array(z.string()),
   tooltips: z.array(z.string()),
   slices: z.array(z.string()),
-  values: z.array(z.string()),
   collection: z.array(MetricSchema)
 });
 
