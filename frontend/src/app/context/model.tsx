@@ -2,13 +2,13 @@
 
 import React, { createContext, useState, useContext, ReactNode, useEffect, useCallback, useMemo } from 'react';
 import { EndpointConfig } from '../configure/types/configure';
-import { getEndpoints, createEndpoint, deleteEndpoint } from '../api/models';
+import { getModels, getEndpoints, createEndpoint, deleteEndpoint } from '../api/models';
 
 interface Model {
   modelId: string;
-  endpointName: string;
   modelName: string;
   modelDescription: string;
+  associatedEndpoints: string[];
 }
 
 interface ModelContextType {
@@ -17,6 +17,7 @@ interface ModelContextType {
   removeModel: (modelId: string) => Promise<void>;
   fetchModels: () => Promise<void>;
   isLoading: boolean;
+  error: string | null;
 }
 
 const ModelContext = createContext<ModelContextType | undefined>(undefined);
@@ -35,21 +36,24 @@ const CACHE_EXPIRY = 30 * 1000; // 30 seconds
 export const ModelProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [models, setModels] = useState<Model[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchModels = useCallback(async () => {
     setIsLoading(true);
+    setError(null);
     try {
-      const data = await getEndpoints();
-      const fetchedModels = data.endpoints.map((endpoint: any) => ({
-        modelId: endpoint.model_id,
-        endpointName: endpoint.endpoint_name,
-        modelName: endpoint.model_name,
-        modelDescription: endpoint.model_description,
+      const data = await getModels();
+      const fetchedModels = data.models.map((model: any) => ({
+        modelId: model.model_id,
+        modelName: model.model_name,
+        modelDescription: model.model_description,
+        associatedEndpoints: model.associated_endpoints,
       }));
       setModels(fetchedModels);
       localStorage.setItem(CACHE_KEY, JSON.stringify({ data: fetchedModels, timestamp: Date.now() }));
     } catch (error) {
       console.error('Error fetching models:', error);
+      setError('Failed to fetch models. Please try again later.');
     } finally {
       setIsLoading(false);
     }
@@ -109,8 +113,9 @@ export const ModelProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     addModel,
     removeModel,
     fetchModels,
-    isLoading
-  }), [models, addModel, removeModel, fetchModels, isLoading]);
+    isLoading,
+    error
+  }), [models, addModel, removeModel, fetchModels, isLoading, error]);
 
   return (
     <ModelContext.Provider value={contextValue}>

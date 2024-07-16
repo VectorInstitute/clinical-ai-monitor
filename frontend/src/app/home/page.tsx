@@ -98,9 +98,6 @@ export default function HomePage() {
               <Text fontSize="sm" color={useColorModeValue('gray.600', 'gray.300')}>
                 {model.modelDescription}
               </Text>
-              <Text fontSize="xs" color={useColorModeValue('gray.500', 'gray.400')}>
-                Endpoint: {model.endpointName}
-              </Text>
             </VStack>
           </Box>
         ))}
