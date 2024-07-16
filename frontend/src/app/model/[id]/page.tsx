@@ -35,6 +35,7 @@ interface ModelDashboardProps {
 export default function ModelDashboard({ params }: ModelDashboardProps): JSX.Element {
   const { models, isLoading } = useModelContext()
   const [model, setModel] = useState<Model | null>(null)
+  const [isModelLoading, setIsModelLoading] = useState(true)
 
   const hospitalName = "University Health Network" // This should come from your authentication state
 
@@ -42,13 +43,14 @@ export default function ModelDashboard({ params }: ModelDashboardProps): JSX.Ele
   const textColor = useColorModeValue('gray.800', 'white')
 
   useEffect(() => {
-    if (models.length > 0) {
+    if (!isLoading && models.length > 0) {
       const foundModel = models.find(m => m.id.toString() === params.id)
       setModel(foundModel || null)
+      setIsModelLoading(false)
     }
-  }, [models, params.id])
+  }, [models, params.id, isLoading])
 
-  if (isLoading) {
+  if (isLoading || isModelLoading) {
     return (
       <Center h="100vh">
         <Spinner size="xl" />

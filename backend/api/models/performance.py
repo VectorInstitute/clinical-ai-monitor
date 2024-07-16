@@ -7,31 +7,10 @@ from typing import Any, Dict, List, cast
 from fastapi import HTTPException
 from pydantic import BaseModel, Field
 
+from backend.api.models.constants import METRIC_DISPLAY_NAMES, METRIC_TOOLTIPS
+
 
 DATA_DIR = Path("endpoint_data")
-
-METRIC_TOOLTIPS = {
-    "binary_accuracy": "Proportion of correct predictions (both true positives and true negatives) among the total number of cases examined.",
-    "binary_precision": "Proportion of true positive predictions among all positive predictions.",
-    "binary_recall": "Proportion of true positive predictions among all actual positive cases.",
-    "binary_f1_score": "Harmonic mean of precision and recall, providing a single score that balances both metrics.",
-    "binary_auroc": "Area Under the Receiver Operating Characteristic Curve, measuring the ability to distinguish between classes.",
-    "multiclass_accuracy": "Proportion of correct predictions among the total number of cases examined for multiple classes.",
-    "multiclass_precision": "Average precision across all classes, weighted by the number of true instances for each class.",
-    "multiclass_recall": "Average recall across all classes, weighted by the number of true instances for each class.",
-    "multiclass_f1_score": "Harmonic mean of precision and recall for multiple classes, providing a balanced measure of the model's performance.",
-}
-METRIC_DISPLAY_NAMES = {
-    "binary_accuracy": "Accuracy",
-    "binary_precision": "Precision",
-    "binary_recall": "Recall",
-    "binary_f1_score": "F1 Score",
-    "binary_auroc": "AUROC",
-    "multiclass_accuracy": "Accuracy",
-    "multiclass_precision": "Precision",
-    "multiclass_recall": "Recall",
-    "multiclass_f1_score": "F1 Score",
-}
 
 
 class Metric(BaseModel):
@@ -108,11 +87,14 @@ class Overview(BaseModel):
         Minimum number of evaluations required to calculate mean and standard deviation.
     metric_cards : MetricCards
         Collection of metric cards.
+    has_data : bool
+        Indicates whether there is evaluation data available.
     """
 
     last_n_evals: int
     mean_std_min_evals: int
     metric_cards: MetricCards
+    has_data: bool
 
 
 class PerformanceData(BaseModel):
@@ -249,7 +231,7 @@ async def get_performance_metrics(
     Raises
     ------
     HTTPException
-        If the endpoint file is not found or there's an error processing the data.
+        If the endpoint file is not found.
     """
     threshold = 0.6
     last_n_evals = 10
@@ -264,34 +246,39 @@ async def get_performance_metrics(
     data = load_json_file(file_path)
     evaluation_history: List[Dict[str, Any]] = data.get("evaluation_history", [])
 
-    if not evaluation_history:
-        raise HTTPException(
-            status_code=404,
-            detail=f"No evaluation history for endpoint '{endpoint_name}'",
+    has_data = bool(evaluation_history)
+
+    if has_data:
+        latest_evaluation = evaluation_history[-1]
+        metrics: List[str] = latest_evaluation["metrics"]
+        slices: List[str] = latest_evaluation["subgroups"] + ["overall"]
+
+        metric_cards = MetricCards(
+            metrics=[format_metric_name(metric) for metric in metrics],
+            tooltips=[
+                METRIC_TOOLTIPS.get(metric, f"No tooltip available for {metric}")
+                for metric in metrics
+            ],
+            slices=slices,
+            collection=[
+                create_metric(metric, slice_, evaluation_history, threshold)
+                for metric in metrics
+                for slice_ in slices
+            ],
         )
-
-    latest_evaluation = evaluation_history[-1]
-    metrics: List[str] = latest_evaluation["metrics"]
-    slices: List[str] = latest_evaluation["subgroups"] + ["overall"]
-
-    metric_cards = MetricCards(
-        metrics=[format_metric_name(metric) for metric in metrics],
-        tooltips=[
-            METRIC_TOOLTIPS.get(metric, f"No tooltip available for {metric}")
-            for metric in metrics
-        ],
-        slices=slices,
-        collection=[
-            create_metric(metric, slice_, evaluation_history, threshold)
-            for metric in metrics
-            for slice_ in slices
-        ],
-    )
+    else:
+        metric_cards = MetricCards(
+            metrics=[],
+            tooltips=[],
+            slices=[],
+            collection=[],
+        )
 
     overview = Overview(
         last_n_evals=last_n_evals,
         mean_std_min_evals=mean_std_min_evals,
         metric_cards=metric_cards,
+        has_data=has_data,
     )
 
     performance_data = PerformanceData(overview=overview)

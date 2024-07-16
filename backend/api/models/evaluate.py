@@ -257,10 +257,14 @@ class EvaluationEndpoint:
             target_columns="target",
             prediction_columns="preds_prob",
         )
+
+        # Extract unique slices from the evaluation result
+        slices = list(result["model_for_preds_prob"].keys())
         sample_size = len(data.preds_prob)
+
         evaluation_result = EvaluationResult(
             metrics=[f"{metric.type}_{metric.name}" for metric in self.config.metrics],
-            subgroups=[subgroup.column for subgroup in self.config.subgroups],
+            subgroups=slices,
             evaluation_result=result,
             timestamp=datetime.now(),
             sample_size=sample_size,

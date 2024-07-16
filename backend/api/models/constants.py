@@ -1,5 +1,27 @@
 """Constants."""
 
+METRIC_TOOLTIPS = {
+    "binary_accuracy": "Proportion of correct predictions (both true positives and true negatives) among the total number of cases examined.",
+    "binary_precision": "Proportion of true positive predictions among all positive predictions.",
+    "binary_recall": "Proportion of true positive predictions among all actual positive cases.",
+    "binary_f1_score": "Harmonic mean of precision and recall, providing a single score that balances both metrics.",
+    "binary_auroc": "Area Under the Receiver Operating Characteristic Curve, measuring the ability to distinguish between classes.",
+    "multiclass_accuracy": "Proportion of correct predictions among the total number of cases examined for multiple classes.",
+    "multiclass_precision": "Average precision across all classes, weighted by the number of true instances for each class.",
+    "multiclass_recall": "Average recall across all classes, weighted by the number of true instances for each class.",
+    "multiclass_f1_score": "Harmonic mean of precision and recall for multiple classes, providing a balanced measure of the model's performance.",
+}
+METRIC_DISPLAY_NAMES = {
+    "binary_accuracy": "Accuracy",
+    "binary_precision": "Precision",
+    "binary_recall": "Recall",
+    "binary_f1_score": "F1 Score",
+    "binary_auroc": "AUROC",
+    "multiclass_accuracy": "Accuracy",
+    "multiclass_precision": "Precision",
+    "multiclass_recall": "Recall",
+    "multiclass_f1_score": "F1 Score",
+}
 VALID_METRIC_NAMES = [
     "binary_accuracy",
     "multiclass_accuracy",

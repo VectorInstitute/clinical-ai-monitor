@@ -8,6 +8,10 @@ import {
   Heading,
   useBreakpointValue,
   Divider,
+  Alert,
+  AlertIcon,
+  AlertTitle,
+  AlertDescription,
 } from '@chakra-ui/react';
 import { ErrorMessage } from '../components/error-message';
 import { LoadingSpinner } from '../components/loading-spinner';
@@ -47,8 +51,10 @@ export default function PerformanceMetricsTab({ endpointName }: PerformanceMetri
         const fetchedData = await response.json();
         const validatedData = PerformanceDataSchema.parse(fetchedData);
         setData(validatedData);
-        setSelectedMetrics([validatedData.overview.metric_cards.metrics[0]]);
-        setLastNEvaluations(Math.min(20, validatedData.overview.last_n_evals));
+        if (validatedData.overview.has_data) {
+          setSelectedMetrics([validatedData.overview.metric_cards.metrics[0]]);
+          setLastNEvaluations(Math.min(20, validatedData.overview.last_n_evals));
+        }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An error occurred');
       } finally {
@@ -59,7 +65,7 @@ export default function PerformanceMetricsTab({ endpointName }: PerformanceMetri
   }, [endpointName]);
 
   const renderMetricCards = useMemo(() => {
-    if (!data) return null;
+    if (!data || !data.overview.has_data) return null;
     return (
       <SimpleGrid columns={cardColumns} spacing={4} width="100%">
         {data.overview.metric_cards.collection
@@ -74,6 +80,28 @@ export default function PerformanceMetricsTab({ endpointName }: PerformanceMetri
   if (isLoading) return <LoadingSpinner />;
   if (error) return <ErrorMessage message={error} />;
   if (!data) return null;
+
+  if (!data.overview.has_data) {
+    return (
+      <Alert
+        status="info"
+        variant="subtle"
+        flexDirection="column"
+        alignItems="center"
+        justifyContent="center"
+        textAlign="center"
+        height="200px"
+      >
+        <AlertIcon boxSize="40px" mr={0} />
+        <AlertTitle mt={4} mb={1} fontSize="lg">
+          No Evaluation Data Available
+        </AlertTitle>
+        <AlertDescription maxWidth="sm">
+          It looks like there's no evaluation data for this endpoint yet. Start logging evaluation data to see performance metrics here.
+        </AlertDescription>
+      </Alert>
+    );
+  }
 
   return (
     <VStack spacing={8} align="stretch" width="100%">
