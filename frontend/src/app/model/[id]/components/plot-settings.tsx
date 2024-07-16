@@ -1,5 +1,21 @@
 import React from 'react';
-import { Stack, Switch, Text, NumberInput, NumberInputField, NumberInputStepper, NumberIncrementStepper, NumberDecrementStepper, Slider, SliderTrack, SliderFilledTrack, SliderThumb, Box } from '@chakra-ui/react';
+import {
+  Stack,
+  Switch,
+  Text,
+  NumberInput,
+  NumberInputField,
+  NumberInputStepper,
+  NumberIncrementStepper,
+  NumberDecrementStepper,
+  Slider,
+  SliderTrack,
+  SliderFilledTrack,
+  SliderThumb,
+  Box,
+  Tooltip,
+  Flex,
+} from '@chakra-ui/react';
 
 interface PlotSettingsProps {
   showRollingStats: boolean;
@@ -25,44 +41,50 @@ export const PlotSettings: React.FC<PlotSettingsProps> = ({
   };
 
   return (
-    <Stack spacing={4}>
-      <Stack direction="row" align="center" spacing={4}>
+    <Stack spacing={6}>
+      <Flex align="center" justify="space-between">
+        <Text fontWeight="medium">Show Rolling Stats</Text>
         <Switch
           isChecked={showRollingStats}
           onChange={(e) => setShowRollingStats(e.target.checked)}
+          colorScheme="blue"
+          size="lg"
         />
-        <Text>Show Rolling Stats</Text>
-      </Stack>
+      </Flex>
       {showRollingStats && (
-        <Stack direction="row" align="center" spacing={4}>
-          <Text>Window Size:</Text>
-          <NumberInput
-            value={rollingWindow}
-            onChange={(_, value) => setRollingWindow(value)}
+        <Box>
+          <Text mb={2} fontWeight="medium">Window Size: {rollingWindow}</Text>
+          <Slider
             min={2}
             max={10}
+            step={1}
+            value={rollingWindow}
+            onChange={(value) => setRollingWindow(value)}
+            colorScheme="blue"
           >
-            <NumberInputField />
-            <NumberInputStepper>
-              <NumberIncrementStepper />
-              <NumberDecrementStepper />
-            </NumberInputStepper>
-          </NumberInput>
-        </Stack>
+            <SliderTrack>
+              <SliderFilledTrack />
+            </SliderTrack>
+            <SliderThumb boxSize={6} />
+          </Slider>
+        </Box>
       )}
       <Box>
-        <Text mb={2}>Last N Evaluations: {lastNEvaluations}</Text>
+        <Text mb={2} fontWeight="medium">Last N Evaluations: {lastNEvaluations}</Text>
         <Slider
           min={1}
           max={maxEvaluations}
           step={1}
           value={lastNEvaluations}
           onChange={handleLastNEvaluationsChange}
+          colorScheme="blue"
         >
           <SliderTrack>
             <SliderFilledTrack />
           </SliderTrack>
-          <SliderThumb />
+          <Tooltip label={lastNEvaluations} placement="top" hasArrow>
+            <SliderThumb boxSize={6} />
+          </Tooltip>
         </Slider>
       </Box>
     </Stack>

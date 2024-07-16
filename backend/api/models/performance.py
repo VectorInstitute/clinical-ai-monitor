@@ -251,7 +251,7 @@ async def get_performance_metrics(
     if has_data:
         latest_evaluation = evaluation_history[-1]
         metrics: List[str] = latest_evaluation["metrics"]
-        slices: List[str] = latest_evaluation["subgroups"] + ["overall"]
+        slices: List[str] = latest_evaluation["subgroups"]
 
         metric_cards = MetricCards(
             metrics=[format_metric_name(metric) for metric in metrics],

@@ -36,6 +36,7 @@ export default function ModelDashboard({ params }: ModelDashboardProps): JSX.Ele
   const { models, isLoading } = useModelContext()
   const [model, setModel] = useState<Model | null>(null)
   const [isModelLoading, setIsModelLoading] = useState(true)
+  const [activeTabIndex, setActiveTabIndex] = useState(0)
 
   const hospitalName = "University Health Network" // This should come from your authentication state
 
@@ -49,6 +50,20 @@ export default function ModelDashboard({ params }: ModelDashboardProps): JSX.Ele
       setIsModelLoading(false)
     }
   }, [models, params.id, isLoading])
+
+  useEffect(() => {
+    // Load the active tab index from localStorage
+    const storedTabIndex = localStorage.getItem(`activeTab-${params.id}`)
+    if (storedTabIndex !== null) {
+      setActiveTabIndex(parseInt(storedTabIndex, 10))
+    }
+  }, [params.id])
+
+  const handleTabChange = (index: number) => {
+    setActiveTabIndex(index)
+    // Save the active tab index to localStorage
+    localStorage.setItem(`activeTab-${params.id}`, index.toString())
+  }
 
   if (isLoading || isModelLoading) {
     return (
@@ -73,7 +88,12 @@ export default function ModelDashboard({ params }: ModelDashboardProps): JSX.Ele
         <Heading as="h1" size="xl" mb={6} color={textColor}>
           Model Dashboard - ID: {params.id}
         </Heading>
-        <Tabs variant="soft-rounded" colorScheme="blue">
+        <Tabs 
+          variant="soft-rounded" 
+          colorScheme="blue" 
+          index={activeTabIndex} 
+          onChange={handleTabChange}
+        >
           <TabList mb="1em">
             <Tab>Model Health</Tab>
             <Tab>Performance Metrics</Tab>
