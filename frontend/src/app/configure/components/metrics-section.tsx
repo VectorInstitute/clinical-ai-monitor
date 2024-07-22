@@ -1,5 +1,5 @@
 import React from 'react';
-import { FieldArray, Field, useFormikContext } from 'formik';
+import { FieldArray, Field, useFormikContext, FormikErrors } from 'formik';
 import {
   FormControl,
   FormLabel,
@@ -34,8 +34,17 @@ const METRIC_NAMES = [
 
 const METRIC_TYPES = ['binary', 'multilabel', 'multiclass'];
 
+interface Metric {
+  name: string;
+  type: string;
+}
+
+interface FormValues {
+  metrics: Metric[];
+}
+
 export const MetricsSection: React.FC = () => {
-  const { values, errors, touched } = useFormikContext<{ metrics: Array<{ name: string; type: string }> }>();
+  const { values, errors, touched } = useFormikContext<FormValues>();
 
   return (
     <FieldArray name="metrics">
@@ -49,7 +58,11 @@ export const MetricsSection: React.FC = () => {
                   as={Select}
                   name={`metrics.${index}.name`}
                   mr={2}
-                  isInvalid={errors.metrics && errors.metrics[index]?.name}
+                  isInvalid={
+                    errors.metrics &&
+                    Array.isArray(errors.metrics) &&
+                    (errors.metrics[index] as FormikErrors<Metric>)?.name
+                  }
                 >
                   <option value="">Select a metric name</option>
                   {METRIC_NAMES.map((name) => (
@@ -62,7 +75,11 @@ export const MetricsSection: React.FC = () => {
                   as={Select}
                   name={`metrics.${index}.type`}
                   mr={2}
-                  isInvalid={errors.metrics && errors.metrics[index]?.type}
+                  isInvalid={
+                    errors.metrics &&
+                    Array.isArray(errors.metrics) &&
+                    (errors.metrics[index] as FormikErrors<Metric>)?.type
+                  }
                 >
                   <option value="">Select a metric type</option>
                   {METRIC_TYPES.map((type) => (

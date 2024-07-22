@@ -7,7 +7,7 @@ from typing import Any, Dict, List, cast
 from fastapi import HTTPException
 from pydantic import BaseModel, Field
 
-from backend.api.models.constants import METRIC_DISPLAY_NAMES, METRIC_TOOLTIPS
+from api.models.constants import METRIC_DISPLAY_NAMES, METRIC_TOOLTIPS
 
 
 DATA_DIR = Path("endpoint_data")

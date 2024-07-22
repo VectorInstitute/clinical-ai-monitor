@@ -33,6 +33,9 @@ export default function HomePage() {
   const textColor = useColorModeValue('gray.800', 'white')
   const accentColor = useColorModeValue('blue.500', 'blue.300')
   const dividerColor = useColorModeValue('gray.200', 'gray.600')
+  const noModelsTextColor = useColorModeValue('gray.600', 'gray.400')
+  const modelDescriptionColor = useColorModeValue('gray.600', 'gray.300')
+  const modelEndpointColor = useColorModeValue('gray.500', 'gray.400')
 
   useEffect(() => {
     const loadModels = async () => {
@@ -63,7 +66,7 @@ export default function HomePage() {
           <Text fontSize="xl" fontWeight="bold" mb={4} textAlign="center">
             No Models Configured
           </Text>
-          <Text fontSize="md" mb={6} textAlign="center" color={useColorModeValue('gray.600', 'gray.400')}>
+          <Text fontSize="md" mb={6} textAlign="center" color={noModelsTextColor}>
             To start monitoring a model, you need to configure its evaluation parameters.
           </Text>
           <Link href="/configure" passHref>
@@ -98,10 +101,10 @@ export default function HomePage() {
               <Heading as="h3" size="md" color={textColor}>
                 {model.name}
               </Heading>
-              <Text fontSize="sm" color={useColorModeValue('gray.600', 'gray.300')}>
+              <Text fontSize="sm" color={modelDescriptionColor}>
                 {model.description}
               </Text>
-              <Text fontSize="xs" color={useColorModeValue('gray.500', 'gray.400')}>
+              <Text fontSize="xs" color={modelEndpointColor}>
                 Endpoint: {model.endpointName}
               </Text>
             </VStack>
@@ -125,7 +128,7 @@ export default function HomePage() {
               <Heading as="h1" size="xl" color={textColor} mb={4}>
                 AI Model Monitoring Hub
               </Heading>
-              <Text fontSize="lg" color={useColorModeValue('gray.600', 'gray.400')}>
+              <Text fontSize="lg" color={noModelsTextColor}>
                 Monitor your clinical AI models in real-time.
               </Text>
             </Box>

@@ -43,18 +43,18 @@ export const MetricCard: React.FC<MetricCardProps> = ({ metric }) => {
     {
       x: metric.timestamps,
       y: metric.history,
-      type: 'scatter',
-      mode: 'lines+markers',
+      type: 'scatter' as const,
+      mode: 'lines+markers' as const,
       line: { color: lineColor, width: 2 },
       marker: { size: 4, color: lineColor },
-      hoverinfo: 'x+y+text',
+      hoverinfo: 'x+y+text' as const,
       hovertext: metric.history.map((value, index) =>
         `Value: ${value.toFixed(2)}<br>Sample Size: ${metric.sample_sizes[index]}`
       ),
     },
   ];
 
-  const trendPlotLayout = {
+  const trendPlotLayout: Partial<Plotly.Layout> = {
     autosize: true,
     margin: { l: 30, r: 10, t: 10, b: 30 },
     xaxis: {
@@ -76,7 +76,7 @@ export const MetricCard: React.FC<MetricCardProps> = ({ metric }) => {
     },
     paper_bgcolor: 'rgba(0,0,0,0)',
     plot_bgcolor: 'rgba(0,0,0,0)',
-    hovermode: 'closest',
+    hovermode: 'closest' as const,
   };
 
   const metricColor = metric.value >= metric.threshold ? 'green.500' : 'red.500';

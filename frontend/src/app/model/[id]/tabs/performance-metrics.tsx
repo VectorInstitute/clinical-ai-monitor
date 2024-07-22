@@ -38,7 +38,7 @@ export default function PerformanceMetricsTab({ endpointName }: PerformanceMetri
   const [lastNEvaluations, setLastNEvaluations] = useState<number>(20);
 
   const cardColumns = useBreakpointValue({ base: 1, sm: 2, md: 3, lg: 4 });
-  const chartHeight = useBreakpointValue({ base: 300, md: 400, lg: 500 });
+  const chartHeight = useBreakpointValue({ base: 300, md: 400, lg: 500 }) ?? 300; // Provide a default value
 
   useEffect(() => {
     const fetchPerformanceMetrics = async () => {
@@ -97,7 +97,7 @@ export default function PerformanceMetricsTab({ endpointName }: PerformanceMetri
           No Evaluation Data Available
         </AlertTitle>
         <AlertDescription maxWidth="sm">
-          It looks like there's no evaluation data for this endpoint yet. Start logging evaluation data to see performance metrics here.
+          It looks like there&apos;s no evaluation data for this endpoint yet. Start logging evaluation data to see performance metrics here.
         </AlertDescription>
       </Alert>
     );
@@ -125,7 +125,7 @@ export default function PerformanceMetricsTab({ endpointName }: PerformanceMetri
         <Text fontSize="md" color="gray.600" mb={4}>
           See how your model is performing over several metrics and subgroups over time.
         </Text>
-        <Flex direction={{ base: 'column', md: 'row' }} align="flex-start" spacing={8}>
+        <Flex direction={{ base: 'column', md: 'row' }} align="flex-start" gap={8}>
           <Box width={{ base: '100%', md: '25%' }} mr={{ base: 0, md: 8 }} mb={{ base: 8, md: 0 }}>
             <VStack spacing={6} align="stretch">
               <Box>

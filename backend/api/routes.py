@@ -4,8 +4,8 @@ from typing import Any, Dict, List
 
 from fastapi import APIRouter, HTTPException
 
-from backend.api.models.config import EndpointConfig
-from backend.api.models.evaluate import (
+from api.models.config import EndpointConfig
+from api.models.evaluate import (
     EndpointDetails,
     EndpointLog,
     EvaluationInput,
@@ -15,8 +15,9 @@ from backend.api.models.evaluate import (
     get_endpoint_logs,
     list_evaluation_endpoints,
 )
-from backend.api.models.health import ModelHealth, get_model_health
-from backend.api.models.performance import get_performance_metrics
+from api.models.facts import ModelFacts, get_model_facts
+from api.models.health import ModelHealth, get_model_health
+from api.models.performance import get_performance_metrics
 
 
 router = APIRouter()
@@ -210,4 +211,34 @@ async def delete_endpoint(endpoint_name: str) -> Dict[str, str]:
     except Exception as e:
         raise HTTPException(
             status_code=500, detail=f"Internal server error: {str(e)}"
+        ) from e
+
+
+@router.get("/model/{model_id}/facts", response_model=ModelFacts)
+async def get_model_facts_route(model_id: str) -> ModelFacts:
+    """
+    Retrieve facts for a specific model.
+
+    Parameters
+    ----------
+    model_id : str
+        The ID of the model to retrieve facts for.
+
+    Returns
+    -------
+    ModelFacts
+        The facts for the specified model.
+
+    Raises
+    ------
+    HTTPException
+        If there's an error retrieving the model facts.
+    """
+    try:
+        return get_model_facts(model_id)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e)) from e
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Error retrieving model facts: {str(e)}"
         ) from e

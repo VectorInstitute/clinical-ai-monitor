@@ -1,5 +1,5 @@
 import React from 'react';
-import { FieldArray, Field, useFormikContext } from 'formik';
+import { FieldArray, Field, useFormikContext, FieldProps, getIn } from 'formik';
 import {
   FormControl,
   FormLabel,
@@ -26,7 +26,12 @@ const conditionTypes = [
   { value: 'day', label: 'Day' },
 ];
 
-const TooltipLabel: React.FC<{ label: string; tooltip: string }> = ({ label, tooltip }) => (
+interface TooltipLabelProps {
+  label: string;
+  tooltip: string;
+}
+
+const TooltipLabel: React.FC<TooltipLabelProps> = ({ label, tooltip }) => (
   <HStack>
     <FormLabel mb={0}>{label}</FormLabel>
     <Tooltip label={tooltip} hasArrow>
@@ -47,20 +52,20 @@ export const SubgroupsSection: React.FC = () => {
             <Box key={index} borderWidth="1px" borderRadius="lg" p={4} mb={4}>
               <VStack spacing={2} align="stretch">
                 <Field name={`subgroups.${index}.column`}>
-                  {({ field, form }) => (
-                    <FormControl isInvalid={!!(form.errors.subgroups?.[index]?.column && form.touched.subgroups?.[index]?.column)}>
+                  {({ field, form }: FieldProps) => (
+                    <FormControl isInvalid={!!getIn(form.errors, `subgroups.${index}.column`) && !!getIn(form.touched, `subgroups.${index}.column`)}>
                       <TooltipLabel
                         label="Column"
                         tooltip="The name of the column in your dataset to apply the condition"
                       />
                       <Input {...field} placeholder="Column name" />
-                      <FormErrorMessage>{form.errors.subgroups?.[index]?.column}</FormErrorMessage>
+                      <FormErrorMessage>{getIn(form.errors, `subgroups.${index}.column`)}</FormErrorMessage>
                     </FormControl>
                   )}
                 </Field>
                 <Field name={`subgroups.${index}.condition.type`}>
-                  {({ field, form }) => (
-                    <FormControl isInvalid={!!(form.errors.subgroups?.[index]?.condition?.type && form.touched.subgroups?.[index]?.condition?.type)}>
+                  {({ field, form }: FieldProps) => (
+                    <FormControl isInvalid={!!getIn(form.errors, `subgroups.${index}.condition.type`) && !!getIn(form.touched, `subgroups.${index}.condition.type`)}>
                       <TooltipLabel
                         label="Condition Type"
                         tooltip="The type of condition to apply to the column"
@@ -72,20 +77,20 @@ export const SubgroupsSection: React.FC = () => {
                           </option>
                         ))}
                       </Select>
-                      <FormErrorMessage>{form.errors.subgroups?.[index]?.condition?.type}</FormErrorMessage>
+                      <FormErrorMessage>{getIn(form.errors, `subgroups.${index}.condition.type`)}</FormErrorMessage>
                     </FormControl>
                   )}
                 </Field>
                 {subgroup.condition.type === 'value' && (
                   <Field name={`subgroups.${index}.condition.value`}>
-                    {({ field, form }) => (
-                      <FormControl isInvalid={!!(form.errors.subgroups?.[index]?.condition?.value && form.touched.subgroups?.[index]?.condition?.value)}>
+                    {({ field, form }: FieldProps) => (
+                      <FormControl isInvalid={!!getIn(form.errors, `subgroups.${index}.condition.value`) && !!getIn(form.touched, `subgroups.${index}.condition.value`)}>
                         <TooltipLabel
                           label="Value"
                           tooltip="The exact value to match in the column"
                         />
                         <Input {...field} placeholder="Value" />
-                        <FormErrorMessage>{form.errors.subgroups?.[index]?.condition?.value}</FormErrorMessage>
+                        <FormErrorMessage>{getIn(form.errors, `subgroups.${index}.condition.value`)}</FormErrorMessage>
                       </FormControl>
                     )}
                   </Field>
@@ -93,26 +98,26 @@ export const SubgroupsSection: React.FC = () => {
                 {subgroup.condition.type === 'range' && (
                   <HStack>
                     <Field name={`subgroups.${index}.condition.min_value`}>
-                      {({ field, form }) => (
-                        <FormControl isInvalid={!!(form.errors.subgroups?.[index]?.condition?.min_value && form.touched.subgroups?.[index]?.condition?.min_value)}>
+                      {({ field, form }: FieldProps) => (
+                        <FormControl isInvalid={!!getIn(form.errors, `subgroups.${index}.condition.min_value`) && !!getIn(form.touched, `subgroups.${index}.condition.min_value`)}>
                           <TooltipLabel
                             label="Min Value"
                             tooltip="The minimum value of the range (inclusive). Leave empty for -Inf."
                           />
                           <Input {...field} placeholder="Min value" type="number" />
-                          <FormErrorMessage>{form.errors.subgroups?.[index]?.condition?.min_value}</FormErrorMessage>
+                          <FormErrorMessage>{getIn(form.errors, `subgroups.${index}.condition.min_value`)}</FormErrorMessage>
                         </FormControl>
                       )}
                     </Field>
                     <Field name={`subgroups.${index}.condition.max_value`}>
-                      {({ field, form }) => (
-                        <FormControl isInvalid={!!(form.errors.subgroups?.[index]?.condition?.max_value && form.touched.subgroups?.[index]?.condition?.max_value)}>
+                      {({ field, form }: FieldProps) => (
+                        <FormControl isInvalid={!!getIn(form.errors, `subgroups.${index}.condition.max_value`) && !!getIn(form.touched, `subgroups.${index}.condition.max_value`)}>
                           <TooltipLabel
                             label="Max Value"
                             tooltip="The maximum value of the range (inclusive). Leave empty for +Inf."
                           />
                           <Input {...field} placeholder="Max value" type="number" />
-                          <FormErrorMessage>{form.errors.subgroups?.[index]?.condition?.max_value}</FormErrorMessage>
+                          <FormErrorMessage>{getIn(form.errors, `subgroups.${index}.condition.max_value`)}</FormErrorMessage>
                         </FormControl>
                       )}
                     </Field>
@@ -120,14 +125,14 @@ export const SubgroupsSection: React.FC = () => {
                 )}
                 {(subgroup.condition.type === 'contains' || ['year', 'month', 'day'].includes(subgroup.condition.type)) && (
                   <Field name={`subgroups.${index}.condition.value`}>
-                    {({ field, form }) => (
-                      <FormControl isInvalid={!!(form.errors.subgroups?.[index]?.condition?.value && form.touched.subgroups?.[index]?.condition?.value)}>
+                    {({ field, form }: FieldProps) => (
+                      <FormControl isInvalid={!!getIn(form.errors, `subgroups.${index}.condition.value`) && !!getIn(form.touched, `subgroups.${index}.condition.value`)}>
                         <TooltipLabel
                           label={subgroup.condition.type === 'contains' ? 'Contains' : subgroup.condition.type.charAt(0).toUpperCase() + subgroup.condition.type.slice(1)}
                           tooltip={subgroup.condition.type === 'contains' ? 'The value that the column should contain' : `The ${subgroup.condition.type} value to filter on (for timestamp columns)`}
                         />
                         <Input {...field} placeholder={`${subgroup.condition.type === 'contains' ? 'Contains value' : `${subgroup.condition.type} value`}`} type={['year', 'month', 'day'].includes(subgroup.condition.type) ? 'number' : 'text'} />
-                        <FormErrorMessage>{form.errors.subgroups?.[index]?.condition?.value}</FormErrorMessage>
+                        <FormErrorMessage>{getIn(form.errors, `subgroups.${index}.condition.value`)}</FormErrorMessage>
                       </FormControl>
                     )}
                   </Field>

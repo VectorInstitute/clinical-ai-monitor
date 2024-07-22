@@ -14,7 +14,7 @@ from cyclops.evaluate.metrics.experimental import MetricDict
 from datasets.arrow_dataset import Dataset
 from pydantic import BaseModel, Field, validator
 
-from backend.api.models.config import (
+from api.models.config import (
     ConditionType,
     EndpointConfig,
     SubgroupCondition,

@@ -109,7 +109,11 @@ const SidebarContent: React.FC<SidebarContentProps> = ({ hospitalName, onClose, 
   )
 }
 
-const NavItems = ({ textColor }) => {
+interface NavItemsProps {
+  textColor: string
+}
+
+const NavItems: React.FC<NavItemsProps> = ({ textColor }) => {
   return (
     <VStack spacing={1} align="stretch">
       <NavItem icon={FiHome} href="/home" textColor={textColor}>Dashboard</NavItem>
