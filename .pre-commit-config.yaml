@@ -28,7 +28,7 @@ repos:
     rev: v1.10.1
     hooks:
       - id: mypy
-        entry: python3 -m mypy --config-file pyproject.toml
+        entry: python3 -m mypy --config-file backend/pyproject.toml
         language: system
         types: [python]
         exclude: 'tests'

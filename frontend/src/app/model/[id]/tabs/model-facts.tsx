@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Box,
   VStack,
@@ -15,86 +15,68 @@ import {
   List,
   ListItem,
   ListIcon,
+  Spinner,
 } from '@chakra-ui/react';
 import { InfoOutlineIcon, WarningIcon } from '@chakra-ui/icons';
+import { ModelFacts, OtherInformation } from '../types/facts';
 
-interface ValidationAndPerformance {
-  internalValidation: string;
-  externalValidation: string;
-  performanceInSubgroups: string;
+interface ModelFactsTabProps {
+  modelId: string;
 }
 
-interface OtherInformation {
-  approvalDate: string;
-  license: string;
-  contactInformation: string;
-  publicationLink: string;
-}
+const ModelFactsTab: React.FC<ModelFactsTabProps> = ({ modelId }) => {
+  const [modelFacts, setModelFacts] = useState<ModelFacts | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-interface ModelFacts {
-  name: string;
-  locale: string;
-  version: string;
-  summary: string;
-  mechanismOfRiskScore: string;
-  validationAndPerformance: ValidationAndPerformance;
-  usesAndDirections: string[];
-  warnings: string[];
-  otherInformation: OtherInformation;
-}
-
-const modelFacts: ModelFacts = {
-  name: "Pneumothorax Prediction Model",
-  locale: "University Health Network",
-  version: "1.0.0",
-  summary: "This model predicts the risk of pneumothorax using chest x-rays.",
-  mechanismOfRiskScore: "The model uses a deep learning algorithm that processes chest x-rays to predict the risk of pneumothorax.",
-  validationAndPerformance: {
-    internalValidation: "AUC: 0.85 (95% CI: 0.83-0.87)",
-    externalValidation: "AUC: 0.82 (95% CI: 0.80-0.84) at Toronto General Hospital",
-    performanceInSubgroups: "Similar performance across age and gender subgroups",
-  },
-  usesAndDirections: [
-    "Use for adult patients (18+ years)",
-    "Check risk score every 4 weeks",
-    "High risk (>0.7): Consider immediate clinical assessment",
-  ],
-  warnings: [
-    "Do not use for patients already diagnosed with pneumothorax",
-    "Not validated for use in ICU settings",
-    "Model performance may degrade over time - regular re-validation required",
-  ],
-  otherInformation: {
-    approvalDate: "January 1, 2023",
-    license: "MIT License",
-    contactInformation: "support@example.com",
-    publicationLink: "https://doi.org/10.1038/s41746-020-0253-3",
-  },
-};
-
-const ModelFactsTab: React.FC = () => {
   const bgColor = useColorModeValue('white', 'gray.700');
   const borderColor = useColorModeValue('gray.200', 'gray.600');
-  const textColor = useColorModeValue('gray.800', 'white');
+
+  useEffect(() => {
+    const fetchModelFacts = async () => {
+      try {
+        const response = await fetch(`/api/model/${modelId}/facts`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch model facts');
+        }
+        const data: ModelFacts = await response.json();
+        setModelFacts(data);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'An error occurred');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchModelFacts();
+  }, [modelId]);
+
+  if (isLoading) {
+    return <Spinner size="xl" />;
+  }
+
+  if (error || !modelFacts) {
+    return <Text color="red.500">Error: {error || 'Failed to load model facts'}</Text>;
+  }
 
   return (
     <Box bg={bgColor} p={6} borderRadius="lg" boxShadow="md" borderColor={borderColor} borderWidth={1}>
       <VStack align="stretch" spacing={6}>
-        <ModelHeader name={modelFacts.name} version={modelFacts.version} locale={modelFacts.locale} />
+        <ModelHeader name={modelFacts.name} version={modelFacts.version} type={modelFacts.type} />
         <ModelSummary summary={modelFacts.summary} />
         <Divider />
         <ModelAccordion modelFacts={modelFacts} />
         <Divider />
-        <OtherInformation otherInfo={modelFacts.otherInformation} />
+        <OtherInformationSection otherInfo={modelFacts.other_information} />
       </VStack>
     </Box>
   );
 };
 
-const ModelHeader: React.FC<{ name: string; version: string; locale: string }> = ({ name, version, locale }) => (
+const ModelHeader: React.FC<{ name: string; version: string; type: string }> = ({ name, version, type }) => (
   <Box>
     <Heading as="h2" size="xl" mb={2}>{name}</Heading>
-    <Text fontSize="md" color="gray.500">Version {version} | {locale}</Text>
+    <Text fontSize="md" color="gray.500">Version {version} | {type}</Text>
   </Box>
 );
 
@@ -110,12 +92,46 @@ const ModelAccordion: React.FC<{ modelFacts: ModelFacts }> = ({ modelFacts }) =>
     <AccordionItem>
       <AccordionButton>
         <Box flex="1" textAlign="left">
-          <Heading as="h3" size="md">Mechanism of Risk Score Calculation</Heading>
+          <Heading as="h3" size="md">Intended Use and Target Population</Heading>
         </Box>
         <AccordionIcon />
       </AccordionButton>
       <AccordionPanel pb={4}>
-        <Text>{modelFacts.mechanismOfRiskScore}</Text>
+        <Text><strong>Intended Use:</strong> {modelFacts.intended_use}</Text>
+        <Text><strong>Target Population:</strong> {modelFacts.target_population}</Text>
+      </AccordionPanel>
+    </AccordionItem>
+
+    <AccordionItem>
+      <AccordionButton>
+        <Box flex="1" textAlign="left">
+          <Heading as="h3" size="md">Input and Output Data</Heading>
+        </Box>
+        <AccordionIcon />
+      </AccordionButton>
+      <AccordionPanel pb={4}>
+        <Text><strong>Input Data:</strong></Text>
+        <List spacing={2}>
+          {modelFacts.input_data.map((item, index) => (
+            <ListItem key={index}>
+              <ListIcon as={InfoOutlineIcon} color="blue.500" />
+              {item}
+            </ListItem>
+          ))}
+        </List>
+        <Text><strong>Output Data:</strong> {modelFacts.output_data}</Text>
+      </AccordionPanel>
+    </AccordionItem>
+
+    <AccordionItem>
+      <AccordionButton>
+        <Box flex="1" textAlign="left">
+          <Heading as="h3" size="md">Mechanism of Action</Heading>
+        </Box>
+        <AccordionIcon />
+      </AccordionButton>
+      <AccordionPanel pb={4}>
+        <Text>{modelFacts.mechanism_of_action}</Text>
       </AccordionPanel>
     </AccordionItem>
 
@@ -128,9 +144,17 @@ const ModelAccordion: React.FC<{ modelFacts: ModelFacts }> = ({ modelFacts }) =>
       </AccordionButton>
       <AccordionPanel pb={4}>
         <VStack align="stretch" spacing={2}>
-          <Text><strong>Internal Validation:</strong> {modelFacts.validationAndPerformance.internalValidation}</Text>
-          <Text><strong>External Validation:</strong> {modelFacts.validationAndPerformance.externalValidation}</Text>
-          <Text><strong>Performance in Subgroups:</strong> {modelFacts.validationAndPerformance.performanceInSubgroups}</Text>
+          <Text><strong>Internal Validation:</strong> {modelFacts.validation_and_performance.internal_validation}</Text>
+          <Text><strong>External Validation:</strong> {modelFacts.validation_and_performance.external_validation}</Text>
+          <Text><strong>Performance in Subgroups:</strong></Text>
+          <List spacing={2}>
+            {modelFacts.validation_and_performance.performance_in_subgroups.map((item, index) => (
+              <ListItem key={index}>
+                <ListIcon as={InfoOutlineIcon} color="blue.500" />
+                {item}
+              </ListItem>
+            ))}
+          </List>
         </VStack>
       </AccordionPanel>
     </AccordionItem>
@@ -144,7 +168,7 @@ const ModelAccordion: React.FC<{ modelFacts: ModelFacts }> = ({ modelFacts }) =>
       </AccordionButton>
       <AccordionPanel pb={4}>
         <List spacing={2}>
-          {modelFacts.usesAndDirections.map((item, index) => (
+          {modelFacts.uses_and_directions.map((item, index) => (
             <ListItem key={index}>
               <ListIcon as={InfoOutlineIcon} color="blue.500" />
               {item}
@@ -175,16 +199,18 @@ const ModelAccordion: React.FC<{ modelFacts: ModelFacts }> = ({ modelFacts }) =>
   </Accordion>
 );
 
-const OtherInformation: React.FC<{ otherInfo: OtherInformation }> = ({ otherInfo }) => (
+const OtherInformationSection: React.FC<{ otherInfo: OtherInformation }> = ({ otherInfo }) => (
   <Box>
     <Heading as="h3" size="md" mb={2}>Other Information</Heading>
     <VStack align="stretch" spacing={2}>
-      <Text><strong>Approval Date:</strong> {otherInfo.approvalDate}</Text>
+      <Text><strong>Approval Date:</strong> {otherInfo.approval_date}</Text>
       <Text><strong>License:</strong> {otherInfo.license}</Text>
-      <Text><strong>Contact:</strong> {otherInfo.contactInformation}</Text>
-      <Link color="blue.500" href={otherInfo.publicationLink} isExternal>
-        View Publication
-      </Link>
+      <Text><strong>Contact:</strong> {otherInfo.contact_information}</Text>
+      {otherInfo.publication_link && (
+        <Link color="blue.500" href={otherInfo.publication_link} isExternal>
+          View Publication
+        </Link>
+      )}
     </VStack>
   </Box>
 );

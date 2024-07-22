@@ -5,7 +5,7 @@ from typing import Any, Dict, List, Optional, Union
 
 from pydantic import BaseModel, Field, root_validator, validator
 
-from backend.api.models.constants import VALID_METRIC_NAMES
+from api.models.constants import VALID_METRIC_NAMES
 
 
 class MetricConfig(BaseModel):

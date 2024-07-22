@@ -6,7 +6,7 @@ authors = ["Vector AI Engineering <ai_engineering@vectorinstitute.ai>"]
 repository = "https://github.com/VectorInstitute/clinical-ai-monitor"
 license = "Apache-2.0"
 packages = [
-    { include = "backend/api" },
+    { include = "api/" },
 ]
 readme = "README.md"
 
