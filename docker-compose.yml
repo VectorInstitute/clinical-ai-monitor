@@ -3,10 +3,15 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      args:
+        - FRONTEND_PORT=${FRONTEND_PORT}
+        - BACKEND_PORT=${BACKEND_PORT}
+    env_file: .env
     ports:
-      - "8091:8091"
+      - "${FRONTEND_PORT}:${FRONTEND_PORT}"
     environment:
-      - NEXT_PUBLIC_API_URL=http://backend:8000
+      - NEXT_PUBLIC_API_URL=http://backend:${BACKEND_PORT}
+      - NEXT_PUBLIC_BACKEND_PORT=${BACKEND_PORT}
     depends_on:
       - backend
     networks:
@@ -16,8 +21,15 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+      args:
+        - BACKEND_PORT=${BACKEND_PORT}
+        - FRONTEND_PORT=${FRONTEND_PORT}
+    env_file: .env
     ports:
-      - "8000:8000"
+      - "${BACKEND_PORT}:${BACKEND_PORT}"
+    environment:
+      - BACKEND_PORT=${BACKEND_PORT}
+      - FRONTEND_PORT=${FRONTEND_PORT}
     networks:
       - app-network
 
