@@ -12,6 +12,11 @@ RUN npm ci
 # Copy the rest of the frontend code
 COPY . .
 
+ARG FRONTEND_PORT
+ARG BACKEND_PORT
+ENV NEXT_PUBLIC_FRONTEND_PORT=${FRONTEND_PORT}
+ENV NEXT_PUBLIC_BACKEND_PORT=${BACKEND_PORT}
+
 # Build the Next.js app
 RUN npm run build
 
@@ -27,7 +32,9 @@ COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/public ./public
 
 # Expose the port the app runs on
-EXPOSE 8091
+ARG FRONTEND_PORT
+ENV NEXT_PUBLIC_FRONTEND_PORT=${FRONTEND_PORT}
+EXPOSE ${FRONTEND_PORT}
 
 # Start the app
 CMD ["npm", "start"]
