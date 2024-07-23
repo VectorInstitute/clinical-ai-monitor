@@ -15,6 +15,7 @@ python = ">=3.9, <3.12"
 fastapi = "^0.111.0"
 pydantic = "^1.10.11"
 uvicorn = "^0.30.1"
+pycyclops = "^0.2.10"
 
 [tool.poetry.group.test]
 optional = true
