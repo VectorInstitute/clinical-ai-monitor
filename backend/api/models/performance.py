@@ -154,7 +154,7 @@ def format_metric_name(metric: str) -> str:
     str
         The formatted metric name for display.
     """
-    return METRIC_DISPLAY_NAMES.get(metric, metric.replace("_", " ").title())
+    return str(METRIC_DISPLAY_NAMES.get(metric, metric.replace("_", " ").title()))
 
 
 def create_metric(

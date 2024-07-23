@@ -38,6 +38,8 @@ class EvaluationInput(BaseModel):
         The target values.
     metadata : Dict[str, List[Any]]
         Additional metadata for the evaluation.
+    timestamp : Optional[datetime]
+        Custom timestamp for the evaluation.
     """
 
     preds_prob: List[float] = Field(..., description="The predicted probabilities")
@@ -45,6 +47,110 @@ class EvaluationInput(BaseModel):
     metadata: Dict[str, List[Any]] = Field(
         ..., description="Additional metadata for the evaluation"
     )
+    timestamp: Optional[datetime] = Field(
+        None, description="Custom timestamp for the evaluation"
+    )
+
+    @validator("timestamp")
+    @classmethod
+    def validate_timestamp(cls, v: Optional[datetime]) -> Optional[datetime]:
+        """
+        Validate the timestamp format.
+
+        Parameters
+        ----------
+        v : Optional[datetime]
+            The timestamp value to validate.
+
+        Returns
+        -------
+        Optional[datetime]
+            The validated timestamp.
+
+        Raises
+        ------
+        ValueError
+            If the timestamp format is invalid.
+        """
+        if v is not None:
+            try:
+                datetime.fromisoformat(v.isoformat())
+            except (ValueError, AttributeError) as err:
+                raise ValueError(
+                    "Invalid timestamp format. Please use ISO 8601 format (YYYY-MM-DDTHH:MM:SSZ)."
+                ) from err
+        return v
+
+    @validator("preds_prob", "target")
+    @classmethod
+    def validate_list_lengths(
+        cls, v: List[float], values: Dict[str, Any], field: str
+    ) -> List[float]:
+        """
+        Validate that preds_prob and target have the same length.
+
+        Parameters
+        ----------
+        v : List[float]
+            The list to validate.
+        values : Dict[str, Any]
+            The dict of values already validated.
+        field : str
+            The name of the field being validated.
+
+        Returns
+        -------
+        List[float]
+            The validated list.
+
+        Raises
+        ------
+        ValueError
+            If the lengths of preds_prob and target are not the same.
+        """
+        if (
+            "preds_prob" in values
+            and "target" in values
+            and len(values["preds_prob"]) != len(values["target"])
+        ):
+            raise ValueError(
+                "The lengths of 'preds_prob' and 'target' must be the same."
+            )
+        return v
+
+    @validator("metadata")
+    @classmethod
+    def validate_metadata(
+        cls, v: Dict[str, List[Any]], values: Dict[str, Any]
+    ) -> Dict[str, List[Any]]:
+        """
+        Validate that all metadata lists have the same length as preds_prob.
+
+        Parameters
+        ----------
+        v : Dict[str, List[Any]]
+            The metadata dict to validate.
+        values : Dict[str, Any]
+            The dict of values already validated.
+
+        Returns
+        -------
+        Dict[str, List[Any]]
+            The validated metadata dict.
+
+        Raises
+        ------
+        ValueError
+            If any metadata list has a different length than preds_prob.
+        """
+        if "preds_prob" in values:
+            expected_length = len(values["preds_prob"])
+            for key, value in v.items():
+                if len(value) != expected_length:
+                    raise ValueError(
+                        f"The length of metadata '{key}' must match the length of 'preds_prob'."
+                    )
+        return v
 
 
 def deep_convert_numpy(
@@ -264,12 +370,14 @@ class EvaluationEndpoint:
         # Extract unique slices from the evaluation result
         slices = list(result["model_for_preds_prob"].keys())
         sample_size = len(data.preds_prob)
+        # Use the provided timestamp or default to current time
+        evaluation_timestamp = data.timestamp or datetime.now()
 
         evaluation_result = EvaluationResult(
             metrics=[f"{metric.type}_{metric.name}" for metric in self.config.metrics],
             subgroups=slices,
             evaluation_result=result,
-            timestamp=datetime.now(),
+            timestamp=evaluation_timestamp,
             sample_size=sample_size,
         )
         self.data.evaluation_history.append(evaluation_result)
