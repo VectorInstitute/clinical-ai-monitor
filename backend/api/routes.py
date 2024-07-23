@@ -1,6 +1,6 @@
 """Backend API routes."""
 
-from typing import Any, Dict, List
+from typing import Any, Dict, List, cast
 
 from fastapi import APIRouter, HTTPException
 
@@ -45,9 +45,9 @@ async def create_endpoint(config: EndpointConfig) -> Dict[str, str]:
     """
     try:
         result = create_evaluation_endpoint(config)
-        if "error" in result:
+        if isinstance(result, dict) and "error" in result:
             raise HTTPException(status_code=400, detail=result["error"])
-        return result
+        return cast(Dict[str, str], result)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
     except Exception as e:
@@ -66,7 +66,8 @@ async def get_evaluation_endpoints() -> Dict[str, List[EndpointDetails]]:
     Dict[str, List[EndpointDetails]]
         A dictionary containing a list of all evaluation endpoints.
     """
-    return list_evaluation_endpoints()
+    result = list_evaluation_endpoints()
+    return cast(Dict[str, List[EndpointDetails]], result)
 
 
 @router.post("/evaluate/{endpoint_name}", response_model=Dict[str, Any])
@@ -92,7 +93,10 @@ async def evaluate(endpoint_name: str, data: EvaluationInput) -> Dict[str, Any]:
         If there's an error during evaluation.
     """
     try:
-        return evaluate_model(endpoint_name, data)
+        result = evaluate_model(endpoint_name, data)
+        if not isinstance(result, dict):
+            raise ValueError("Unexpected result type from evaluate_model")
+        return result
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e)) from e
     except Exception as e:
@@ -117,7 +121,10 @@ async def endpoint_logs() -> List[EndpointLog]:
         If there's an error retrieving the logs.
     """
     try:
-        return get_endpoint_logs()
+        logs = get_endpoint_logs()
+        if not isinstance(logs, list):
+            raise ValueError("Unexpected result type from get_endpoint_logs")
+        return logs
     except Exception as e:
         raise HTTPException(
             status_code=500, detail=f"Internal server error: {str(e)}"
@@ -145,7 +152,10 @@ async def get_performance_metrics_for_endpoint(endpoint_name: str) -> Dict[str, 
         If there's an error retrieving the performance metrics.
     """
     try:
-        return await get_performance_metrics(endpoint_name)
+        metrics = await get_performance_metrics(endpoint_name)
+        if not isinstance(metrics, dict):
+            raise ValueError("Unexpected result type from get_performance_metrics")
+        return metrics
     except Exception as e:
         raise HTTPException(
             status_code=500, detail=f"Error retrieving performance metrics: {str(e)}"
@@ -205,7 +215,10 @@ async def delete_endpoint(endpoint_name: str) -> Dict[str, str]:
         If there's an error during endpoint deletion.
     """
     try:
-        return delete_evaluation_endpoint(endpoint_name)
+        result = delete_evaluation_endpoint(endpoint_name)
+        if not isinstance(result, dict):
+            raise ValueError("Unexpected result type from delete_evaluation_endpoint")
+        return cast(Dict[str, str], result)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e)) from e
     except Exception as e:

@@ -1,6 +1,9 @@
 """Constants."""
 
-METRIC_TOOLTIPS = {
+from typing import Dict, List
+
+
+METRIC_TOOLTIPS: Dict[str, str] = {
     "binary_accuracy": "Proportion of correct predictions (both true positives and true negatives) among the total number of cases examined.",
     "binary_precision": "Proportion of true positive predictions among all positive predictions.",
     "binary_recall": "Proportion of true positive predictions among all actual positive cases.",
@@ -11,7 +14,7 @@ METRIC_TOOLTIPS = {
     "multiclass_recall": "Average recall across all classes, weighted by the number of true instances for each class.",
     "multiclass_f1_score": "Harmonic mean of precision and recall for multiple classes, providing a balanced measure of the model's performance.",
 }
-METRIC_DISPLAY_NAMES = {
+METRIC_DISPLAY_NAMES: Dict[str, str] = {
     "binary_accuracy": "Accuracy",
     "binary_precision": "Precision",
     "binary_recall": "Recall",
@@ -22,7 +25,7 @@ METRIC_DISPLAY_NAMES = {
     "multiclass_recall": "Recall",
     "multiclass_f1_score": "F1 Score",
 }
-VALID_METRIC_NAMES = [
+VALID_METRIC_NAMES: List[str] = [
     "binary_accuracy",
     "multiclass_accuracy",
     "multilabel_accuracy",
