@@ -21,7 +21,7 @@ import {
   ModalCloseButton,
   FormErrorMessage,
 } from '@chakra-ui/react';
-import { useModelContext } from '../../context/model';
+import { useEndpointContext } from '../../context/endpoint';
 
 interface DeleteEndpointFormProps {
   isOpen: boolean;
@@ -30,7 +30,7 @@ interface DeleteEndpointFormProps {
 
 const DeleteEndpointForm: React.FC<DeleteEndpointFormProps> = ({ isOpen, onClose }) => {
   const toast = useToast();
-  const { removeModel, models, fetchModels } = useModelContext();
+  const { removeEndpoint, endpoints } = useEndpointContext();
   const [selectedEndpoint, setSelectedEndpoint] = useState('');
   const [isAlertOpen, setIsAlertOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -39,11 +39,10 @@ const DeleteEndpointForm: React.FC<DeleteEndpointFormProps> = ({ isOpen, onClose
 
   useEffect(() => {
     if (isOpen) {
-      fetchModels();
       setSelectedEndpoint('');
       setError(null);
     }
-  }, [isOpen, fetchModels]);
+  }, [isOpen]);
 
   const handleDelete = () => {
     if (!selectedEndpoint) {
@@ -57,7 +56,7 @@ const DeleteEndpointForm: React.FC<DeleteEndpointFormProps> = ({ isOpen, onClose
   const confirmDelete = async () => {
     setIsLoading(true);
     try {
-      await removeModel(selectedEndpoint);
+      await removeEndpoint(selectedEndpoint);
       toast({
         title: "Evaluation endpoint deleted.",
         description: "The selected evaluation endpoint has been successfully deleted.",
@@ -101,9 +100,9 @@ const DeleteEndpointForm: React.FC<DeleteEndpointFormProps> = ({ isOpen, onClose
                   placeholder="Select an endpoint"
                   isDisabled={isLoading}
                 >
-                  {models.map((model) => (
-                    <option key={model.endpointName} value={model.endpointName}>
-                      {model.name} ({model.endpointName})
+                  {endpoints.map((endpoint) => (
+                    <option key={endpoint.name} value={endpoint.name}>
+                      {endpoint.name}
                     </option>
                   ))}
                 </Select>

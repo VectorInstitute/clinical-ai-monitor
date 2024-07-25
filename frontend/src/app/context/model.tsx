@@ -1,20 +1,18 @@
 'use client'
 
-import React, { createContext, useState, useContext, ReactNode, useEffect, useCallback, useMemo } from 'react';
-import { EndpointConfig, MetricConfig, SubgroupConfig } from '../configure/types/configure';
+import React, { createContext, useState, useContext, ReactNode, useCallback, useMemo } from 'react';
 
 interface Model {
-  id: number;
+  id: string;
   name: string;
   description: string;
-  endpointName: string;
+  endpointId: string;
 }
 
 interface ModelContextType {
   models: Model[];
-  addModel: (model: Omit<Model, 'id'>, metrics: MetricConfig[], subgroups: SubgroupConfig[]) => Promise<void>;
-  removeModel: (endpointName: string) => Promise<void>;
-  fetchModels: () => Promise<void>;
+  addModel: (model: Omit<Model, 'id'>) => Promise<void>;
+  removeModel: (id: string) => Promise<void>;
   isLoading: boolean;
 }
 
@@ -28,120 +26,61 @@ export const useModelContext = () => {
   return context;
 };
 
-const CACHE_KEY = 'modelCache';
-const CACHE_EXPIRY = 30 * 1000; // 30 seconds
-
 export const ModelProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [models, setModels] = useState<Model[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const fetchModels = useCallback(async () => {
+  const addModel = useCallback(async (newModel: Omit<Model, 'id'>) => {
     setIsLoading(true);
     try {
-      const response = await fetch('/api/evaluation_endpoints');
+      const response = await fetch('/api/models', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(newModel),
+      });
+
       if (!response.ok) {
-        throw new Error('Failed to fetch evaluation endpoints');
+        throw new Error('Failed to add model');
       }
-      const data = await response.json();
-      const fetchedModels = data.endpoints.map((endpoint: any, index: number) => ({
-        id: index + 1,
-        name: endpoint.model_name,
-        description: endpoint.model_description,
-        endpointName: endpoint.endpoint_name,
-      }));
-      setModels(fetchedModels);
-      localStorage.setItem(CACHE_KEY, JSON.stringify({ data: fetchedModels, timestamp: Date.now() }));
+
+      const addedModel = await response.json();
+      setModels(prev => [...prev, addedModel]);
     } catch (error) {
-      console.error('Error fetching models:', error);
+      console.error('Error adding model:', error);
+      throw error;
     } finally {
       setIsLoading(false);
     }
   }, []);
 
-  useEffect(() => {
-    const cachedData = localStorage.getItem(CACHE_KEY);
-    if (cachedData) {
-      const { data, timestamp } = JSON.parse(cachedData);
-      if (Date.now() - timestamp < CACHE_EXPIRY) {
-        setModels(data);
-        setIsLoading(false);
-      } else {
-        fetchModels();
-      }
-    } else {
-      fetchModels();
-    }
-  }, [fetchModels]);
-
-  const addModel = useCallback(async (newModel: Omit<Model, 'id'>, metrics: MetricConfig[], subgroups: SubgroupConfig[]) => {
-    try {
-      const endpointConfig: EndpointConfig = {
-        endpoint_name: newModel.endpointName,
-        model_name: newModel.name,
-        model_description: newModel.description,
-        metrics,
-        subgroups,
-      };
-
-      const response = await fetch('/api/create_evaluation_endpoint', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(endpointConfig),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || 'Failed to create evaluation endpoint');
-      }
-
-      const responseData = await response.json();
-      console.log('API success response:', responseData);
-
-      setModels(prevModels => [
-        ...prevModels,
-        { ...newModel, id: prevModels.length + 1 }
-      ]);
-
-      localStorage.removeItem(CACHE_KEY);
-      await fetchModels();
-    } catch (error) {
-      console.error('Error adding model:', error);
-      throw error;
-    }
-  }, [fetchModels]);
-
-  const removeModel = useCallback(async (endpointName: string) => {
+  const removeModel = useCallback(async (id: string) => {
     setIsLoading(true);
     try {
-      const response = await fetch(`/api/delete_evaluation_endpoint/${endpointName}`, {
+      const response = await fetch(`/api/models/${id}`, {
         method: 'DELETE',
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || 'Failed to delete evaluation endpoint');
+        throw new Error('Failed to remove model');
       }
 
-      setModels(prevModels => prevModels.filter(model => model.endpointName !== endpointName));
-      localStorage.removeItem(CACHE_KEY);
-      await fetchModels();
+      setModels(prev => prev.filter(model => model.id !== id));
     } catch (error) {
       console.error('Error removing model:', error);
       throw error;
     } finally {
       setIsLoading(false);
     }
-  }, [fetchModels]);
+  }, []);
 
   const contextValue = useMemo(() => ({
     models,
     addModel,
     removeModel,
-    fetchModels,
     isLoading
-  }), [models, addModel, removeModel, fetchModels, isLoading]);
+  }), [models, addModel, removeModel, isLoading]);
 
   return (
     <ModelContext.Provider value={contextValue}>

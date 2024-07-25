@@ -20,9 +20,6 @@ export const SubgroupConfigSchema = z.object({
 });
 
 export const EndpointConfigSchema = z.object({
-  endpoint_name: z.string().min(1, "Endpoint name is required"),
-  model_name: z.string().min(1, "Model name is required"),
-  model_description: z.string(),
   metrics: z.array(MetricConfigSchema).min(1, "At least one metric is required"),
   subgroups: z.array(SubgroupConfigSchema),
 });

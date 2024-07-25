@@ -1,24 +1,27 @@
 """Evaluation API functions."""
 
 import json
+import uuid
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, TypedDict, Union, cast
+from typing import Any, Dict, List, Optional
 
-import numpy as np
 import pandas as pd
 from cyclops.data.slicer import SliceSpec
 from cyclops.evaluate import evaluator
 from cyclops.evaluate.metrics import create_metric
 from cyclops.evaluate.metrics.experimental import MetricDict
 from datasets.arrow_dataset import Dataset
-from pydantic import BaseModel, Field, validator
 
-from api.models.config import (
-    ConditionType,
-    EndpointConfig,
-    SubgroupCondition,
+from api.models.config import EndpointConfig, ModelConfig, SubgroupCondition
+from api.models.data import (
+    EndpointData,
+    EndpointDetails,
+    EndpointLog,
+    EvaluationInput,
+    EvaluationResult,
 )
+from api.models.utils import deep_convert_numpy
 
 
 # Define the path for storing endpoint data
@@ -26,240 +29,10 @@ DATA_DIR = Path("endpoint_data")
 DATA_DIR.mkdir(exist_ok=True)
 
 
-class EvaluationInput(BaseModel):
-    """
-    Input data for evaluation.
-
-    Attributes
-    ----------
-    preds_prob : List[float]
-        The predicted probabilities.
-    target : List[float]
-        The target values.
-    metadata : Dict[str, List[Any]]
-        Additional metadata for the evaluation.
-    timestamp : Optional[datetime]
-        Custom timestamp for the evaluation.
-    """
-
-    preds_prob: List[float] = Field(..., description="The predicted probabilities")
-    target: List[float] = Field(..., description="The target values")
-    metadata: Dict[str, List[Any]] = Field(
-        ..., description="Additional metadata for the evaluation"
-    )
-    timestamp: Optional[datetime] = Field(
-        None, description="Custom timestamp for the evaluation"
-    )
-
-    @validator("timestamp")
-    @classmethod
-    def validate_timestamp(cls, v: Optional[datetime]) -> Optional[datetime]:
-        """
-        Validate the timestamp format.
-
-        Parameters
-        ----------
-        v : Optional[datetime]
-            The timestamp value to validate.
-
-        Returns
-        -------
-        Optional[datetime]
-            The validated timestamp.
-
-        Raises
-        ------
-        ValueError
-            If the timestamp format is invalid.
-        """
-        if v is not None:
-            try:
-                datetime.fromisoformat(v.isoformat())
-            except (ValueError, AttributeError) as err:
-                raise ValueError(
-                    "Invalid timestamp format. Please use ISO 8601 format (YYYY-MM-DDTHH:MM:SSZ)."
-                ) from err
-        return v
-
-    @validator("preds_prob", "target")
-    @classmethod
-    def validate_list_lengths(
-        cls, v: List[float], values: Dict[str, Any], field: str
-    ) -> List[float]:
-        """
-        Validate that preds_prob and target have the same length.
-
-        Parameters
-        ----------
-        v : List[float]
-            The list to validate.
-        values : Dict[str, Any]
-            The dict of values already validated.
-        field : str
-            The name of the field being validated.
-
-        Returns
-        -------
-        List[float]
-            The validated list.
-
-        Raises
-        ------
-        ValueError
-            If the lengths of preds_prob and target are not the same.
-        """
-        if (
-            "preds_prob" in values
-            and "target" in values
-            and len(values["preds_prob"]) != len(values["target"])
-        ):
-            raise ValueError(
-                "The lengths of 'preds_prob' and 'target' must be the same."
-            )
-        return v
-
-    @validator("metadata")
-    @classmethod
-    def validate_metadata(
-        cls, v: Dict[str, List[Any]], values: Dict[str, Any]
-    ) -> Dict[str, List[Any]]:
-        """
-        Validate that all metadata lists have the same length as preds_prob.
-
-        Parameters
-        ----------
-        v : Dict[str, List[Any]]
-            The metadata dict to validate.
-        values : Dict[str, Any]
-            The dict of values already validated.
-
-        Returns
-        -------
-        Dict[str, List[Any]]
-            The validated metadata dict.
-
-        Raises
-        ------
-        ValueError
-            If any metadata list has a different length than preds_prob.
-        """
-        if "preds_prob" in values:
-            expected_length = len(values["preds_prob"])
-            for key, value in v.items():
-                if len(value) != expected_length:
-                    raise ValueError(
-                        f"The length of metadata '{key}' must match the length of 'preds_prob'."
-                    )
-        return v
-
-
-def deep_convert_numpy(
-    obj: Any,
-) -> Union[int, float, List[Any], Dict[str, Any], str, Any]:
-    """
-    Recursively convert numpy types to Python native types.
-
-    Parameters
-    ----------
-    obj : Any
-        The object to convert.
-
-    Returns
-    -------
-    Union[int, float, List[Any], Dict[str, Any], str, Any]
-        The converted object.
-    """
-    conversion_map: Dict[type, Callable[[Any], Any]] = {
-        np.integer: int,
-        np.floating: float,
-        np.ndarray: lambda x: x.tolist(),
-        dict: lambda x: {key: deep_convert_numpy(value) for key, value in x.items()},
-        list: lambda x: [deep_convert_numpy(item) for item in x],
-        datetime: lambda x: x.isoformat(),
-    }
-
-    for type_, converter in conversion_map.items():
-        if isinstance(obj, type_):
-            return converter(obj)
-    return obj
-
-
-class EvaluationResult(BaseModel):
-    """
-    Evaluation result for an endpoint.
-
-    Attributes
-    ----------
-    metrics : List[str]
-        List of metric names.
-    subgroups : List[str]
-        List of subgroup names.
-    evaluation_result : Dict[str, Any]
-        The evaluation result dictionary.
-    timestamp : datetime
-        Timestamp of the evaluation.
-    sample_size : int
-        The sample size used for evaluation.
-    """
-
-    metrics: List[str]
-    subgroups: List[str]
-    evaluation_result: Dict[str, Any]
-    timestamp: datetime
-    sample_size: int
-
-    @validator("evaluation_result", pre=True)
-    @classmethod
-    def process_evaluation_result(cls, v: Dict[str, Any]) -> Dict[str, Any]:
-        """Process the evaluation result dictionary."""
-        return cast(Dict[str, Any], deep_convert_numpy(v))
-
-
-class EndpointLog(BaseModel):
-    """
-    Represents a log entry for an endpoint.
-
-    Attributes
-    ----------
-    timestamp : datetime
-        The timestamp of the log entry.
-    action : str
-        The action performed.
-    details : Dict[str, str], optional
-        Additional details about the action.
-    endpoint_name : str
-        The name of the endpoint associated with this log.
-    """
-
-    timestamp: datetime
-    action: str
-    details: Optional[Dict[str, str]] = None
-    endpoint_name: str
-
-
-class EndpointData(BaseModel):
-    """
-    Data for an endpoint, including configuration, evaluation history, and logs.
-
-    Attributes
-    ----------
-    config : EndpointConfig
-        Configuration of the endpoint.
-    evaluation_history : List[EvaluationResult]
-        List of evaluation results.
-    logs : List[EndpointLog]
-        List of log entries.
-    """
-
-    config: EndpointConfig
-    evaluation_history: List[EvaluationResult] = []
-    logs: List[EndpointLog] = []
-
-
 class EvaluationEndpoint:
     """Evaluation endpoint class."""
 
-    def __init__(self, config: EndpointConfig) -> None:
+    def __init__(self, config: EndpointConfig, name: str):
         """
         Initialize the EvaluationEndpoint.
 
@@ -267,8 +40,11 @@ class EvaluationEndpoint:
         ----------
         config : EndpointConfig
             The configuration for the evaluation endpoint.
+        name : str
+            The unique name for the endpoint.
         """
         self.config = config
+        self.name = name
         self.metrics: MetricDict = MetricDict(
             {
                 f"{metric.type}_{metric.name}": create_metric(
@@ -317,23 +93,17 @@ class EvaluationEndpoint:
             If the condition is invalid or missing required values.
         """
         condition_dict: Dict[str, Any] = {"type": condition.type.value}
-        if condition.type == ConditionType.RANGE:
+        if condition.type == "range":
             if condition.min_value is None and condition.max_value is None:
                 raise ValueError("Range condition must have a min_value or max_value")
             if condition.min_value is not None:
                 condition_dict["min_value"] = condition.min_value
             if condition.max_value is not None:
                 condition_dict["max_value"] = condition.max_value
-        elif condition.type in (
-            ConditionType.VALUE,
-            ConditionType.CONTAINS,
-            ConditionType.YEAR,
-            ConditionType.MONTH,
-            ConditionType.DAY,
-        ):
+        elif condition.type in ["value", "contains", "year", "month", "day"]:
             if condition.value is None:
                 raise ValueError(
-                    f"{condition.type.value.capitalize()} condition must have a value"
+                    f"{condition.type.capitalize()} condition must have a value"
                 )
             condition_dict["value"] = condition.value
         else:
@@ -370,6 +140,7 @@ class EvaluationEndpoint:
         # Extract unique slices from the evaluation result
         slices = list(result["model_for_preds_prob"].keys())
         sample_size = len(data.preds_prob)
+
         # Use the provided timestamp or default to current time
         evaluation_timestamp = data.timestamp or datetime.now()
 
@@ -385,7 +156,7 @@ class EvaluationEndpoint:
             EndpointLog(
                 timestamp=datetime.now(),
                 action="evaluated",
-                endpoint_name=self.config.endpoint_name,
+                endpoint_name=self.name,
             )
         )
         self._save_data()
@@ -393,7 +164,7 @@ class EvaluationEndpoint:
 
     def _load_data(self) -> Optional[EndpointData]:
         """Load endpoint data from JSON file."""
-        file_path = DATA_DIR / f"{self.config.endpoint_name}.json"
+        file_path = DATA_DIR / f"{self.name}.json"
         if file_path.exists():
             with open(file_path, "r") as f:
                 data = json.load(f)
@@ -402,10 +173,59 @@ class EvaluationEndpoint:
 
     def _save_data(self) -> None:
         """Save endpoint data to JSON file."""
-        file_path = DATA_DIR / f"{self.config.endpoint_name}.json"
+        file_path = DATA_DIR / f"{self.name}.json"
         serializable_data = self.data.dict()
         with open(file_path, "w") as f:
             json.dump(deep_convert_numpy(serializable_data), f)
+
+    def add_model(self, model: ModelConfig) -> None:
+        """
+        Add a model to the endpoint.
+
+        Parameters
+        ----------
+        model : ModelConfig
+            The model configuration to add.
+        """
+        self.data.models.append(model)
+        self.data.logs.append(
+            EndpointLog(
+                timestamp=datetime.now(),
+                action="added_model",
+                details={"model_name": model.name},
+                endpoint_name=self.name,
+            )
+        )
+        self._save_data()
+
+    def remove_model(self, model_name: str) -> None:
+        """
+        Remove a model from the endpoint.
+
+        Parameters
+        ----------
+        model_name : str
+            The name of the model to remove.
+
+        Raises
+        ------
+        ValueError
+            If the model is not found.
+        """
+        for i, model in enumerate(self.data.models):
+            if model.name == model_name:
+                del self.data.models[i]
+                self.data.logs.append(
+                    EndpointLog(
+                        timestamp=datetime.now(),
+                        action="removed_model",
+                        details={"model_name": model_name},
+                        endpoint_name=self.name,
+                    )
+                )
+                self._save_data()
+                return
+        raise ValueError(f"Model '{model_name}' not found in endpoint '{self.name}'")
 
     @classmethod
     def load(cls, endpoint_name: str) -> "EvaluationEndpoint":
@@ -433,7 +253,7 @@ class EvaluationEndpoint:
         with open(file_path, "r") as f:
             data = json.load(f)
         config = EndpointConfig(**data["config"])
-        endpoint = cls(config)
+        endpoint = cls(config, endpoint_name)
         endpoint.data = EndpointData(**data)
         return endpoint
 
@@ -476,14 +296,12 @@ def create_evaluation_endpoint(config: EndpointConfig) -> Dict[str, str]:
         A dictionary containing a success message or an error message.
     """
     try:
-        if config.endpoint_name in evaluation_endpoints:
-            raise ValueError(
-                f"Endpoint with name '{config.endpoint_name}' already exists"
-            )
-        endpoint = EvaluationEndpoint(config)
-        evaluation_endpoints[config.endpoint_name] = endpoint
+        endpoint_name = f"endpoint_{uuid.uuid4().hex[:8]}"
+        endpoint = EvaluationEndpoint(config, endpoint_name)
+        evaluation_endpoints[endpoint_name] = endpoint
         return {
-            "message": f"Evaluation endpoint '{config.endpoint_name}' created successfully"
+            "message": f"Evaluation endpoint '{endpoint_name}' created successfully",
+            "endpoint_name": endpoint_name,
         }
     except Exception as e:
         return {"error": str(e)}
@@ -507,22 +325,24 @@ def delete_evaluation_endpoint(endpoint_name: str) -> Dict[str, str]:
     ------
     ValueError
         If the endpoint with the given name doesn't exist.
+
+    Notes
+    -----
+    This function removes the endpoint from the in-memory dictionary and
+    deletes the corresponding JSON file from the disk.
     """
     if endpoint_name not in evaluation_endpoints:
         raise ValueError(f"Evaluation endpoint '{endpoint_name}' not found")
+
+    # Remove the endpoint from the in-memory dictionary
     del evaluation_endpoints[endpoint_name]
+
+    # Delete the corresponding JSON file
     file_path = DATA_DIR / f"{endpoint_name}.json"
     if file_path.exists():
         file_path.unlink()
+
     return {"message": f"Evaluation endpoint '{endpoint_name}' deleted successfully"}
-
-
-class EndpointDetails(TypedDict):
-    """Details for an evaluation endpoint."""
-
-    endpoint_name: str
-    model_name: str
-    model_description: str
 
 
 def list_evaluation_endpoints() -> Dict[str, List[EndpointDetails]]:
@@ -533,14 +353,21 @@ def list_evaluation_endpoints() -> Dict[str, List[EndpointDetails]]:
     -------
     Dict[str, List[EndpointDetails]]
         A dictionary containing a list of endpoint details.
+
+    Notes
+    -----
+    This function returns details about each endpoint, including its name,
+    configured metrics, and associated models.
     """
     return {
         "endpoints": [
-            {
-                "endpoint_name": name,
-                "model_name": endpoint.config.model_name,
-                "model_description": endpoint.config.model_description,
-            }
+            EndpointDetails(
+                name=name,
+                metrics=[
+                    f"{metric.type}_{metric.name}" for metric in endpoint.config.metrics
+                ],
+                models=[model.name for model in endpoint.data.models],
+            )
             for name, endpoint in evaluation_endpoints.items()
         ]
     }
@@ -566,6 +393,11 @@ def evaluate_model(endpoint_name: str, data: EvaluationInput) -> Dict[str, Any]:
     ------
     ValueError
         If the specified endpoint does not exist.
+
+    Notes
+    -----
+    This function uses the endpoint configuration to evaluate the provided data.
+    It no longer assumes any specific model is associated with the endpoint.
     """
     if endpoint_name not in evaluation_endpoints:
         raise ValueError(f"Evaluation endpoint '{endpoint_name}' not found")
@@ -580,16 +412,21 @@ def get_endpoint_logs() -> List[EndpointLog]:
     Returns
     -------
     List[EndpointLog]
-        A list of logs for all endpoints.
+        A list of logs for all endpoints, sorted by timestamp in descending order.
+
+    Notes
+    -----
+    This function collects logs from all endpoints and sorts them by timestamp,
+    with the most recent logs first.
     """
     all_logs = []
-    for _, endpoint in evaluation_endpoints.items():
+    for endpoint_name, endpoint in evaluation_endpoints.items():
         endpoint_logs = [
             EndpointLog(
                 timestamp=log.timestamp,
                 action=log.action,
                 details=log.details,
-                endpoint_name=log.endpoint_name,
+                endpoint_name=endpoint_name,
             )
             for log in endpoint.data.logs
         ]

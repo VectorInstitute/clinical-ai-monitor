@@ -23,7 +23,7 @@ from api.models.performance import get_performance_metrics
 router = APIRouter()
 
 
-@router.post("/create_evaluation_endpoint", response_model=Dict[str, str])
+@router.post("/endpoints", response_model=Dict[str, str])
 async def create_endpoint(config: EndpointConfig) -> Dict[str, str]:
     """
     Create a new evaluation endpoint.
@@ -56,7 +56,7 @@ async def create_endpoint(config: EndpointConfig) -> Dict[str, str]:
         ) from e
 
 
-@router.get("/evaluation_endpoints", response_model=Dict[str, List[EndpointDetails]])
+@router.get("/endpoints", response_model=Dict[str, List[EndpointDetails]])
 async def get_evaluation_endpoints() -> Dict[str, List[EndpointDetails]]:
     """
     List all created evaluation endpoints.
@@ -192,9 +192,7 @@ async def get_model_health_status(model_id: str) -> ModelHealth:
         ) from e
 
 
-@router.delete(
-    "/delete_evaluation_endpoint/{endpoint_name}", response_model=Dict[str, str]
-)
+@router.delete("/endpoints/{endpoint_name}", response_model=Dict[str, str])
 async def delete_endpoint(endpoint_name: str) -> Dict[str, str]:
     """
     Delete an existing evaluation endpoint configuration.
