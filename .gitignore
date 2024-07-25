@@ -34,10 +34,12 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+**node_modules**
+**.next
 
 # python
 **.python-version
 **__pycache__**
 .mypy_cache/
-.venv/
+.venv*
 **endpoint_data**

@@ -34,6 +34,11 @@ COPY --from=builder /app/public ./public
 # Expose the port the app runs on
 ARG FRONTEND_PORT
 ENV NEXT_PUBLIC_FRONTEND_PORT=${FRONTEND_PORT}
+
+# Print port values
+RUN echo "FRONTEND_PORT: ${FRONTEND_PORT}"
+RUN echo "BACKEND_PORT: ${BACKEND_PORT}"
+
 EXPOSE ${FRONTEND_PORT}
 
 # Start the app
