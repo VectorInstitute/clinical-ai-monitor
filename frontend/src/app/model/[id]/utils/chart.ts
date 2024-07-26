@@ -1,14 +1,13 @@
 import { ChartData, ChartOptions } from 'chart.js'
-import { getColor } from './color'
 
 export const getChartData = (timePoints: string[], healthOverTime: number[]): ChartData<'line'> => ({
   labels: timePoints,
   datasets: [
     {
-      label: 'Model Health',
+      label: 'Overall Health',
       data: healthOverTime,
-      borderColor: healthOverTime.map(getColor),
-      backgroundColor: healthOverTime.map(health => `${getColor(health)}40`), // 25% opacity
+      borderColor: 'rgb(75, 192, 192)',
+      backgroundColor: 'rgba(75, 192, 192, 0.5)',
       tension: 0.1,
       pointRadius: 5,
       pointHoverRadius: 7,
@@ -38,7 +37,7 @@ export const getChartOptions = (): ChartOptions<'line'> => ({
       max: 100,
       title: {
         display: true,
-        text: 'Health (%)',
+        text: 'Overall Health (%)',
       },
       ticks: {
         callback: (value) => `${value}%`,
