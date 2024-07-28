@@ -1,45 +1,41 @@
-# Frontend Dockerfile
+# Build stage
 FROM node:18-alpine AS builder
 
 WORKDIR /app
 
-# Copy package.json and package-lock.json (if available)
 COPY package*.json ./
-
-# Install dependencies
 RUN npm ci
 
-# Copy the rest of the frontend code
 COPY . .
 
 ARG FRONTEND_PORT
 ARG BACKEND_PORT
+ARG BACKEND_HOST
 ENV NEXT_PUBLIC_FRONTEND_PORT=${FRONTEND_PORT}
 ENV NEXT_PUBLIC_BACKEND_PORT=${BACKEND_PORT}
+ENV NEXT_PUBLIC_BACKEND_HOST=${BACKEND_HOST}
 
-# Build the Next.js app
 RUN npm run build
 
-# Production image
+# Production stage
 FROM node:18-alpine
 
 WORKDIR /app
 
-# Copy built assets from builder stage
-COPY --from=builder /app/.next ./.next
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/package.json ./package.json
-COPY --from=builder /app/public ./public
+RUN addgroup --system --gid 1001 nodejs && \
+    adduser --system --uid 1001 nextjs && \
+    chown -R nextjs:nodejs /app
 
-# Expose the port the app runs on
+USER nextjs
+
+COPY --from=builder --chown=nextjs:nodejs /app/.next ./.next
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules ./node_modules
+COPY --from=builder --chown=nextjs:nodejs /app/package.json ./package.json
+COPY --from=builder --chown=nextjs:nodejs /app/public ./public
+
 ARG FRONTEND_PORT
 ENV NEXT_PUBLIC_FRONTEND_PORT=${FRONTEND_PORT}
 
-# Print port values
-RUN echo "FRONTEND_PORT: ${FRONTEND_PORT}"
-RUN echo "BACKEND_PORT: ${BACKEND_PORT}"
-
 EXPOSE ${FRONTEND_PORT}
 
-# Start the app
 CMD ["npm", "start"]

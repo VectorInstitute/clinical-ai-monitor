@@ -1,28 +1,30 @@
 services:
-  frontend:
+  frontend-dev:
     build:
       context: ./frontend
       dockerfile: Dockerfile.dev
       args:
         - FRONTEND_PORT=${FRONTEND_PORT}
         - BACKEND_PORT=${BACKEND_PORT}
+        - BACKEND_HOST=${BACKEND_HOST}
     image: vectorinstitute/clinical-ai-monitor:frontend-dev-${BUILD_ID}
-    env_file: .env
+    env_file: .env.development
     ports:
       - "${FRONTEND_PORT}:${FRONTEND_PORT}"
     environment:
-      - NEXT_PUBLIC_API_URL=http://backend:${BACKEND_PORT}
+      - NEXT_PUBLIC_API_URL=http://${BACKEND_HOST}:${BACKEND_PORT}
       - NEXT_PUBLIC_BACKEND_PORT=${BACKEND_PORT}
-      - PORT=${FRONTEND_PORT}
+      - NEXT_PUBLIC_BACKEND_HOST=${BACKEND_HOST}
+      - NEXT_PUBLIC_FRONTEND_PORT=${FRONTEND_PORT}
     volumes:
       - ./frontend:/app
       - /app/node_modules
     depends_on:
-      - backend
+      - backend-dev
     networks:
-      - app-network
+      - app-network-dev
 
-  backend:
+  backend-dev:
     build:
       context: ./backend
       dockerfile: Dockerfile.dev
@@ -30,7 +32,7 @@ services:
         - BACKEND_PORT=${BACKEND_PORT}
         - FRONTEND_PORT=${FRONTEND_PORT}
     image: vectorinstitute/clinical-ai-monitor:backend-dev-${BUILD_ID}
-    env_file: .env
+    env_file: .env.development
     ports:
       - "${BACKEND_PORT}:${BACKEND_PORT}"
     environment:
@@ -39,8 +41,8 @@ services:
     volumes:
       - ./backend:/app
     networks:
-      - app-network
+      - app-network-dev
 
 networks:
-  app-network:
+  app-network-dev:
     driver: bridge

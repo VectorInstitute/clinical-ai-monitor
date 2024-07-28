@@ -1,32 +1,27 @@
-# Backend Dockerfile
 FROM python:3.10-slim
 
 WORKDIR /app
 
-# Copy only the necessary files for dependency installation
-COPY . .
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir poetry && \
+    addgroup --system --gid 1001 appuser && \
+    adduser --system --uid 1001 appuser && \
+    chown -R appuser:appuser /app
 
-# Update pip and install poetry
-RUN python3 -m pip install --no-cache-dir --upgrade pip && \
-    python3 -m pip install --no-cache-dir poetry
+USER appuser
 
-# Configure poetry to create the virtualenv in the project directory
-RUN python3 -m poetry config virtualenvs.in-project true
+COPY --chown=appuser:appuser pyproject.toml poetry.lock* ./
 
-# Install dependencies
-RUN python3 -m poetry install --no-dev --no-interaction --no-ansi
+RUN poetry config virtualenvs.create false && \
+    poetry install --no-dev --no-interaction --no-ansi
 
-# Expose the port the app runs on
+COPY --chown=appuser:appuser . .
+
 ARG BACKEND_PORT
 ARG FRONTEND_PORT
 ENV BACKEND_PORT=${BACKEND_PORT}
 ENV FRONTEND_PORT=${FRONTEND_PORT}
 
-# Print port values
-RUN echo "FRONTEND_PORT: ${FRONTEND_PORT}"
-RUN echo "BACKEND_PORT: ${BACKEND_PORT}"
-
 EXPOSE ${BACKEND_PORT}
 
-# Start the app using poetry run
-CMD ["/bin/bash", "-c", "source /app/.venv/bin/activate && uvicorn api.main:app --host 0.0.0.0 --port ${BACKEND_PORT}"]
+CMD ["sh", "-c", "poetry run uvicorn api.main:app --host 0.0.0.0 --port ${BACKEND_PORT}"]
