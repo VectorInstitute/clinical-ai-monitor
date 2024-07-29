@@ -19,11 +19,6 @@ services:
       - backend
     networks:
       - app-network
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:${FRONTEND_PORT}"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
 
   backend:
     build:
@@ -41,11 +36,6 @@ services:
       - FRONTEND_PORT=${FRONTEND_PORT}
     networks:
       - app-network
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:${BACKEND_PORT}/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
 
 networks:
   app-network:

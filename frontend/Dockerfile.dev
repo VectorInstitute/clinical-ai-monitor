@@ -4,22 +4,20 @@ WORKDIR /app
 
 COPY package*.json ./
 
-RUN npm ci && \
-    addgroup -g 1001 -S nodejs && \
-    adduser -S nextjs -u 1001 && \
-    chown -R nextjs:nodejs /app
+RUN npm ci
 
-USER nextjs
-
-COPY --chown=nextjs:nodejs . .
+COPY . .
 
 ARG FRONTEND_PORT
 ARG BACKEND_PORT
-ARG BACKEND_HOST
 ENV NEXT_PUBLIC_FRONTEND_PORT=${FRONTEND_PORT}
 ENV NEXT_PUBLIC_BACKEND_PORT=${BACKEND_PORT}
-ENV NEXT_PUBLIC_BACKEND_HOST=${BACKEND_HOST}
+
+# Print port values
+RUN echo "FRONTEND_PORT: ${FRONTEND_PORT}"
+RUN echo "BACKEND_PORT: ${BACKEND_PORT}"
 
 EXPOSE ${FRONTEND_PORT}
 
-CMD ["sh", "-c", "npm run dev -- -p ${NEXT_PUBLIC_FRONTEND_PORT}"]
+# Use shell form to ensure environment variable expansion
+CMD sh -c "npm run dev -- -p ${FRONTEND_PORT}"

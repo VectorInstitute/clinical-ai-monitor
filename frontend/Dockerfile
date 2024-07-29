@@ -11,9 +11,9 @@ COPY . .
 ARG FRONTEND_PORT
 ARG BACKEND_PORT
 ARG BACKEND_HOST
-ENV NEXT_PUBLIC_FRONTEND_PORT=${FRONTEND_PORT}
-ENV NEXT_PUBLIC_BACKEND_PORT=${BACKEND_PORT}
-ENV NEXT_PUBLIC_BACKEND_HOST=${BACKEND_HOST}
+ENV NEXT_PUBLIC_FRONTEND_PORT=${FRONTEND_PORT} \
+    NEXT_PUBLIC_BACKEND_PORT=${BACKEND_PORT} \
+    NEXT_PUBLIC_BACKEND_HOST=${BACKEND_HOST}
 
 RUN npm run build
 
@@ -22,16 +22,20 @@ FROM node:18-alpine
 
 WORKDIR /app
 
-RUN addgroup --system --gid 1001 nodejs && \
-    adduser --system --uid 1001 nextjs && \
-    chown -R nextjs:nodejs /app
+RUN addgroup -S nextjs && \
+    adduser -S -G nextjs nextjs && \
+    chown -R nextjs:nextjs /app
+
+# Install sharp for production Image Optimization
+RUN apk add --no-cache vips-dev
+RUN npm install --platform=linuxmusl --arch=x64 sharp
 
 USER nextjs
 
-COPY --from=builder --chown=nextjs:nodejs /app/.next ./.next
-COPY --from=builder --chown=nextjs:nodejs /app/node_modules ./node_modules
-COPY --from=builder --chown=nextjs:nodejs /app/package.json ./package.json
-COPY --from=builder --chown=nextjs:nodejs /app/public ./public
+COPY --from=builder --chown=nextjs:nextjs /app/.next ./.next
+COPY --from=builder --chown=nextjs:nextjs /app/node_modules ./node_modules
+COPY --from=builder --chown=nextjs:nextjs /app/package.json ./package.json
+COPY --from=builder --chown=nextjs:nextjs /app/public ./public
 
 ARG FRONTEND_PORT
 ENV NEXT_PUBLIC_FRONTEND_PORT=${FRONTEND_PORT}

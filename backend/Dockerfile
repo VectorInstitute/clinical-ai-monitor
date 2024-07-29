@@ -4,23 +4,25 @@ WORKDIR /app
 
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir poetry && \
-    addgroup --system --gid 1001 appuser && \
-    adduser --system --uid 1001 appuser && \
+    groupadd -g 1000 appuser && \
+    useradd -m -u 1000 -g appuser appuser && \
     chown -R appuser:appuser /app
 
-USER appuser
-
-COPY --chown=appuser:appuser pyproject.toml poetry.lock* ./
-
-RUN poetry config virtualenvs.create false && \
-    poetry install --no-dev --no-interaction --no-ansi
+ENV POETRY_HOME="/opt/poetry" \
+    POETRY_VIRTUALENVS_IN_PROJECT=true \
+    POETRY_NO_INTERACTION=1 \
+    PATH="$POETRY_HOME/bin:$PATH"
 
 COPY --chown=appuser:appuser . .
 
+USER appuser
+
+RUN poetry install
+
 ARG BACKEND_PORT
 ARG FRONTEND_PORT
-ENV BACKEND_PORT=${BACKEND_PORT}
-ENV FRONTEND_PORT=${FRONTEND_PORT}
+ENV BACKEND_PORT=${BACKEND_PORT} \
+    FRONTEND_PORT=${FRONTEND_PORT}
 
 EXPOSE ${BACKEND_PORT}
 
