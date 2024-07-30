@@ -4,16 +4,9 @@ An application to monitor clinical AI models.
 
 This is a Next.js application to monitor clinical AI models. It uses a React frontend with a clean, clinical dashboard interface.
 
-## Prerequisites
-
-Before you begin, ensure you have the following installed:
-
-- Node.js (version 14 or later)
-- npm (usually comes with Node.js)
-
 ## Getting Started
 
-To get the application running on your local machine, follow these steps:
+Docker is used for development and production.
 
 1. Clone the repository:
 
@@ -21,38 +14,27 @@ To get the application running on your local machine, follow these steps:
 git clone git@github.com:VectorInstitute/clinical-ai-monitor.git
 ```
 
-2. Navigate to the project frontend directory:
+### Production
+
+To deploy the production application:
 
 ```bash
-cd clinical-ai-monitor/frontend
+docker compose --env-file .env.production -f docker-compose.yml build
+docker compose --env-file .env.production -f docker-compose.yml up
 ```
 
-3. Install the dependencies:
+### Development
+
+To launch the application for development:
 
 ```bash
-npm install
+docker compose --env-file .env.development -f docker-compose.dev.yml build
+docker compose --env-file .env.development -f docker-compose.dev.yml up
 ```
 
-4. Run the frontend server in development mode:
+Open your browser and visit `http://localhost:<port>` to see the application.
+The port can be modified in the respective `.env` files.
 
-```bash
-npm run dev -- -p <port>
-```
-
-5. Navigate to the repository root and install backend dependencies:
-
-```bash
-cd clinical-ai-monitor
-poetry install
-```
-
-6. Run the backend server:
-
-```bash
-uvicorn backend.api.main:app --reload --host 0.0.0.0 --port <port>
-```
-
-6. Open your browser and visit `http://localhost:<port>` to see the application.
 
 ## System Architecture
 
