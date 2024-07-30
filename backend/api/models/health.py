@@ -7,23 +7,42 @@ from fastapi import HTTPException
 from pydantic import BaseModel
 
 
+class Metric(BaseModel):
+    """
+    Represents a single health metric for a model.
+
+    Attributes
+    ----------
+    name : str
+        The name of the metric.
+    value : float
+        The current value of the metric.
+    unit : str
+        The unit of measurement for the metric.
+    status : str
+        Whether the metric is 'met' or 'not met'.
+    """
+
+    name: str
+    value: float
+    unit: str
+    status: str
+
+
 class ModelHealth(BaseModel):
     """
     Represents the health of a model.
 
     Attributes
     ----------
-    model_health : float
-        The current health of the model.
-    health_over_time : List[float]
-        The health of the model over time.
-    time_points : List[str]
-        The time points corresponding to the health values.
+    metrics : List[Metric]
+        A list of individual metrics and their current status.
+    last_evaluated : datetime
+        A timestamp of when the model was last evaluated.
     """
 
-    model_health: float
-    health_over_time: List[float]
-    time_points: List[str]
+    metrics: List[Metric]
+    last_evaluated: datetime
 
 
 async def get_model_health(model_id: str) -> ModelHealth:
@@ -38,8 +57,8 @@ async def get_model_health(model_id: str) -> ModelHealth:
     Returns
     -------
     ModelHealth
-        An object containing the current model health, health over time,
-        and corresponding time points.
+        An object containing the overall health over time, time points,
+        and individual metrics.
 
     Raises
     ------
@@ -49,18 +68,19 @@ async def get_model_health(model_id: str) -> ModelHealth:
     """
     try:
         # Simulate fetching data from a database
-        health_data: List[float] = [65.0, 25.0, 80.0, 75.0, 85.0, 90.0, 85.0]
         current_date: datetime = datetime.now()
-        time_points: List[str] = [
-            (current_date - timedelta(weeks=6 - i)).strftime("%Y-%m-%d")
-            for i in range(7)
+        last_evaluated: datetime = current_date - timedelta(
+            days=30
+        )  # Simulating last evaluation 5 days ago
+
+        # Simulate individual metrics
+        metrics: List[Metric] = [
+            Metric(name="Accuracy", value=92, unit="%", status="met"),
+            Metric(name="F1 Score", value=0.88, unit="", status="met"),
+            Metric(name="AUC-ROC", value=0.95, unit="", status="unmet"),
         ]
 
-        return ModelHealth(
-            model_health=health_data[-1],
-            health_over_time=health_data,
-            time_points=time_points,
-        )
+        return ModelHealth(metrics=metrics, last_evaluated=last_evaluated)
     except Exception as e:
         raise HTTPException(
             status_code=500, detail=f"Error retrieving model health: {str(e)}"
