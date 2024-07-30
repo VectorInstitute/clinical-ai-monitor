@@ -4,16 +4,9 @@ An application to monitor clinical AI models.
 
 This is a Next.js application to monitor clinical AI models. It uses a React frontend with a clean, clinical dashboard interface.
 
-## Prerequisites
-
-Before you begin, ensure you have the following installed:
-
-- Node.js (version 14 or later)
-- npm (usually comes with Node.js)
-
 ## Getting Started
 
-To get the application running on your local machine, follow these steps:
+Docker is used for development and production.
 
 1. Clone the repository:
 
@@ -21,38 +14,31 @@ To get the application running on your local machine, follow these steps:
 git clone git@github.com:VectorInstitute/clinical-ai-monitor.git
 ```
 
-2. Navigate to the project frontend directory:
+### Production
+
+To deploy the production application:
 
 ```bash
-cd clinical-ai-monitor/frontend
+docker compose --env-file .env.production -f docker-compose.yml build
+docker compose --env-file .env.production -f docker-compose.yml up
 ```
 
-3. Install the dependencies:
+### Development
+
+To launch the application for development:
 
 ```bash
-npm install
+docker compose --env-file .env.development -f docker-compose.dev.yml build
+docker compose --env-file .env.development -f docker-compose.dev.yml up
 ```
 
-4. Run the frontend server in development mode:
+Open your browser and visit `http://localhost:<port>` to see the application.
+The port can be modified in the respective `.env` files.
 
-```bash
-npm run dev -- -p <port>
-```
 
-5. Navigate to the repository root and install backend dependencies:
+## System Architecture
 
-```bash
-cd clinical-ai-monitor
-poetry install
-```
-
-6. Run the backend server:
-
-```bash
-uvicorn backend.api.main:app --reload --host 0.0.0.0 --port <port>
-```
-
-6. Open your browser and visit `http://localhost:<port>` to see the application.
+TODO
 
 ## Project Structure
 
@@ -64,48 +50,23 @@ This project is divided into two main directories: `frontend` for the Next.js ap
 frontend/
 ├── src/
 │   ├── app/
-│   │   ├── api/
-│   │   │   ├── auth.ts
-│   │   │   ├── models.ts
-│   │   │   ├── client.ts
-│   │   │   └── performance-metrics.ts
+│   │   ├── login/
 │   │   ├── components/
-│   │   │   └── sidebar.tsx
-│   │   ├── configure/
-│   │   │   └── components/
-│   │   │       ├── config-card.tsx
-│   │   │       ├── delete-server-form.tsx
-│   │   │       ├── metrics-section.tsx
-│   │   │       ├── server-info-section.tsx
-│   │   │       ├── subgroups-section.tsx
-│   │   │       └── create-server-form.tsx
-│   │   ├── home/
-│   │   │   └── page.tsx
 │   │   ├── context/
-│   │   │   └── model.tsx
+│   │   ├── configure/
+│   │   │   ├── components/
+│   │   │   ├── logs/
+│   │   │   ├── types/
+│   │   │   ├── model-facts/
+│   │   │   └── page.tsx
+│   │   ├── home/
+│   │   ├── context/
 │   │   ├── model/
 │   │   │   └── [id]/
 │   │   │       ├── utils/
-│   │   │       │   ├── color.ts
-│   │   │       │   ├── statistics.ts
-│   │   │       │   ├── trend.ts
-│   │   │       │   └── chart.ts
 │   │   │       ├── components/
-│   │   │       │   ├── error-message.tsx
-│   │   │       │   ├── loading-spinner.tsx
-│   │   │       │   ├── metric-card.tsx
-│   │   │       │   ├── metric-cards.tsx
-│   │   │       │   ├── metric-selector.tsx
-│   │   │       │   ├── plot-settings.tsx
-│   │   │       │   ├── slice-selector.tsx
-│   │   │       │   ├── time-series-chart.tsx
 │   │   │       ├── tabs/
-│   │   │       │   ├── model-facts.tsx
-│   │   │       │   ├── model-health.tsx
-│   │   │       │   └── performance-metrics.tsx
 │   │   │       ├── types/
-│   │   │       │   ├── health.ts
-│   │   │       │   └── performance-metrics.ts
 │   │   │       └── page.tsx
 │   │   ├── page.tsx
 │   │   ├── layout.tsx
@@ -116,10 +77,6 @@ frontend/
 └── next.config.mjs
 ```
 
-- `components/`: Reusable React components
-- `app/`: Next.js pages and routing
-- `public/`: Static assets like images
-
 ### Backend (FastAPI)
 
 ```
@@ -127,9 +84,6 @@ backend/
 ├── api/
 │   ├── main.py
 │   ├── models/
-│   │   ├── performance.py
-│   │   ├── health.py
-│   │   └── configure.py
 │   ├── routes.py
 │   └── login.py
 ```
