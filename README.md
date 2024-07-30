@@ -54,6 +54,10 @@ uvicorn backend.api.main:app --reload --host 0.0.0.0 --port <port>
 
 6. Open your browser and visit `http://localhost:<port>` to see the application.
 
+## System Architecture
+
+TODO
+
 ## Project Structure
 
 This project is divided into two main directories: `frontend` for the Next.js application and `backend` for the FastAPI server.
@@ -64,48 +68,23 @@ This project is divided into two main directories: `frontend` for the Next.js ap
 frontend/
 ├── src/
 │   ├── app/
-│   │   ├── api/
-│   │   │   ├── auth.ts
-│   │   │   ├── models.ts
-│   │   │   ├── client.ts
-│   │   │   └── performance-metrics.ts
+│   │   ├── login/
 │   │   ├── components/
-│   │   │   └── sidebar.tsx
-│   │   ├── configure/
-│   │   │   └── components/
-│   │   │       ├── config-card.tsx
-│   │   │       ├── delete-server-form.tsx
-│   │   │       ├── metrics-section.tsx
-│   │   │       ├── server-info-section.tsx
-│   │   │       ├── subgroups-section.tsx
-│   │   │       └── create-server-form.tsx
-│   │   ├── home/
-│   │   │   └── page.tsx
 │   │   ├── context/
-│   │   │   └── model.tsx
+│   │   ├── configure/
+│   │   │   ├── components/
+│   │   │   ├── logs/
+│   │   │   ├── types/
+│   │   │   ├── model-facts/
+│   │   │   └── page.tsx
+│   │   ├── home/
+│   │   ├── context/
 │   │   ├── model/
 │   │   │   └── [id]/
 │   │   │       ├── utils/
-│   │   │       │   ├── color.ts
-│   │   │       │   ├── statistics.ts
-│   │   │       │   ├── trend.ts
-│   │   │       │   └── chart.ts
 │   │   │       ├── components/
-│   │   │       │   ├── error-message.tsx
-│   │   │       │   ├── loading-spinner.tsx
-│   │   │       │   ├── metric-card.tsx
-│   │   │       │   ├── metric-cards.tsx
-│   │   │       │   ├── metric-selector.tsx
-│   │   │       │   ├── plot-settings.tsx
-│   │   │       │   ├── slice-selector.tsx
-│   │   │       │   ├── time-series-chart.tsx
 │   │   │       ├── tabs/
-│   │   │       │   ├── model-facts.tsx
-│   │   │       │   ├── model-health.tsx
-│   │   │       │   └── performance-metrics.tsx
 │   │   │       ├── types/
-│   │   │       │   ├── health.ts
-│   │   │       │   └── performance-metrics.ts
 │   │   │       └── page.tsx
 │   │   ├── page.tsx
 │   │   ├── layout.tsx
@@ -116,10 +95,6 @@ frontend/
 └── next.config.mjs
 ```
 
-- `components/`: Reusable React components
-- `app/`: Next.js pages and routing
-- `public/`: Static assets like images
-
 ### Backend (FastAPI)
 
 ```
@@ -127,9 +102,6 @@ backend/
 ├── api/
 │   ├── main.py
 │   ├── models/
-│   │   ├── performance.py
-│   │   ├── health.py
-│   │   └── configure.py
 │   ├── routes.py
 │   └── login.py
 ```
