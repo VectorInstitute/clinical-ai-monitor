@@ -13,6 +13,7 @@
     "@chakra-ui/react": "^2.8.2",
     "axios": "^1.7.2",
     "chart.js": "^4.4.3",
+    "date-fns": "^3.6.0",
     "formik": "^2.4.6",
     "next": "14.2.4",
     "plotly.js-dist-min": "^2.33.0",

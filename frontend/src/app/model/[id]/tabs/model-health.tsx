@@ -1,14 +1,10 @@
 import React from 'react'
-import { SimpleGrid, Box, Heading, Text, useColorModeValue, Flex, Stat, StatLabel, StatNumber, StatHelpText, StatArrow, useToast } from '@chakra-ui/react'
-import { Line } from 'react-chartjs-2'
-import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, ChartOptions } from 'chart.js'
-import { getColor } from '../utils/color'
-import { getChartData, getChartOptions } from '../utils/chart'
-import { ModelHealth } from '../types/health'
+import { Box, Heading, Text, useColorModeValue, Flex, SimpleGrid, Badge, List, ListItem, ListIcon, Stat, StatLabel, StatNumber, Tooltip } from '@chakra-ui/react'
+import { CheckCircleIcon, WarningIcon, InfoIcon } from '@chakra-ui/icons'
+import { ModelHealth, Metric } from '../types/health'
 import { ErrorMessage } from '../components/error-message'
 import { LoadingSpinner } from '../components/loading-spinner'
-
-ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend)
+import { formatDistanceToNow } from 'date-fns'
 
 interface ModelHealthTabProps {
   modelId: string;
@@ -19,7 +15,6 @@ const ModelHealthTab: React.FC<ModelHealthTabProps> = ({ modelId }) => {
   const [isLoading, setIsLoading] = React.useState(true)
   const [error, setError] = React.useState<string | null>(null)
 
-  const toast = useToast()
   const cardBgColor = useColorModeValue('white', 'gray.700')
   const borderColor = useColorModeValue('gray.200', 'gray.600')
   const textColor = useColorModeValue('gray.800', 'white')
@@ -36,54 +31,47 @@ const ModelHealthTab: React.FC<ModelHealthTabProps> = ({ modelId }) => {
       } catch (error) {
         console.error('Error fetching model health:', error)
         setError('Failed to fetch model health data')
-        toast({
-          title: "Error",
-          description: "Failed to fetch model health data",
-          status: "error",
-          duration: 5000,
-          isClosable: true,
-        })
       } finally {
         setIsLoading(false)
       }
     }
 
     fetchModelHealth()
-  }, [modelId, toast])
+  }, [modelId])
 
   if (isLoading) return <LoadingSpinner />
   if (error) return <ErrorMessage message={error} />
   if (!modelHealth) return null
 
-  const chartData = getChartData(modelHealth.time_points, modelHealth.health_over_time)
-  const chartOptions: ChartOptions<'line'> = getChartOptions()
-
-  const healthChange = modelHealth.health_over_time[modelHealth.health_over_time.length - 1] - modelHealth.health_over_time[modelHealth.health_over_time.length - 2]
+  const allMetricsMet = modelHealth.metrics.every(metric => metric.status === 'met')
+  const lastEvaluatedDate = new Date(modelHealth.last_evaluated)
+  const daysSinceLastEvaluation = Math.floor((new Date().getTime() - lastEvaluatedDate.getTime()) / (1000 * 3600 * 24))
+  const isRecentlyEvaluated = daysSinceLastEvaluation <= 30 // Consider "recent" if within the last month
 
   return (
     <Box p={4}>
       <Heading as="h2" size="xl" mb={6} color={textColor}>
-        Model Health Dashboard
+        Model Safety Dashboard
       </Heading>
       <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={8}>
         <Flex direction="column" justify="space-between">
-          <HealthScoreCard
-            modelHealth={modelHealth.model_health}
-            healthChange={healthChange}
+          <OverallHealthCard
+            allMetricsMet={allMetricsMet}
+            isRecentlyEvaluated={isRecentlyEvaluated}
             cardBgColor={cardBgColor}
             borderColor={borderColor}
             textColor={textColor}
           />
-          <RecommendationCard
-            modelHealth={modelHealth.model_health}
+          <LastEvaluatedCard
+            lastEvaluated={lastEvaluatedDate}
+            isRecentlyEvaluated={isRecentlyEvaluated}
             cardBgColor={cardBgColor}
             borderColor={borderColor}
             textColor={textColor}
           />
         </Flex>
-        <HealthChartCard
-          chartData={chartData}
-          chartOptions={chartOptions}
+        <MetricsCard
+          metrics={modelHealth.metrics}
           cardBgColor={cardBgColor}
           borderColor={borderColor}
           textColor={textColor}
@@ -99,66 +87,77 @@ interface CardProps {
   textColor: string;
 }
 
-interface HealthScoreCardProps extends CardProps {
-  modelHealth: number;
-  healthChange: number;
+interface OverallHealthCardProps extends CardProps {
+  allMetricsMet: boolean;
+  isRecentlyEvaluated: boolean;
 }
 
-const HealthScoreCard: React.FC<HealthScoreCardProps> = ({ modelHealth, healthChange, cardBgColor, borderColor, textColor }) => (
-  <Box bg={cardBgColor} p={6} borderRadius="lg" boxShadow="md" borderColor={borderColor} borderWidth={1} mb={4}>
-    <Heading as="h3" size="md" mb={4} color={textColor}>Current Model Health</Heading>
-    <Stat>
-      <StatLabel fontSize="lg">Health Score</StatLabel>
-      <StatNumber fontSize="4xl" fontWeight="bold" color={getColor(modelHealth)}>
-        {modelHealth.toFixed(1)}%
-      </StatNumber>
-      <StatHelpText>
-        <StatArrow type={healthChange >= 0 ? 'increase' : 'decrease'} />
-        {Math.abs(healthChange).toFixed(1)}%
-      </StatHelpText>
-    </Stat>
-    <Box
-      h="24px"
-      w="100%"
-      bg="gray.200"
-      borderRadius="full"
-      overflow="hidden"
-      mt={4}
-    >
-      <Box
-        h="100%"
-        w={`${modelHealth}%`}
-        bg={getColor(modelHealth)}
-        transition="width 0.5s ease-in-out"
-      />
+const OverallHealthCard: React.FC<OverallHealthCardProps> = ({ allMetricsMet, isRecentlyEvaluated, cardBgColor, borderColor, textColor }) => {
+  const tooltipLabel = !allMetricsMet
+    ? "One or more evaluation criteria have not been met. Check the Evaluation Checklist for details."
+    : !isRecentlyEvaluated
+    ? "It has been too long since the last evaluation. The model needs to be re-evaluated."
+    : "All evaluation criteria have been met and the model has been recently evaluated.";
+
+  return (
+    <Box bg={cardBgColor} p={6} borderRadius="lg" boxShadow="md" borderColor={borderColor} borderWidth={1} mb={4}>
+      <Heading as="h3" size="md" mb={4} color={textColor}>Overall Status</Heading>
+      <Tooltip label={tooltipLabel} placement="top" hasArrow>
+        <Flex align="center" cursor="help">
+          <Badge colorScheme={allMetricsMet && isRecentlyEvaluated ? 'green' : 'red'} fontSize="2xl" p={2} borderRadius="md">
+            {allMetricsMet && isRecentlyEvaluated ? 'No warnings' : 'Warning'}
+          </Badge>
+          {allMetricsMet && isRecentlyEvaluated ? (
+            <CheckCircleIcon color="green.500" boxSize={8} ml={4} />
+          ) : (
+            <WarningIcon color="red.500" boxSize={8} ml={4} />
+          )}
+        </Flex>
+      </Tooltip>
     </Box>
+  )
+}
+
+interface LastEvaluatedCardProps extends CardProps {
+  lastEvaluated: Date;
+  isRecentlyEvaluated: boolean;
+}
+
+const LastEvaluatedCard: React.FC<LastEvaluatedCardProps> = ({ lastEvaluated, isRecentlyEvaluated, cardBgColor, borderColor, textColor }) => (
+  <Box bg={cardBgColor} p={6} borderRadius="lg" boxShadow="md" borderColor={borderColor} borderWidth={1} mb={4}>
+    <Heading as="h3" size="md" mb={4} color={textColor}>Last Evaluated</Heading>
+    <Stat>
+      <StatLabel>Time since last evaluation</StatLabel>
+      <StatNumber>{formatDistanceToNow(lastEvaluated)} ago</StatNumber>
+      <Flex align="center" mt={2}>
+        <Badge colorScheme={isRecentlyEvaluated ? 'green' : 'red'} mr={2}>
+          {isRecentlyEvaluated ? 'Recent' : 'Needs Re-evaluation'}
+        </Badge>
+        {isRecentlyEvaluated ? (
+          <CheckCircleIcon color="green.500" />
+        ) : (
+          <WarningIcon color="red.500" />
+        )}
+      </Flex>
+    </Stat>
   </Box>
 )
 
-interface RecommendationCardProps extends CardProps {
-  modelHealth: number;
+interface MetricsCardProps extends CardProps {
+  metrics: Metric[];
 }
 
-const RecommendationCard: React.FC<RecommendationCardProps> = ({ modelHealth, cardBgColor, borderColor, textColor }) => (
+const MetricsCard: React.FC<MetricsCardProps> = ({ metrics, cardBgColor, borderColor, textColor }) => (
   <Box bg={cardBgColor} p={6} borderRadius="lg" boxShadow="md" borderColor={borderColor} borderWidth={1}>
-    <Heading as="h3" size="md" mb={4} color={textColor}>Recommended action</Heading>
-    <Text color={textColor}>
-      {modelHealth >= 80 ? 'Your model is performing well. Keep monitoring for any changes.' :
-       modelHealth >= 60 ? 'Your model health is good, but there\'s room for improvement.' :
-       'Your model health needs attention. Consider retraining or adjusting your model.'}
-    </Text>
-  </Box>
-)
-
-interface HealthChartCardProps extends CardProps {
-  chartData: any;
-  chartOptions: ChartOptions<'line'>;
-}
-
-const HealthChartCard: React.FC<HealthChartCardProps> = ({ chartData, chartOptions, cardBgColor, borderColor, textColor }) => (
-  <Box bg={cardBgColor} p={6} borderRadius="lg" boxShadow="md" borderColor={borderColor} borderWidth={1}>
-    <Heading as="h3" size="md" mb={4} color={textColor}>Model Health Over Time</Heading>
-    <Line data={chartData} options={chartOptions} />
+    <Heading as="h3" size="md" mb={4} color={textColor}>Evaluation Checklist</Heading>
+    <List spacing={3}>
+      {metrics.map((metric, index) => (
+        <ListItem key={index} display="flex" alignItems="center">
+          <ListIcon as={metric.status === 'met' ? CheckCircleIcon : WarningIcon} color={metric.status === 'met' ? 'green.500' : 'red.500'} />
+          <Text color={textColor}>{metric.name}: {metric.value.toFixed(2)} {metric.unit}</Text>
+        </ListItem>
+      ))}
+    </List>
   </Box>
 )
 

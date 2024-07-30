@@ -95,7 +95,7 @@ export default function ModelDashboard({ params }: ModelDashboardProps): JSX.Ele
           onChange={handleTabChange}
         >
           <TabList mb="1em">
-            <Tab>Model Health</Tab>
+            <Tab>Model Safety</Tab>
             <Tab>Performance Metrics</Tab>
             <Tab>Model Facts</Tab>
           </TabList>
