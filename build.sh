@@ -4,16 +4,16 @@
 export BUILD_ID=$(date +%Y%m%d)
 
 # Build development images
-docker compose --env-file .env -f docker-compose.dev.yml build
+docker compose --env-file .env.development -f docker-compose.dev.yml build
 
 # Build production images
-docker compose --env-file .env -f docker-compose.yml build
+docker compose --env-file .env.production -f docker-compose.yml build
 
 # Tag development images as latest
 docker tag vectorinstitute/clinical-ai-monitor:frontend-dev-${BUILD_ID} vectorinstitute/clinical-ai-monitor:frontend-dev-latest
 docker tag vectorinstitute/clinical-ai-monitor:backend-dev-${BUILD_ID} vectorinstitute/clinical-ai-monitor:backend-dev-latest
 
-# Tag production images as latest
+# # Tag production images as latest
 docker tag vectorinstitute/clinical-ai-monitor:frontend-${BUILD_ID} vectorinstitute/clinical-ai-monitor:frontend-latest
 docker tag vectorinstitute/clinical-ai-monitor:backend-${BUILD_ID} vectorinstitute/clinical-ai-monitor:backend-latest
 
