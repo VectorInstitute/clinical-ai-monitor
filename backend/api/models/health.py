@@ -69,7 +69,9 @@ async def get_model_health(model_id: str) -> ModelHealth:
     try:
         # Simulate fetching data from a database
         current_date: datetime = datetime.now()
-        last_evaluated: datetime = current_date - timedelta(days=30)  # Simulating last evaluation 5 days ago
+        last_evaluated: datetime = current_date - timedelta(
+            days=30
+        )  # Simulating last evaluation 5 days ago
 
         # Simulate individual metrics
         metrics: List[Metric] = [
@@ -78,10 +80,7 @@ async def get_model_health(model_id: str) -> ModelHealth:
             Metric(name="AUC-ROC", value=0.95, unit="", status="unmet"),
         ]
 
-        return ModelHealth(
-            metrics=metrics,
-            last_evaluated=last_evaluated
-        )
+        return ModelHealth(metrics=metrics, last_evaluated=last_evaluated)
     except Exception as e:
         raise HTTPException(
             status_code=500, detail=f"Error retrieving model health: {str(e)}"
