@@ -8,22 +8,6 @@ from pydantic import BaseModel, Field, root_validator, validator
 from api.models.constants import VALID_METRIC_NAMES
 
 
-class ModelConfig(BaseModel):
-    """
-    Configuration for a model.
-
-    Attributes
-    ----------
-    name : str
-        The name of the model.
-    description : str
-        The description of the model.
-    """
-
-    name: str = Field(..., description="The name of the model")
-    description: str = Field(..., description="The description of the model")
-
-
 class MetricConfig(BaseModel):
     """
     Configuration for a metric.

@@ -23,8 +23,8 @@ import { FiMonitor, FiAlertCircle } from 'react-icons/fi'
 
 export default function HomePage() {
   const router = useRouter()
-  const { models, fetchModels } = useModelContext()
-  const [isLoading, setIsLoading] = useState(true)
+  const { models, fetchModels, isLoading } = useModelContext()
+  const [error, setError] = useState<string | null>(null)
   const hospitalName = "University Health Network" // This should come from your authentication state
 
   const bgColor = useColorModeValue('gray.50', 'gray.800')
@@ -34,7 +34,7 @@ export default function HomePage() {
   const accentColor = useColorModeValue('blue.500', 'blue.300')
   const dividerColor = useColorModeValue('gray.200', 'gray.600')
   const noModelsTextColor = useColorModeValue('gray.600', 'gray.400')
-  const modelDescriptionColor = useColorModeValue('gray.600', 'gray.300')
+  const modelVersionColor = useColorModeValue('gray.600', 'gray.300')
   const modelEndpointColor = useColorModeValue('gray.500', 'gray.400')
 
   useEffect(() => {
@@ -43,8 +43,7 @@ export default function HomePage() {
         await fetchModels()
       } catch (error) {
         console.error('Failed to fetch models:', error)
-      } finally {
-        setIsLoading(false)
+        setError('Failed to load models. Please try again later.')
       }
     }
     loadModels()
@@ -59,7 +58,24 @@ export default function HomePage() {
       )
     }
 
-    if (models.length === 0) {
+    if (error) {
+      return (
+        <Center flexDirection="column" p={8} bg={cardBgColor} borderRadius="lg" shadow="md">
+          <Icon as={FiAlertCircle} boxSize={12} color="red.500" mb={4} />
+          <Text fontSize="xl" fontWeight="bold" mb={4} textAlign="center">
+            Error
+          </Text>
+          <Text fontSize="md" mb={6} textAlign="center" color={noModelsTextColor}>
+            {error}
+          </Text>
+          <Button colorScheme="blue" onClick={() => fetchModels()}>
+            Retry
+          </Button>
+        </Center>
+      )
+    }
+    const monitoredModels = models.filter(model => model.endpoints.length > 0);
+    if (monitoredModels.length === 0) {
       return (
         <Center flexDirection="column" p={8} bg={cardBgColor} borderRadius="lg" shadow="md">
           <Icon as={FiAlertCircle} boxSize={12} color={accentColor} mb={4} />
@@ -80,7 +96,7 @@ export default function HomePage() {
 
     return (
       <SimpleGrid columns={{ base: 1, sm: 2, lg: 3 }} spacing={{ base: 4, lg: 8 }}>
-        {models.map((model) => (
+        {monitoredModels.map((model) => (
           <Box
             key={model.id}
             p={6}
@@ -99,20 +115,20 @@ export default function HomePage() {
           >
             <VStack align="start" spacing={3}>
               <Heading as="h3" size="md" color={textColor}>
-                {model.name}
+                {model.basic_info.name}
               </Heading>
-              <Text fontSize="sm" color={modelDescriptionColor}>
-                {model.description}
+              <Text fontSize="sm" color={modelVersionColor}>
+                Version: {model.basic_info.version}
               </Text>
               <Text fontSize="xs" color={modelEndpointColor}>
-                Endpoint: {model.endpointName}
+                Endpoints: {model.endpoints.join(', ')}
               </Text>
             </VStack>
           </Box>
         ))}
       </SimpleGrid>
-    )
-  }
+    );
+  };
 
   return (
     <Flex minHeight="100vh" bg={bgColor}>

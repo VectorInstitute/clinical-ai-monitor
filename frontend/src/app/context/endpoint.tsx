@@ -14,8 +14,9 @@ interface EndpointContextType {
   endpoints: Endpoint[];
   addEndpoint: (metrics: MetricConfig[]) => Promise<void>;
   removeEndpoint: (name: string) => Promise<void>;
-  addModelToEndpoint: (endpointName: string, modelName: string, modelDescription: string) => Promise<void>;
-  removeModelFromEndpoint: (endpointName: string, modelName: string) => Promise<void>;
+  addModelToEndpoint: (endpointName: string, modelName: string, modelVersion: string, isExistingModel: boolean) => Promise<void>;
+  removeModelFromEndpoint: (endpointName: string, modelId: string) => Promise<void>;
+  updateModelFacts: (modelId: string, modelFacts: ModelFacts) => Promise<void>;
   isLoading: boolean;
 }
 
@@ -68,9 +69,6 @@ export const EndpointProvider: React.FC<{ children: ReactNode }> = ({ children }
         throw new Error('Failed to create endpoint');
       }
 
-      const data = await response.json();
-      console.log('Endpoint created:', data);
-
       await fetchEndpoints();
     } catch (error) {
       console.error('Error adding endpoint:', error);
@@ -100,7 +98,7 @@ export const EndpointProvider: React.FC<{ children: ReactNode }> = ({ children }
     }
   }, [fetchEndpoints]);
 
-  const addModelToEndpoint = useCallback(async (endpointName: string, modelFacts: ModelFacts) => {
+  const addModelToEndpoint = useCallback(async (endpointName: string, modelName: string, modelVersion: string, isExistingModel: boolean) => {
     setIsLoading(true);
     try {
       const response = await fetch(`/api/endpoints/${endpointName}/models`, {
@@ -108,7 +106,7 @@ export const EndpointProvider: React.FC<{ children: ReactNode }> = ({ children }
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(modelFacts),
+        body: JSON.stringify({ name: modelName, version: modelVersion, isExistingModel }),
       });
 
       if (!response.ok) {
@@ -124,10 +122,34 @@ export const EndpointProvider: React.FC<{ children: ReactNode }> = ({ children }
     }
   }, [fetchEndpoints]);
 
-  const removeModelFromEndpoint = useCallback(async (endpointName: string, modelName: string) => {
+  const updateModelFacts = useCallback(async (modelId: string, modelFacts: ModelFacts) => {
     setIsLoading(true);
     try {
-      const response = await fetch(`/api/endpoints/${endpointName}/models/${modelName}`, {
+      const response = await fetch(`/api/models/${modelId}/facts`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(modelFacts),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update model facts');
+      }
+
+      await fetchEndpoints();
+    } catch (error) {
+      console.error('Error updating model facts:', error);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [fetchEndpoints]);
+
+  const removeModelFromEndpoint = useCallback(async (endpointName: string, modelId: string) => {
+    setIsLoading(true);
+    try {
+      const response = await fetch(`/api/endpoints/${endpointName}/models/${modelId}`, {
         method: 'DELETE',
       });
 
@@ -150,8 +172,9 @@ export const EndpointProvider: React.FC<{ children: ReactNode }> = ({ children }
     removeEndpoint,
     addModelToEndpoint,
     removeModelFromEndpoint,
+    updateModelFacts,
     isLoading
-  }), [endpoints, addEndpoint, removeEndpoint, addModelToEndpoint, removeModelFromEndpoint, isLoading]);
+  }), [endpoints, addEndpoint, removeEndpoint, addModelToEndpoint, removeModelFromEndpoint, updateModelFacts, isLoading]);
 
   return (
     <EndpointContext.Provider value={contextValue}>

@@ -5,15 +5,20 @@ from typing import Any, Dict, List, cast
 from fastapi import APIRouter, HTTPException
 
 from api.models.config import EndpointConfig
+from api.models.data import ModelBasicInfo, ModelData
 from api.models.evaluate import (
     EndpointDetails,
     EndpointLog,
     EvaluationInput,
+    add_model_to_endpoint,
     create_evaluation_endpoint,
     delete_evaluation_endpoint,
     evaluate_model,
     get_endpoint_logs,
+    get_model_by_id,
     list_evaluation_endpoints,
+    list_models,
+    remove_model_from_endpoint,
 )
 from api.models.facts import ModelFacts, get_model_facts
 from api.models.health import ModelHealth, get_model_health
@@ -68,6 +73,47 @@ async def get_evaluation_endpoints() -> Dict[str, List[EndpointDetails]]:
     """
     result = list_evaluation_endpoints()
     return cast(Dict[str, List[EndpointDetails]], result)
+
+
+@router.get("/models", response_model=Dict[str, ModelData])
+async def get_models() -> Dict[str, ModelData]:
+    """
+    List all models.
+
+    Returns
+    -------
+    Dict[str, ModelData]
+        A dictionary containing all models, with model IDs as keys and ModelData as values.
+    """
+    return list_models()
+
+
+@router.get("/models/{model_id}", response_model=ModelData)
+async def get_model_route(model_id: str) -> ModelData:
+    """
+    Get details of a specific model.
+
+    Parameters
+    ----------
+    model_id : str
+        The ID of the model to retrieve.
+
+    Returns
+    -------
+    ModelData
+        The detailed information of the specified model.
+
+    Raises
+    ------
+    HTTPException
+        If the model is not found or there's an error retrieving the model data.
+    """
+    model = get_model_by_id(model_id)
+    if model is None:
+        raise HTTPException(
+            status_code=404, detail=f"Model with ID {model_id} not found"
+        )
+    return model
 
 
 @router.post("/evaluate/{endpoint_name}", response_model=Dict[str, Any])
@@ -225,7 +271,7 @@ async def delete_endpoint(endpoint_name: str) -> Dict[str, str]:
         ) from e
 
 
-@router.get("/model/{model_id}/facts", response_model=ModelFacts)
+@router.get("/models/{model_id}/facts", response_model=ModelFacts)
 async def get_model_facts_route(model_id: str) -> ModelFacts:
     """
     Retrieve facts for a specific model.
@@ -239,17 +285,80 @@ async def get_model_facts_route(model_id: str) -> ModelFacts:
     -------
     ModelFacts
         The facts for the specified model.
-
-    Raises
-    ------
-    HTTPException
-        If there's an error retrieving the model facts.
     """
     try:
         return get_model_facts(model_id)
     except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e)) from e
+        raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
         raise HTTPException(
             status_code=500, detail=f"Error retrieving model facts: {str(e)}"
-        ) from e
+        )
+
+
+@router.post("/endpoints/{endpoint_name}/models", response_model=Dict[str, str])
+async def add_model_to_endpoint_route(
+    endpoint_name: str, model_info: ModelBasicInfo
+) -> Dict[str, str]:
+    """
+    Add a model to an existing endpoint.
+
+    Parameters
+    ----------
+    endpoint_name : str
+        The name of the endpoint to add the model to.
+    model_info : ModelBasicInfo
+        Basic information about the model to be added.
+
+    Returns
+    -------
+    Dict[str, str]
+        A dictionary containing a success message and the new model ID.
+
+    Raises
+    ------
+    HTTPException
+        If there's an error during model addition.
+    """
+    try:
+        result = add_model_to_endpoint(endpoint_name, model_info)
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+
+
+@router.delete(
+    "/endpoints/{endpoint_name}/models/{model_name}", response_model=Dict[str, str]
+)
+async def remove_model_from_endpoint_route(
+    endpoint_name: str, model_id: str
+) -> Dict[str, str]:
+    """
+    Remove a model from an existing endpoint.
+
+    Parameters
+    ----------
+    endpoint_name : str
+        The name of the endpoint to remove the model from.
+    model_id : str
+        The ID of the model to be removed.
+
+    Returns
+    -------
+    Dict[str, str]
+        A dictionary containing a success message.
+
+    Raises
+    ------
+    HTTPException
+        If there's an error during model removal.
+    """
+    try:
+        result = remove_model_from_endpoint(endpoint_name, model_id)
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")

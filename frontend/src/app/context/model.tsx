@@ -1,18 +1,24 @@
 'use client'
 
-import React, { createContext, useState, useContext, ReactNode, useCallback, useMemo } from 'react';
+import React, { createContext, useState, useContext, ReactNode, useCallback, useMemo, useEffect } from 'react';
+import { ModelFacts } from '../model/[id]/types/facts';
 
-interface Model {
-  id: string;
+interface ModelBasicInfo {
   name: string;
-  description: string;
-  endpointId: string;
+  version: string;
+}
+
+interface ModelData {
+  id: string;
+  endpoints: string[];
+  basic_info: ModelBasicInfo;
+  facts: ModelFacts | null;
 }
 
 interface ModelContextType {
-  models: Model[];
-  addModel: (model: Omit<Model, 'id'>) => Promise<void>;
-  removeModel: (id: string) => Promise<void>;
+  models: ModelData[];
+  fetchModels: () => Promise<void>;
+  getModelById: (id: string) => Promise<ModelData | undefined>;
   isLoading: boolean;
 }
 
@@ -27,60 +33,62 @@ export const useModelContext = () => {
 };
 
 export const ModelProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [models, setModels] = useState<Model[]>([]);
+  const [models, setModels] = useState<ModelData[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  const addModel = useCallback(async (newModel: Omit<Model, 'id'>) => {
+  const fetchModels = useCallback(async () => {
     setIsLoading(true);
     try {
-      const response = await fetch('/api/models', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(newModel),
-      });
-
+      const response = await fetch('/api/models');
       if (!response.ok) {
-        throw new Error('Failed to add model');
+        throw new Error('Failed to fetch models');
       }
-
-      const addedModel = await response.json();
-      setModels(prev => [...prev, addedModel]);
+      const data = await response.json();
+      const modelArray = Object.entries(data).map(([id, modelInfo]: [string, any]) => ({
+        id,
+        ...modelInfo,
+      }));
+      setModels(modelArray);
     } catch (error) {
-      console.error('Error adding model:', error);
-      throw error;
+      console.error('Error fetching models:', error);
+      setModels([]);
     } finally {
       setIsLoading(false);
     }
   }, []);
 
-  const removeModel = useCallback(async (id: string) => {
+  useEffect(() => {
+    fetchModels();
+  }, [fetchModels]);
+
+  const getModelById = useCallback(async (id: string) => {
+    const model = models.find(m => m.id === id);
+    if (model) {
+      return model;
+    }
+
     setIsLoading(true);
     try {
-      const response = await fetch(`/api/models/${id}`, {
-        method: 'DELETE',
-      });
-
+      const response = await fetch(`/api/models/${id}`);
       if (!response.ok) {
-        throw new Error('Failed to remove model');
+        throw new Error('Failed to fetch model');
       }
-
-      setModels(prev => prev.filter(model => model.id !== id));
+      const data = await response.json();
+      return data;
     } catch (error) {
-      console.error('Error removing model:', error);
+      console.error('Error fetching model:', error);
       throw error;
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [models]);
 
   const contextValue = useMemo(() => ({
     models,
-    addModel,
-    removeModel,
+    fetchModels,
+    getModelById,
     isLoading
-  }), [models, addModel, removeModel, isLoading]);
+  }), [models, fetchModels, getModelById, isLoading]);
 
   return (
     <ModelContext.Provider value={contextValue}>

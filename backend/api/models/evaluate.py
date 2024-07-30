@@ -3,7 +3,6 @@
 import json
 import uuid
 from datetime import datetime
-from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import pandas as pd
@@ -13,20 +12,18 @@ from cyclops.evaluate.metrics import create_metric
 from cyclops.evaluate.metrics.experimental import MetricDict
 from datasets.arrow_dataset import Dataset
 
-from api.models.config import EndpointConfig, ModelConfig, SubgroupCondition
+from api.models.config import EndpointConfig, SubgroupCondition
 from api.models.data import (
     EndpointData,
     EndpointDetails,
     EndpointLog,
     EvaluationInput,
     EvaluationResult,
+    ModelBasicInfo,
+    ModelData,
 )
+from api.models.db import DATA_DIR, load_model_data, save_model_data
 from api.models.utils import deep_convert_numpy
-
-
-# Define the path for storing endpoint data
-DATA_DIR = Path("endpoint_data")
-DATA_DIR.mkdir(exist_ok=True)
 
 
 class EvaluationEndpoint:
@@ -178,54 +175,63 @@ class EvaluationEndpoint:
         with open(file_path, "w") as f:
             json.dump(deep_convert_numpy(serializable_data), f)
 
-    def add_model(self, model: ModelConfig) -> None:
+    def add_model(self, model_info: ModelBasicInfo) -> str:
         """
         Add a model to the endpoint.
 
         Parameters
         ----------
-        model : ModelConfig
-            The model configuration to add.
+        model_info : ModelBasicInfo
+            Basic information about the model to add.
+
+        Returns
+        -------
+        str
+            The unique ID of the newly added model.
         """
-        self.data.models.append(model)
+        model_id = str(uuid.uuid4())
+        model_data = ModelData(
+            id=model_id, endpoint_name=self.name, basic_info=model_info
+        )
+        save_model_data(model_id, model_data)
+        self.data.models.append(model_id)
         self.data.logs.append(
             EndpointLog(
                 timestamp=datetime.now(),
                 action="added_model",
-                details={"model_name": model.name},
+                details={"model_name": model_info.name, "model_id": model_id},
                 endpoint_name=self.name,
             )
         )
         self._save_data()
+        return model_id
 
-    def remove_model(self, model_name: str) -> None:
+    def remove_model(self, model_id: str) -> None:
         """
         Remove a model from the endpoint.
 
         Parameters
         ----------
-        model_name : str
-            The name of the model to remove.
+        model_id : str
+            The ID of the model to remove.
 
         Raises
         ------
         ValueError
             If the model is not found.
         """
-        for i, model in enumerate(self.data.models):
-            if model.name == model_name:
-                del self.data.models[i]
-                self.data.logs.append(
-                    EndpointLog(
-                        timestamp=datetime.now(),
-                        action="removed_model",
-                        details={"model_name": model_name},
-                        endpoint_name=self.name,
-                    )
-                )
-                self._save_data()
-                return
-        raise ValueError(f"Model '{model_name}' not found in endpoint '{self.name}'")
+        if model_id not in self.data.models:
+            raise ValueError(f"Model '{model_id}' not found in endpoint '{self.name}'")
+        self.data.models.remove(model_id)
+        self.data.logs.append(
+            EndpointLog(
+                timestamp=datetime.now(),
+                action="removed_model",
+                details={"model_id": model_id},
+                endpoint_name=self.name,
+            )
+        )
+        self._save_data()
 
     @classmethod
     def load(cls, endpoint_name: str) -> "EvaluationEndpoint":
@@ -268,7 +274,7 @@ def load_all_endpoints() -> Dict[str, EvaluationEndpoint]:
         A dictionary of all loaded endpoints.
     """
     endpoints: Dict[str, EvaluationEndpoint] = {}
-    for file_path in DATA_DIR.glob("*.json"):
+    for file_path in DATA_DIR.glob("endpoint_*.json"):
         endpoint_name = file_path.stem
         try:
             endpoint = EvaluationEndpoint.load(endpoint_name)
@@ -278,7 +284,29 @@ def load_all_endpoints() -> Dict[str, EvaluationEndpoint]:
     return endpoints
 
 
+def load_all_models() -> Dict[str, ModelData]:
+    """
+    Load all models from JSON files.
+
+    Returns
+    -------
+    Dict[str, ModelData]
+        A dictionary with loaded model data.
+    """
+    models = {}
+    for file_path in DATA_DIR.glob("model_*.json"):
+        model_id = file_path.stem.replace("model_", "")
+        try:
+            model_data = load_model_data(model_id)
+            if model_data:
+                models[model_id] = model_data
+        except Exception as e:
+            print(f"Error loading model {model_id}: {str(e)}")
+    return models
+
+
 evaluation_endpoints: Dict[str, EvaluationEndpoint] = load_all_endpoints()
+models: Dict[str, ModelData] = load_all_models()
 
 
 def create_evaluation_endpoint(config: EndpointConfig) -> Dict[str, str]:
@@ -366,11 +394,116 @@ def list_evaluation_endpoints() -> Dict[str, List[EndpointDetails]]:
                 metrics=[
                     f"{metric.type}_{metric.name}" for metric in endpoint.config.metrics
                 ],
-                models=[model.name for model in endpoint.data.models],
+                models=[model for model in endpoint.data.models],
             )
             for name, endpoint in evaluation_endpoints.items()
         ]
     }
+
+
+def list_models() -> Dict[str, ModelData]:
+    """
+    List all models.
+
+    Returns
+    -------
+    Dict[str, ModelData]
+        A dictionary containing all models, with model IDs as keys and ModelData as values.
+    """
+    return models
+
+
+def get_model_by_id(model_id: str) -> Optional[ModelData]:
+    """
+    Get a model by its ID.
+
+    Parameters
+    ----------
+    model_id : str
+        The ID of the model to retrieve.
+
+    Returns
+    -------
+    Optional[ModelData]
+        The model data if found, None otherwise.
+    """
+    return models.get(model_id)
+
+
+def add_model_to_endpoint(
+    endpoint_name: str, model_info: ModelBasicInfo
+) -> Dict[str, str]:
+    """
+    Add a model to an existing evaluation endpoint.
+
+    Parameters
+    ----------
+    endpoint_name : str
+        The name of the endpoint to add the model to.
+    model_info : ModelBasicInfo
+        Basic information about the model to be added.
+
+    Returns
+    -------
+    Dict[str, str]
+        A dictionary containing a success message and the new model ID.
+
+    Raises
+    ------
+    ValueError
+        If the endpoint doesn't exist.
+    """
+    if endpoint_name not in evaluation_endpoints:
+        raise ValueError(f"Endpoint '{endpoint_name}' not found")
+
+    endpoint = evaluation_endpoints[endpoint_name]
+    model_id = endpoint.add_model(model_info)
+
+    if model_id in models:
+        models[model_id].endpoints.append(endpoint_name)
+    else:
+        models[model_id] = ModelData(
+            id=model_id, endpoints=[endpoint_name], basic_info=model_info, facts=None
+        )
+
+    return {
+        "message": f"Model '{model_info.name}' added to endpoint '{endpoint_name}' successfully",
+        "model_id": model_id,
+    }
+
+
+def remove_model_from_endpoint(endpoint_name: str, model_id: str) -> Dict[str, str]:
+    """
+    Remove a model from an existing evaluation endpoint.
+
+    Parameters
+    ----------
+    endpoint_name : str
+        The name of the endpoint to remove the model from.
+    model_id : str
+        The ID of the model to be removed.
+
+    Returns
+    -------
+    Dict[str, str]
+        A dictionary containing a success message.
+
+    Raises
+    ------
+    ValueError
+        If the endpoint or model doesn't exist.
+    """
+    if endpoint_name not in evaluation_endpoints:
+        raise ValueError(f"Endpoint '{endpoint_name}' not found")
+    endpoint = evaluation_endpoints[endpoint_name]
+    try:
+        endpoint.remove_model(model_id)
+        del models[model_id]
+        return {
+            "message": f"Model '{model_id}' removed from endpoint '{endpoint_name}' successfully"
+        }
+    except ValueError as e:
+        raise ValueError(str(e))
 
 
 def evaluate_model(endpoint_name: str, data: EvaluationInput) -> Dict[str, Any]:

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Formik, Form } from 'formik';
+import { Formik, Form, Field } from 'formik';
 import {
   Modal,
   ModalOverlay,
@@ -10,12 +10,14 @@ import {
   ModalCloseButton,
   Button,
   VStack,
+  FormControl,
+  FormLabel,
+  Input,
+  FormErrorMessage,
 } from '@chakra-ui/react';
 import { useEndpointContext } from '../../context/endpoint';
-import { ModelFacts } from '../../model/[id]/types/facts';
-import { modelValidationSchema, ModelFactsFormData } from '../types/model-validation';
+import { z } from 'zod';
 import { toFormikValidationSchema } from 'zod-formik-adapter';
-import ModelFormFields from './model-form-fields';
 
 interface AddModelFormProps {
   isOpen: boolean;
@@ -23,46 +25,33 @@ interface AddModelFormProps {
   endpointName: string;
 }
 
+const modelSchema = z.object({
+  name: z.string().nonempty('Required'),
+  version: z.string().nonempty('Required'),
+});
+
+type ModelFormData = z.infer<typeof modelSchema>;
+
 const AddModelForm: React.FC<AddModelFormProps> = ({ isOpen, onClose, endpointName }) => {
   const { addModelToEndpoint } = useEndpointContext();
 
-  const initialValues: ModelFactsFormData = {
+  const initialValues: ModelFormData = {
     name: '',
     version: '',
-    type: '',
-    intended_use: '',
-    target_population: '',
-    input_data: [''],
-    output_data: '',
-    summary: '',
-    mechanism_of_action: '',
-    validation_and_performance: {
-      internal_validation: '',
-      external_validation: '',
-      performance_in_subgroups: [''],
-    },
-    uses_and_directions: [''],
-    warnings: [''],
-    other_information: {
-      approval_date: '',
-      license: '',
-      contact_information: '',
-      publication_link: '',
-    },
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} size="xl">
+    <Modal isOpen={isOpen} onClose={onClose}>
       <ModalOverlay />
       <ModalContent>
         <ModalHeader>Add Model to Endpoint</ModalHeader>
         <ModalCloseButton />
         <Formik
           initialValues={initialValues}
-          validationSchema={toFormikValidationSchema(modelValidationSchema)}
+          validationSchema={toFormikValidationSchema(modelSchema)}
           onSubmit={async (values, actions) => {
             try {
-              await addModelToEndpoint(endpointName, values as ModelFacts);
+              await addModelToEndpoint(endpointName, values.name, values.version);
               onClose();
             } catch (error) {
               console.error('Error adding model:', error);
@@ -71,11 +60,20 @@ const AddModelForm: React.FC<AddModelFormProps> = ({ isOpen, onClose, endpointNa
             }
           }}
         >
-          {({ values, errors, touched, isSubmitting }) => (
+          {({ errors, touched, isSubmitting }) => (
             <Form>
               <ModalBody>
-                <VStack spacing={4} align="stretch">
-                  <ModelFormFields values={values} errors={errors} touched={touched} />
+                <VStack spacing={4}>
+                  <FormControl isInvalid={!!errors.name && touched.name}>
+                    <FormLabel htmlFor="name">Model Name</FormLabel>
+                    <Field as={Input} id="name" name="name" />
+                    <FormErrorMessage>{errors.name}</FormErrorMessage>
+                  </FormControl>
+                  <FormControl isInvalid={!!errors.version && touched.version}>
+                    <FormLabel htmlFor="version">Version</FormLabel>
+                    <Field as={Input} id="version" name="version" />
+                    <FormErrorMessage>{errors.version}</FormErrorMessage>
+                  </FormControl>
                 </VStack>
               </ModalBody>
               <ModalFooter>

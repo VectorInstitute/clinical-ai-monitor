@@ -5,8 +5,73 @@ from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field, validator
 
-from api.models.config import EndpointConfig, ModelConfig
+from api.models.config import EndpointConfig
 from api.models.utils import deep_convert_numpy
+
+
+class ModelBasicInfo(BaseModel):
+    """Basic information about a model."""
+
+    name: str = Field(..., description="Name of the model")
+    version: str = Field(..., description="Version of the model")
+
+
+class ValidationAndPerformance(BaseModel):
+    """Validation and performance information for a model."""
+
+    internal_validation: str = Field(..., description="Internal validation results")
+    external_validation: str = Field(..., description="External validation results")
+    performance_in_subgroups: List[str] = Field(
+        ..., description="Performance in different subgroups"
+    )
+
+
+class OtherInformation(BaseModel):
+    """Additional information about a model."""
+
+    approval_date: str = Field(..., description="Date of model approval")
+    license: str = Field(..., description="License information")
+    contact_information: str = Field(
+        ..., description="Contact information for model support"
+    )
+    publication_link: Optional[str] = Field(
+        None, description="Link to related publication"
+    )
+
+
+class ModelFacts(ModelBasicInfo):
+    """Comprehensive facts about a model."""
+
+    type: str = Field(..., description="Type of the model")
+    intended_use: str = Field(..., description="Intended use of the model")
+    target_population: str = Field(..., description="Target population for the model")
+    input_data: List[str] = Field(..., description="Required input data for the model")
+    output_data: str = Field(..., description="Output data produced by the model")
+    summary: str = Field(..., description="Brief summary of the model")
+    mechanism_of_action: str = Field(
+        ..., description="Mechanism of action for the model"
+    )
+    validation_and_performance: ValidationAndPerformance = Field(
+        ..., description="Validation and performance information"
+    )
+    uses_and_directions: List[str] = Field(
+        ..., description="Uses and directions for the model"
+    )
+    warnings: List[str] = Field(
+        ..., description="Warnings and precautions for model use"
+    )
+    other_information: OtherInformation = Field(
+        ..., description="Additional model information"
+    )
+
+
+class ModelData(BaseModel):
+    """Data structure for storing model information."""
+
+    id: str
+    endpoints: List[str]
+    basic_info: ModelBasicInfo
+    facts: Optional[ModelFacts] = None
 
 
 class EvaluationInput(BaseModel):
@@ -201,14 +266,14 @@ class EndpointData(BaseModel):
         List of evaluation results.
     logs : List[EndpointLog]
         List of log entries.
-    models : List[ModelConfig]
+    models : List[str]
         List of models associated with this endpoint.
     """
 
     config: EndpointConfig
     evaluation_history: List[EvaluationResult] = []
     logs: List[EndpointLog] = []
-    models: List[ModelConfig] = []
+    models: List[str] = []
 
 
 class EndpointDetails(BaseModel):

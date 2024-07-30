@@ -19,9 +19,11 @@ import {
   Divider,
   Badge,
   Container,
+  Link,
 } from '@chakra-ui/react';
-import { FiPlus, FiTrash2, FiInfo, FiList } from 'react-icons/fi';
+import { FiPlus, FiTrash2, FiInfo, FiList, FiEdit } from 'react-icons/fi';
 import { useRouter } from 'next/navigation';
+import NextLink from 'next/link';
 import Sidebar from '../components/sidebar';
 import CreateEndpointForm from './components/create-endpoint-form';
 import DeleteEndpointForm from './components/delete-endpoint-form';
@@ -137,13 +139,15 @@ const ConfigurationPage: React.FC = () => {
                               colorScheme="blue"
                               size="sm"
                               cursor="pointer"
-                              onClick={() => {
-                                setSelectedEndpoint(endpoint.name);
-                                setSelectedModel(model);
-                                onRemoveModelOpen();
-                              }}
                             >
-                              {model}
+                              <NextLink href={`/model/${model}`} passHref>
+                                <Link>{model}</Link>
+                              </NextLink>
+                              <NextLink href={`/configure/model-facts/${model}`} passHref>
+                                <Link ml={2}>
+                                  <Icon as={FiEdit} />
+                                </Link>
+                              </NextLink>
                             </Tag>
                           ))}
                         </Flex>
@@ -159,6 +163,16 @@ const ConfigurationPage: React.FC = () => {
                           }}
                         >
                           Add Model
+                        </Button>
+                        <Button
+                          size="sm"
+                          colorScheme="red"
+                          onClick={() => {
+                            setSelectedEndpoint(endpoint.name);
+                            onRemoveModelOpen();
+                          }}
+                        >
+                          Remove Model
                         </Button>
                       </Flex>
                     </Flex>
@@ -178,12 +192,11 @@ const ConfigurationPage: React.FC = () => {
           endpointName={selectedEndpoint}
         />
       )}
-      {selectedEndpoint && selectedModel && (
+      {selectedEndpoint && (
         <RemoveModelForm
           isOpen={isRemoveModelOpen}
           onClose={onRemoveModelClose}
           endpointName={selectedEndpoint}
-          modelName={selectedModel}
         />
       )}
     </Flex>
