@@ -191,7 +191,10 @@ class EvaluationEndpoint:
         """
         model_id = str(uuid.uuid4())
         model_data = ModelData(
-            id=model_id, endpoint_name=self.name, basic_info=model_info
+            id=model_id,
+            endpoint_name=self.name,
+            basic_info=model_info,
+            endpoints=[self.name],
         )
         save_model_data(model_id, model_data)
         self.data.models.append(model_id)
@@ -204,6 +207,7 @@ class EvaluationEndpoint:
             )
         )
         self._save_data()
+        print("here11")
         return model_id
 
     def remove_model(self, model_id: str) -> None:

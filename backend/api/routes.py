@@ -320,13 +320,13 @@ async def add_model_to_endpoint_route(
     HTTPException
         If there's an error during model addition.
     """
-    try:
-        result = add_model_to_endpoint(endpoint_name, model_info)
-        return result
-    except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+    # try:
+    result = add_model_to_endpoint(endpoint_name, model_info)
+    return result
+    # except ValueError as e:
+    #     raise HTTPException(status_code=404, detail=str(e))
+    # except Exception as e:
+    #     raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 
 @router.delete(
