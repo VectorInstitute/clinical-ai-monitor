@@ -64,4 +64,4 @@ def update_model_facts(model_id: str, updated_facts: Dict[str, Any]) -> ModelFac
         save_model_data(model_id, model_data)
         return updated_model_facts
     except ValidationError as e:
-        raise ValueError(f"Invalid updated facts: {str(e)}")
+        raise ValueError(f"Invalid updated facts: {str(e)}") from e

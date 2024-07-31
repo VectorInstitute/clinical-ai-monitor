@@ -229,7 +229,10 @@ class EvaluationResult(BaseModel):
     @classmethod
     def process_evaluation_result(cls, v: Dict[str, Any]) -> Dict[str, Any]:
         """Process the evaluation result dictionary."""
-        return deep_convert_numpy(v)
+        result = deep_convert_numpy(v)
+        if not isinstance(result, dict):
+            raise ValueError("Returned Evaluation result must be a dictionary!")
+        return result
 
 
 class EndpointLog(BaseModel):

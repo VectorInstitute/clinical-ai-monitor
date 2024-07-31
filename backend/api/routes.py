@@ -83,9 +83,9 @@ async def get_models_route() -> Dict[str, ModelData]:
     Returns
     -------
     Dict[str, ModelData]
-        A dictionary containing all models, with model IDs as keys and ModelData as values.
+        A dict with all models, with model IDs as keys and ModelData as values.
     """
-    return list_models()
+    return cast(Dict[str, ModelData], list_models())
 
 
 @router.get("/models/{model_id}", response_model=ModelData)
@@ -295,18 +295,20 @@ async def get_model_facts_route(model_id: str) -> Optional[ModelFacts]:
     -------
     Optional[ModelFacts]
         The facts for the specified model, or None if not available.
+
+    Raises
+    ------
+    HTTPException
+        If there's an error retrieving the model facts.
     """
     try:
-        facts = get_model_facts(model_id)
-        if facts is None:
-            return None
-        return facts
+        return get_model_facts(model_id)
     except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=404, detail=str(e)) from e
     except Exception as e:
         raise HTTPException(
             status_code=500, detail=f"Error retrieving model facts: {str(e)}"
-        )
+        ) from e
 
 
 @router.post("/endpoints/{endpoint_name}/models", response_model=Dict[str, str])
@@ -334,12 +336,13 @@ async def add_model_to_endpoint_route(
         If there's an error during model addition.
     """
     try:
-        result = add_model_to_endpoint(endpoint_name, model_info)
-        return result
+        return cast(Dict[str, str], add_model_to_endpoint(endpoint_name, model_info))
     except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=404, detail=str(e)) from e
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Internal server error: {str(e)}"
+        ) from e
 
 
 @router.delete(
@@ -369,9 +372,10 @@ async def remove_model_from_endpoint_route(
         If there's an error during model removal.
     """
     try:
-        result = remove_model_from_endpoint(endpoint_name, model_id)
-        return result
+        return cast(Dict[str, str], remove_model_from_endpoint(endpoint_name, model_id))
     except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=404, detail=str(e)) from e
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Internal server error: {str(e)}"
+        ) from e

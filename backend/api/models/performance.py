@@ -247,7 +247,7 @@ async def get_performance_metrics(
         )
 
     data = load_json_file(file_path)
-    evaluation_history: List[Dict[str, Any]] = data.get("evaluation_history").get(
+    evaluation_history: List[Dict[str, Any]] = data.get("evaluation_history", {}).get(
         model_id, []
     )
 

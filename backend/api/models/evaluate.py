@@ -161,7 +161,7 @@ class EvaluationEndpoint:
             )
         )
         self._save_data()
-        return evaluation_result.dict()
+        return evaluation_result.dict()  # type: ignore
 
     def _load_data(self) -> Optional[EndpointData]:
         """Load endpoint data from JSON file."""
@@ -401,7 +401,7 @@ def list_evaluation_endpoints() -> Dict[str, List[EndpointDetails]]:
                 metrics=[
                     f"{metric.type}_{metric.name}" for metric in endpoint.config.metrics
                 ],
-                models=[model for model in endpoint.data.models],
+                models=list(endpoint.data.models),
             )
             for name, endpoint in evaluation_endpoints.items()
         ]
@@ -415,7 +415,7 @@ def list_models() -> Dict[str, ModelData]:
     Returns
     -------
     Dict[str, ModelData]
-        A dictionary containing all models, with model IDs as keys and ModelData as values.
+        A dict with all models, with model IDs as keys and ModelData as values.
     """
     return models
 
@@ -510,7 +510,7 @@ def remove_model_from_endpoint(endpoint_name: str, model_id: str) -> Dict[str, s
             "message": f"Model '{model_id}' removed from endpoint '{endpoint_name}' successfully"
         }
     except ValueError as e:
-        raise ValueError(str(e))
+        raise ValueError(f"Error removing model: {str(e)}") from e
 
 
 def evaluate_model(
