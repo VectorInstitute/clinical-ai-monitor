@@ -1,5 +1,5 @@
 'use client'
-import React from 'react'
+import React, { useState } from 'react'
 import {
   Box,
   Flex,
@@ -13,24 +13,24 @@ import {
   DrawerContent,
   IconButton,
   useDisclosure,
-  CloseButton,
   Tooltip,
 } from '@chakra-ui/react'
-import { FiHome, FiSettings, FiUser, FiMenu } from 'react-icons/fi'
+import { FiHome, FiSettings, FiLogOut, FiMenu, FiChevronLeft, FiChevronRight } from 'react-icons/fi'
 import NextLink from 'next/link'
 
-interface SidebarProps {
-  hospitalName: string
-}
-
-const Sidebar: React.FC<SidebarProps> = ({ hospitalName }) => {
+const Sidebar = () => {
   const { isOpen, onOpen, onClose } = useDisclosure()
+  const [isCollapsed, setIsCollapsed] = useState(false)
+
+  const toggleSidebar = () => setIsCollapsed(!isCollapsed)
+
   return (
     <Box>
       <SidebarContent
-        hospitalName={hospitalName}
         onClose={() => onClose}
         display={{ base: 'none', md: 'block' }}
+        isCollapsed={isCollapsed}
+        toggleSidebar={toggleSidebar}
       />
       <Drawer
         isOpen={isOpen}
@@ -41,7 +41,7 @@ const Sidebar: React.FC<SidebarProps> = ({ hospitalName }) => {
         size="full"
       >
         <DrawerContent>
-          <SidebarContent hospitalName={hospitalName} onClose={onClose} />
+          <SidebarContent onClose={onClose} isCollapsed={false} toggleSidebar={toggleSidebar} />
         </DrawerContent>
       </Drawer>
       <MobileNav display={{ base: 'flex', md: 'none' }} onOpen={onOpen} />
@@ -49,61 +49,79 @@ const Sidebar: React.FC<SidebarProps> = ({ hospitalName }) => {
   )
 }
 
-interface SidebarContentProps extends SidebarProps {
+interface SidebarContentProps {
   onClose: () => void
+  isCollapsed: boolean
+  toggleSidebar: () => void
   display?: object
 }
 
-const SidebarContent: React.FC<SidebarContentProps> = ({ hospitalName, onClose, ...rest }) => {
+const SidebarContent: React.FC<SidebarContentProps> = ({ onClose, isCollapsed, toggleSidebar, ...rest }) => {
   const bgColor = useColorModeValue('#b0caf5', '#1e3a5f')
   const textColor = useColorModeValue('#1e3a5f', '#e0e0e0')
   const borderColor = useColorModeValue('#8eb8f2', '#2c5282')
+  const toggleBtnBgColor = useColorModeValue('#8eb8f2', '#2c5282')
 
   return (
     <Box
       bg={bgColor}
       borderRight="1px"
       borderRightColor={borderColor}
-      w={{ base: 'full', md: 60 }}
+      w={isCollapsed ? '60px' : { base: 'full', md: '240px' }}
       pos="fixed"
       h="full"
+      transition="width 0.3s ease"
       {...rest}
     >
-      <Flex h="32" alignItems="center" mx="8" justifyContent="space-between">
-        <Image
-          src="/images/cyclops_logo-dark.png"
-          alt="Clinical AI Monitor"
-          width={64}
-          height={16}
-        />
-        <CloseButton display={{ base: 'flex', md: 'none' }} onClick={onClose} />
-      </Flex>
-      <Flex alignItems="center" mx="8" mb="6" flexDirection="column">
-        <Icon as={FiUser} fontSize="24" mb={2} color={textColor} />
-        <Text fontWeight="medium" fontSize="sm" textAlign="center" color={textColor}>
-          {hospitalName}
-        </Text>
-      </Flex>
-      <NavItems textColor={textColor} />
-      <Flex
-        position="absolute"
-        bottom="5"
-        left="0"
-        right="0"
-        justifyContent="center"
-        alignItems="center"
-        flexDirection="column"
-      >
-        <Image
-          src="/images/vector_logo.png"
-          alt="Vector Institute"
-          width={32}
-          height={12}
-          mb={2}
-        />
-        <Text fontSize="xs" color={textColor} textAlign="center" mt={2}>
-          © {new Date().getFullYear()} Clinical AI Monitor. All rights reserved.
-        </Text>
+      <Flex direction="column" h="full">
+        <Flex h="20" alignItems="center" mx="8" justifyContent="space-between" mb={8}>
+          {!isCollapsed && (
+            <Image
+              src="/images/cyclops_logo-dark.png"
+              alt="Clinical AI Monitor"
+              width={64}
+              height={16}
+            />
+          )}
+        </Flex>
+        <VStack spacing={4} align="stretch" flex={1}>
+          <NavItems textColor={textColor} isCollapsed={isCollapsed} />
+        </VStack>
+        <Flex
+          direction="column"
+          alignItems="center"
+          mt={4}
+          mb={4}
+        >
+          {!isCollapsed && (
+            <>
+              <Image
+                src="/images/vector_logo.png"
+                alt="Vector Institute"
+                width={32}
+                height={12}
+                mb={2}
+              />
+              <Text fontSize="xs" color={textColor} textAlign="center" mt={2} mb={4}>
+                © {new Date().getFullYear()} Clinical AI Monitor. All rights reserved.
+              </Text>
+            </>
+          )}
+          <Tooltip label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"} placement="right" hasArrow>
+            <IconButton
+              aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+              icon={isCollapsed ? <FiChevronRight /> : <FiChevronLeft />}
+              onClick={toggleSidebar}
+              variant="solid"
+              bg={toggleBtnBgColor}
+              color={textColor}
+              size="sm"
+              _hover={{
+                bg: useColorModeValue('#7aa7e0', '#3a6491'),
+              }}
+            />
+          </Tooltip>
+        </Flex>
       </Flex>
     </Box>
   )
@@ -111,14 +129,16 @@ const SidebarContent: React.FC<SidebarContentProps> = ({ hospitalName, onClose, 
 
 interface NavItemsProps {
   textColor: string
+  isCollapsed: boolean
 }
 
-const NavItems: React.FC<NavItemsProps> = ({ textColor }) => {
+const NavItems: React.FC<NavItemsProps> = ({ textColor, isCollapsed }) => {
   return (
-    <VStack spacing={1} align="stretch">
-      <NavItem icon={FiHome} href="/home" textColor={textColor}>Dashboard</NavItem>
-      <NavItem icon={FiSettings} href="/configure" textColor={textColor}>Configure</NavItem>
-    </VStack>
+    <>
+      <NavItem icon={FiHome} href="/home" textColor={textColor} isCollapsed={isCollapsed}>Dashboard</NavItem>
+      <NavItem icon={FiSettings} href="/configure" textColor={textColor} isCollapsed={isCollapsed}>Configure</NavItem>
+      <NavItem icon={FiLogOut} href="/logout" textColor={textColor} isCollapsed={isCollapsed}>Logout</NavItem>
+    </>
   )
 }
 
@@ -127,19 +147,20 @@ interface NavItemProps {
   children: React.ReactNode
   href: string
   textColor: string
+  isCollapsed: boolean
 }
 
-const NavItem: React.FC<NavItemProps> = ({ icon, children, href, textColor }) => {
+const NavItem: React.FC<NavItemProps> = ({ icon, children, href, textColor, isCollapsed }) => {
   const bgHover = useColorModeValue('#8eb8f2', '#2c5282')
   const activeColor = useColorModeValue('#1e3a5f', '#ffffff')
 
   return (
-    <Tooltip label={children} placement="right" hasArrow>
+    <Tooltip label={isCollapsed ? children : ''} placement="right" hasArrow>
       <Link as={NextLink} href={href} style={{ textDecoration: 'none' }} _focus={{ boxShadow: 'none' }}>
         <Flex
           align="center"
           p="4"
-          mx="4"
+          mx={isCollapsed ? '2' : '4'}
           borderRadius="lg"
           role="group"
           cursor="pointer"
@@ -150,17 +171,19 @@ const NavItem: React.FC<NavItemProps> = ({ icon, children, href, textColor }) =>
           transition="all 0.3s"
         >
           <Icon
-            mr="4"
-            fontSize="16"
+            mr={isCollapsed ? '0' : '4'}
+            fontSize="20"
             as={icon}
             color={textColor}
             _groupHover={{
               color: activeColor,
             }}
           />
-          <Text fontSize="sm" fontWeight="medium" color={textColor} _groupHover={{ color: activeColor }}>
-            {children}
-          </Text>
+          {!isCollapsed && (
+            <Text fontSize="sm" fontWeight="medium" color={textColor} _groupHover={{ color: activeColor }}>
+              {children}
+            </Text>
+          )}
         </Flex>
       </Link>
     </Tooltip>

@@ -25,7 +25,6 @@ export default function HomePage() {
   const router = useRouter()
   const { models, fetchModels, isLoading } = useModelContext()
   const [error, setError] = useState<string | null>(null)
-  const hospitalName = "University Health Network" // This should come from your authentication state
 
   const bgColor = useColorModeValue('gray.50', 'gray.800')
   const cardBgColor = useColorModeValue('white', 'gray.700')
@@ -132,7 +131,7 @@ export default function HomePage() {
 
   return (
     <Flex minHeight="100vh" bg={bgColor}>
-      <Sidebar hospitalName={hospitalName} />
+      <Sidebar />
       <Box
         ml={{ base: 0, md: 60 }}
         w="full"
