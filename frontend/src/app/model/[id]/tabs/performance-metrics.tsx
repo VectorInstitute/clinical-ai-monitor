@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   Box,
   Text,
@@ -24,10 +24,10 @@ import { PerformanceData, PerformanceDataSchema } from '../types/performance-met
 
 interface PerformanceMetricsTabProps {
   endpointName: string;
+  modelId: string;
 }
 
-export default function PerformanceMetricsTab({ endpointName }: PerformanceMetricsTabProps) {
-  console.log(`PerformanceMetricsTab: endpointName = ${endpointName}`);
+export default function PerformanceMetricsTab({ endpointName, modelId }: PerformanceMetricsTabProps) {
   const [data, setData] = useState<PerformanceData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -38,31 +38,32 @@ export default function PerformanceMetricsTab({ endpointName }: PerformanceMetri
   const [lastNEvaluations, setLastNEvaluations] = useState<number>(20);
 
   const cardColumns = useBreakpointValue({ base: 1, sm: 2, md: 3, lg: 4 });
-  const chartHeight = useBreakpointValue({ base: 300, md: 400, lg: 500 }) ?? 300; // Provide a default value
+  const chartHeight = useBreakpointValue({ base: 300, md: 400, lg: 500 }) ?? 300;
+
+  const fetchPerformanceMetrics = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      const response = await fetch(`/api/performance_metrics/${endpointName}/${modelId}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch performance metrics');
+      }
+      const fetchedData = await response.json();
+      const validatedData = PerformanceDataSchema.parse(fetchedData);
+      setData(validatedData);
+      if (validatedData.overview.has_data) {
+        setSelectedMetrics([validatedData.overview.metric_cards.metrics[0]]);
+        setLastNEvaluations(Math.min(20, validatedData.overview.last_n_evals));
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [endpointName, modelId]);
 
   useEffect(() => {
-    const fetchPerformanceMetrics = async () => {
-      try {
-        setIsLoading(true);
-        const response = await fetch(`/api/performance_metrics/${endpointName}`);
-        if (!response.ok) {
-          throw new Error('Failed to fetch performance metrics');
-        }
-        const fetchedData = await response.json();
-        const validatedData = PerformanceDataSchema.parse(fetchedData);
-        setData(validatedData);
-        if (validatedData.overview.has_data) {
-          setSelectedMetrics([validatedData.overview.metric_cards.metrics[0]]);
-          setLastNEvaluations(Math.min(20, validatedData.overview.last_n_evals));
-        }
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'An error occurred');
-      } finally {
-        setIsLoading(false);
-      }
-    };
     fetchPerformanceMetrics();
-  }, [endpointName]);
+  }, [fetchPerformanceMetrics]);
 
   const renderMetricCards = useMemo(() => {
     if (!data || !data.overview.has_data) return null;
@@ -76,6 +77,26 @@ export default function PerformanceMetricsTab({ endpointName }: PerformanceMetri
       </SimpleGrid>
     );
   }, [data, cardColumns]);
+
+  const handleMetricSelect = useCallback((metrics: string[]) => {
+    setSelectedMetrics(metrics);
+  }, []);
+
+  const handleSliceSelect = useCallback((slices: string[]) => {
+    setSelectedSlices(slices);
+  }, []);
+
+  const handleRollingStatsToggle = useCallback((show: boolean) => {
+    setShowRollingStats(show);
+  }, []);
+
+  const handleRollingWindowChange = useCallback((window: number) => {
+    setRollingWindow(window);
+  }, []);
+
+  const handleLastNEvaluationsChange = useCallback((n: number) => {
+    setLastNEvaluations(n);
+  }, []);
 
   if (isLoading) return <LoadingSpinner />;
   if (error) return <ErrorMessage message={error} />;
@@ -97,7 +118,7 @@ export default function PerformanceMetricsTab({ endpointName }: PerformanceMetri
           No Evaluation Data Available
         </AlertTitle>
         <AlertDescription maxWidth="sm">
-          It looks like there&apos;s no evaluation data for this endpoint yet. Start logging evaluation data to see performance metrics here.
+          It looks like there's no evaluation data for this endpoint yet. Start logging evaluation data to see performance metrics here.
         </AlertDescription>
       </Alert>
     );
@@ -135,7 +156,7 @@ export default function PerformanceMetricsTab({ endpointName }: PerformanceMetri
                 <MetricSelector
                   metrics={data.overview.metric_cards.metrics}
                   selectedMetrics={selectedMetrics}
-                  setSelectedMetrics={setSelectedMetrics}
+                  setSelectedMetrics={handleMetricSelect}
                 />
               </Box>
               <Box>
@@ -145,7 +166,7 @@ export default function PerformanceMetricsTab({ endpointName }: PerformanceMetri
                 <SliceSelector
                   slices={data.overview.metric_cards.slices}
                   selectedSlices={selectedSlices}
-                  setSelectedSlices={setSelectedSlices}
+                  setSelectedSlices={handleSliceSelect}
                 />
               </Box>
               <Box>
@@ -154,11 +175,11 @@ export default function PerformanceMetricsTab({ endpointName }: PerformanceMetri
                 </Heading>
                 <PlotSettings
                   showRollingStats={showRollingStats}
-                  setShowRollingStats={setShowRollingStats}
+                  setShowRollingStats={handleRollingStatsToggle}
                   rollingWindow={rollingWindow}
-                  setRollingWindow={setRollingWindow}
+                  setRollingWindow={handleRollingWindowChange}
                   lastNEvaluations={lastNEvaluations}
-                  setLastNEvaluations={setLastNEvaluations}
+                  setLastNEvaluations={handleLastNEvaluationsChange}
                   maxEvaluations={data.overview.last_n_evals}
                 />
               </Box>

@@ -177,8 +177,12 @@ async def endpoint_logs() -> List[EndpointLog]:
         ) from e
 
 
-@router.get("/performance_metrics/{endpoint_name}", response_model=Dict[str, Any])
-async def get_performance_metrics_for_endpoint(endpoint_name: str) -> Dict[str, Any]:
+@router.get(
+    "/performance_metrics/{endpoint_name}/{model_id}", response_model=Dict[str, Any]
+)
+async def get_performance_metrics_for_endpoint(
+    endpoint_name: str, model_id: str
+) -> Dict[str, Any]:
     """
     Retrieve performance metrics for the model.
 
@@ -186,6 +190,8 @@ async def get_performance_metrics_for_endpoint(endpoint_name: str) -> Dict[str, 
     ----------
     endpoint_name : str
         The name of the endpoint to retrieve performance metrics for.
+    model_id : str
+        The ID of the model for which the performance metrics are to be retrieved.
 
     Returns
     -------
@@ -198,7 +204,7 @@ async def get_performance_metrics_for_endpoint(endpoint_name: str) -> Dict[str, 
         If there's an error retrieving the performance metrics.
     """
     try:
-        metrics = await get_performance_metrics(endpoint_name)
+        metrics = await get_performance_metrics(endpoint_name, model_id)
         if not isinstance(metrics, dict):
             raise ValueError("Unexpected result type from get_performance_metrics")
         return metrics
@@ -320,17 +326,17 @@ async def add_model_to_endpoint_route(
     HTTPException
         If there's an error during model addition.
     """
-    # try:
-    result = add_model_to_endpoint(endpoint_name, model_info)
-    return result
-    # except ValueError as e:
-    #     raise HTTPException(status_code=404, detail=str(e))
-    # except Exception as e:
-    #     raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+    try:
+        result = add_model_to_endpoint(endpoint_name, model_info)
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 
 @router.delete(
-    "/endpoints/{endpoint_name}/models/{model_name}", response_model=Dict[str, str]
+    "/endpoints/{endpoint_name}/models/{model_id}", response_model=Dict[str, str]
 )
 async def remove_model_from_endpoint_route(
     endpoint_name: str, model_id: str

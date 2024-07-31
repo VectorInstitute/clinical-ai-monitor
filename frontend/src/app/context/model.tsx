@@ -36,14 +36,18 @@ export const ModelProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const [models, setModels] = useState<ModelData[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
+  const apiRequest = useCallback(async (url: string, options: RequestInit = {}) => {
+    const response = await fetch(url, options);
+    if (!response.ok) {
+      throw new Error(`API request failed: ${response.statusText}`);
+    }
+    return response.json();
+  }, []);
+
   const fetchModels = useCallback(async () => {
     setIsLoading(true);
     try {
-      const response = await fetch('/api/models');
-      if (!response.ok) {
-        throw new Error('Failed to fetch models');
-      }
-      const data = await response.json();
+      const data = await apiRequest('/api/models');
       const modelArray = Object.entries(data).map(([id, modelInfo]: [string, any]) => ({
         id,
         ...modelInfo,
@@ -55,33 +59,31 @@ export const ModelProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [apiRequest]);
 
   useEffect(() => {
     fetchModels();
   }, [fetchModels]);
 
-  const getModelById = useCallback(async (id: string) => {
-    const model = models.find(m => m.id === id);
-    if (model) {
-      return model;
+  const getModelById = useCallback(async (id: string): Promise<ModelData> => {
+    const cachedModel = models.find(m => m.id === id);
+    if (cachedModel) {
+      return cachedModel;
     }
 
     setIsLoading(true);
     try {
-      const response = await fetch(`/api/models/${id}`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch model');
-      }
-      const data = await response.json();
-      return data;
+      const data = await apiRequest(`/api/models/${id}`);
+      const newModel: ModelData = { id, ...data };
+      setModels(prevModels => [...prevModels, newModel]);
+      return newModel;
     } catch (error) {
       console.error('Error fetching model:', error);
       throw error;
     } finally {
       setIsLoading(false);
     }
-  }, [models]);
+  }, [models, apiRequest]);
 
   const contextValue = useMemo(() => ({
     models,

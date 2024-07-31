@@ -22,7 +22,7 @@ docker tag vectorinstitute/clinical-ai-monitor:backend-${BUILD_ID} vectorinstitu
 # docker push vectorinstitute/clinical-ai-monitor:backend-dev-${BUILD_ID}
 # docker push vectorinstitute/clinical-ai-monitor:frontend-${BUILD_ID}
 # docker push vectorinstitute/clinical-ai-monitor:backend-${BUILD_ID}
-docker push vectorinstitute/clinical-ai-monitor:frontend-dev-latest
-docker push vectorinstitute/clinical-ai-monitor:backend-dev-latest
-docker push vectorinstitute/clinical-ai-monitor:frontend-latest
-docker push vectorinstitute/clinical-ai-monitor:backend-latest
+# docker push vectorinstitute/clinical-ai-monitor:frontend-dev-latest
+# docker push vectorinstitute/clinical-ai-monitor:backend-dev-latest
+# docker push vectorinstitute/clinical-ai-monitor:frontend-latest
+# docker push vectorinstitute/clinical-ai-monitor:backend-latest

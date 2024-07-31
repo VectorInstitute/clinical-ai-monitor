@@ -214,6 +214,7 @@ def create_metric(
 
 async def get_performance_metrics(
     endpoint_name: str,
+    model_id: str,
 ) -> Dict[str, Any]:
     """
     Retrieve performance metrics for a specific endpoint from the JSON file.
@@ -222,6 +223,8 @@ async def get_performance_metrics(
     ----------
     endpoint_name : str
         The name of the evaluation endpoint to get performance metrics for.
+    model_id : str
+        The ID of the model for which the performance metrics are to be retrieved.
 
     Returns
     -------
@@ -244,7 +247,9 @@ async def get_performance_metrics(
         )
 
     data = load_json_file(file_path)
-    evaluation_history: List[Dict[str, Any]] = data.get("evaluation_history", [])
+    evaluation_history: List[Dict[str, Any]] = data.get(model_id).get(
+        "evaluation_history", []
+    )
 
     has_data = bool(evaluation_history)
 

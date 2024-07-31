@@ -27,10 +27,11 @@ import NextLink from 'next/link';
 import Sidebar from '../components/sidebar';
 import CreateEndpointForm from './components/create-endpoint-form';
 import DeleteEndpointForm from './components/delete-endpoint-form';
-import AddModelForm from './components/add-model-form';
-import RemoveModelForm from './components/remove-model-form';
+import AddModelToEndpointForm from './components/add-model-to-endpoint-form';
+import RemoveModelFromEndpointForm from './components/remove-model-from-endpoint-form';
 import ConfigCard from './components/config-card';
 import { useEndpointContext } from '../context/endpoint';
+import { useModelContext } from '../context/model';
 
 const ConfigurationPage: React.FC = () => {
   const { isOpen: isCreateOpen, onOpen: onCreateOpen, onClose: onCreateClose } = useDisclosure();
@@ -38,16 +39,16 @@ const ConfigurationPage: React.FC = () => {
   const { isOpen: isAddModelOpen, onOpen: onAddModelOpen, onClose: onAddModelClose } = useDisclosure();
   const { isOpen: isRemoveModelOpen, onOpen: onRemoveModelOpen, onClose: onRemoveModelClose } = useDisclosure();
   const [selectedEndpoint, setSelectedEndpoint] = useState<string | null>(null);
-  const [selectedModel, setSelectedModel] = useState<string | null>(null);
   const router = useRouter();
   const hospitalName = "University Health Network"; // This should come from your authentication state
+
+  const { endpoints } = useEndpointContext();
+  const { models } = useModelContext();
 
   const bgColor = useColorModeValue('gray.50', 'gray.800');
   const textColor = useColorModeValue('gray.800', 'white');
   const cardBgColor = useColorModeValue('white', 'gray.700');
   const borderColor = useColorModeValue('gray.200', 'gray.600');
-
-  const { endpoints } = useEndpointContext();
 
   const configCards = [
     {
@@ -133,23 +134,26 @@ const ConfigurationPage: React.FC = () => {
                           ))}
                         </Text>
                         <Flex wrap="wrap" gap={2}>
-                          {endpoint.models.map((model) => (
-                            <Tag
-                              key={model}
-                              colorScheme="blue"
-                              size="sm"
-                              cursor="pointer"
-                            >
-                              <NextLink href={`/model/${model}`} passHref>
-                                <Link>{model}</Link>
-                              </NextLink>
-                              <NextLink href={`/configure/model-facts/${model}`} passHref>
-                                <Link ml={2}>
-                                  <Icon as={FiEdit} />
-                                </Link>
-                              </NextLink>
-                            </Tag>
-                          ))}
+                          {endpoint.models.map((modelId) => {
+                            const model = models.find(m => m.id === modelId);
+                            return model ? (
+                              <Tag
+                                key={modelId}
+                                colorScheme="blue"
+                                size="sm"
+                                cursor="pointer"
+                              >
+                                <NextLink href={`/model/${modelId}`} passHref>
+                                  <Link>{model.basic_info.name}</Link>
+                                </NextLink>
+                                <NextLink href={`/configure/model-facts/${modelId}`} passHref>
+                                  <Link ml={2}>
+                                    <Icon as={FiEdit} />
+                                  </Link>
+                                </NextLink>
+                              </Tag>
+                            ) : null;
+                          })}
                         </Flex>
                       </VStack>
                       <Flex mt={{ base: 2, md: 0 }}>
@@ -186,17 +190,18 @@ const ConfigurationPage: React.FC = () => {
       <CreateEndpointForm isOpen={isCreateOpen} onClose={onCreateClose} />
       <DeleteEndpointForm isOpen={isDeleteOpen} onClose={onDeleteClose} />
       {selectedEndpoint && (
-        <AddModelForm
+        <AddModelToEndpointForm
           isOpen={isAddModelOpen}
           onClose={onAddModelClose}
           endpointName={selectedEndpoint}
         />
       )}
       {selectedEndpoint && (
-        <RemoveModelForm
+        <RemoveModelFromEndpointForm
           isOpen={isRemoveModelOpen}
           onClose={onRemoveModelClose}
           endpointName={selectedEndpoint}
+          models={endpoints.find(e => e.name === selectedEndpoint)?.models || []}
         />
       )}
     </Flex>

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   Box,
   VStack,
@@ -16,6 +16,7 @@ import {
   ListItem,
   ListIcon,
   Spinner,
+  useToast,
 } from '@chakra-ui/react';
 import { InfoOutlineIcon, WarningIcon } from '@chakra-ui/icons';
 import { ModelFacts, OtherInformation } from '../types/facts';
@@ -27,36 +28,42 @@ interface ModelFactsTabProps {
 const ModelFactsTab: React.FC<ModelFactsTabProps> = ({ modelId }) => {
   const [modelFacts, setModelFacts] = useState<ModelFacts | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const toast = useToast();
 
   const bgColor = useColorModeValue('white', 'gray.700');
   const borderColor = useColorModeValue('gray.200', 'gray.600');
 
-  useEffect(() => {
-    const fetchModelFacts = async () => {
-      try {
-        const response = await fetch(`/api/model/${modelId}/facts`);
-        if (!response.ok) {
-          throw new Error('Failed to fetch model facts');
-        }
-        const data: ModelFacts = await response.json();
-        setModelFacts(data);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'An error occurred');
-      } finally {
-        setIsLoading(false);
+  const fetchModelFacts = useCallback(async () => {
+    try {
+      const response = await fetch(`/api/models/${modelId}/facts`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch model facts');
       }
-    };
+      const data: ModelFacts = await response.json();
+      setModelFacts(data);
+    } catch (err) {
+      toast({
+        title: "Error fetching model facts",
+        description: err instanceof Error ? err.message : "An unknown error occurred",
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  }, [modelId, toast]);
 
+  useEffect(() => {
     fetchModelFacts();
-  }, [modelId]);
+  }, [fetchModelFacts]);
 
   if (isLoading) {
     return <Spinner size="xl" />;
   }
 
-  if (error || !modelFacts) {
-    return <Text color="red.500">Error: {error || 'Failed to load model facts'}</Text>;
+  if (!modelFacts) {
+    return <Text color="red.500">Failed to load model facts</Text>;
   }
 
   return (

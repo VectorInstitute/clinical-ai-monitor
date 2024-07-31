@@ -207,7 +207,6 @@ class EvaluationEndpoint:
             )
         )
         self._save_data()
-        print("here11")
         return model_id
 
     def remove_model(self, model_id: str) -> None:

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Modal,
   ModalOverlay,
@@ -13,6 +13,7 @@ import {
   Input,
   Select,
   VStack,
+  useToast,
 } from '@chakra-ui/react';
 import { useEndpointContext } from '../../context/endpoint';
 import { useModelContext } from '../../context/model';
@@ -24,26 +25,83 @@ interface AddModelToEndpointFormProps {
 }
 
 const AddModelToEndpointForm: React.FC<AddModelToEndpointFormProps> = ({ isOpen, onClose, endpointName }) => {
-  const [modelName, setModelName] = useState('');
-  const [modelVersion, setModelVersion] = useState('');
-  const [selectedExistingModel, setSelectedExistingModel] = useState('');
-  const [isExistingModel, setIsExistingModel] = useState(false);
+  const [formData, setFormData] = useState({
+    modelName: '',
+    modelVersion: '',
+    selectedExistingModel: '',
+    isExistingModel: false,
+  });
+  const [existingModels, setExistingModels] = useState<string[]>([]);
 
-  const { addModelToEndpoint } = useEndpointContext();
+  const toast = useToast();
+  const { addModelToEndpoint, endpoints } = useEndpointContext();
   const { models } = useModelContext();
+
+  useEffect(() => {
+    const endpoint = endpoints.find(e => e.name === endpointName);
+    if (endpoint) {
+      setExistingModels(endpoint.models);
+    }
+  }, [endpointName, endpoints]);
+
+  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  }, []);
+
+  const handleModelTypeChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
+    const isExisting = e.target.value === 'existing';
+    setFormData(prev => ({ ...prev, isExistingModel: isExisting }));
+  }, []);
+
+  const isDuplicateModel = useCallback((name: string, version: string) => {
+    return existingModels.some(modelId => {
+      const model = models.find(m => m.id === modelId);
+      return model && model.basic_info.name === name && model.basic_info.version === version;
+    });
+  }, [existingModels, models]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const { isExistingModel, selectedExistingModel, modelName, modelVersion } = formData;
+
     try {
+      let name: string, version: string;
       if (isExistingModel) {
-        const [name, version] = selectedExistingModel.split('|');
-        await addModelToEndpoint(endpointName, name, version, true);
+        [name, version] = selectedExistingModel.split('|');
       } else {
-        await addModelToEndpoint(endpointName, modelName, modelVersion, false);
+        name = modelName;
+        version = modelVersion;
       }
+
+      if (isDuplicateModel(name, version)) {
+        toast({
+          title: "Duplicate model",
+          description: "A model with the same name and version already exists in this endpoint.",
+          status: "error",
+          duration: 3000,
+          isClosable: true,
+        });
+        return;
+      }
+
+      await addModelToEndpoint(endpointName, name, version, isExistingModel);
+      toast({
+        title: "Model added successfully",
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      });
       onClose();
     } catch (error) {
       console.error('Error adding model to endpoint:', error);
+      toast({
+        title: "Error adding model",
+        description: error instanceof Error ? error.message : "An unknown error occurred",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
     }
   };
 
@@ -58,15 +116,15 @@ const AddModelToEndpointForm: React.FC<AddModelToEndpointFormProps> = ({ isOpen,
             <VStack spacing={4}>
               <FormControl>
                 <FormLabel>Add existing model or create new?</FormLabel>
-                <Select value={isExistingModel ? 'existing' : 'new'} onChange={(e) => setIsExistingModel(e.target.value === 'existing')}>
+                <Select name="isExistingModel" value={formData.isExistingModel ? 'existing' : 'new'} onChange={handleModelTypeChange}>
                   <option value="new">Create New Model</option>
                   <option value="existing">Add Existing Model</option>
                 </Select>
               </FormControl>
-              {isExistingModel ? (
+              {formData.isExistingModel ? (
                 <FormControl>
                   <FormLabel>Select Existing Model</FormLabel>
-                  <Select value={selectedExistingModel} onChange={(e) => setSelectedExistingModel(e.target.value)}>
+                  <Select name="selectedExistingModel" value={formData.selectedExistingModel} onChange={handleInputChange}>
                     <option value="">Select a model</option>
                     {models.map((model) => (
                       <option key={model.id} value={`${model.basic_info.name}|${model.basic_info.version}`}>
@@ -79,11 +137,11 @@ const AddModelToEndpointForm: React.FC<AddModelToEndpointFormProps> = ({ isOpen,
                 <>
                   <FormControl>
                     <FormLabel>Model Name</FormLabel>
-                    <Input value={modelName} onChange={(e) => setModelName(e.target.value)} />
+                    <Input name="modelName" value={formData.modelName} onChange={handleInputChange} />
                   </FormControl>
                   <FormControl>
                     <FormLabel>Model Version</FormLabel>
-                    <Input value={modelVersion} onChange={(e) => setModelVersion(e.target.value)} />
+                    <Input name="modelVersion" value={formData.modelVersion} onChange={handleInputChange} />
                   </FormControl>
                 </>
               )}

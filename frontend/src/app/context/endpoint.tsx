@@ -34,21 +34,25 @@ export const EndpointProvider: React.FC<{ children: ReactNode }> = ({ children }
   const [endpoints, setEndpoints] = useState<Endpoint[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
+  const apiRequest = useCallback(async (url: string, options: RequestInit = {}) => {
+    const response = await fetch(url, options);
+    if (!response.ok) {
+      throw new Error(`API request failed: ${response.statusText}`);
+    }
+    return response.json();
+  }, []);
+
   const fetchEndpoints = useCallback(async () => {
     setIsLoading(true);
     try {
-      const response = await fetch('/api/endpoints');
-      if (!response.ok) {
-        throw new Error('Failed to fetch endpoints');
-      }
-      const data = await response.json();
+      const data = await apiRequest('/api/endpoints');
       setEndpoints(data.endpoints);
     } catch (error) {
       console.error('Error fetching endpoints:', error);
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [apiRequest]);
 
   useEffect(() => {
     fetchEndpoints();
@@ -57,18 +61,11 @@ export const EndpointProvider: React.FC<{ children: ReactNode }> = ({ children }
   const addEndpoint = useCallback(async (metrics: MetricConfig[]) => {
     setIsLoading(true);
     try {
-      const response = await fetch('/api/endpoints', {
+      await apiRequest('/api/endpoints', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ metrics }),
       });
-
-      if (!response.ok) {
-        throw new Error('Failed to create endpoint');
-      }
-
       await fetchEndpoints();
     } catch (error) {
       console.error('Error adding endpoint:', error);
@@ -76,19 +73,12 @@ export const EndpointProvider: React.FC<{ children: ReactNode }> = ({ children }
     } finally {
       setIsLoading(false);
     }
-  }, [fetchEndpoints]);
+  }, [apiRequest, fetchEndpoints]);
 
   const removeEndpoint = useCallback(async (name: string) => {
     setIsLoading(true);
     try {
-      const response = await fetch(`/api/endpoints/${name}`, {
-        method: 'DELETE',
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to delete endpoint');
-      }
-
+      await apiRequest(`/api/endpoints/${name}`, { method: 'DELETE' });
       await fetchEndpoints();
     } catch (error) {
       console.error('Error removing endpoint:', error);
@@ -96,23 +86,28 @@ export const EndpointProvider: React.FC<{ children: ReactNode }> = ({ children }
     } finally {
       setIsLoading(false);
     }
-  }, [fetchEndpoints]);
+  }, [apiRequest, fetchEndpoints]);
 
   const addModelToEndpoint = useCallback(async (endpointName: string, modelName: string, modelVersion: string, isExistingModel: boolean) => {
     setIsLoading(true);
     try {
-      const response = await fetch(`/api/endpoints/${endpointName}/models`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ name: modelName, version: modelVersion, isExistingModel }),
-      });
+      const endpoint = endpoints.find(e => e.name === endpointName);
+      if (endpoint) {
+        const isDuplicate = endpoint.models.some(modelId => {
+          const [name, version] = modelId.split('|');
+          return name === modelName && version === modelVersion;
+        });
 
-      if (!response.ok) {
-        throw new Error('Failed to add model to endpoint');
+        if (isDuplicate) {
+          throw new Error('A model with the same name and version already exists in this endpoint.');
+        }
       }
 
+      await apiRequest(`/api/endpoints/${endpointName}/models`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: modelName, version: modelVersion, isExistingModel }),
+      });
       await fetchEndpoints();
     } catch (error) {
       console.error('Error adding model to endpoint:', error);
@@ -120,23 +115,16 @@ export const EndpointProvider: React.FC<{ children: ReactNode }> = ({ children }
     } finally {
       setIsLoading(false);
     }
-  }, [fetchEndpoints]);
+  }, [endpoints, apiRequest, fetchEndpoints]);
 
   const updateModelFacts = useCallback(async (modelId: string, modelFacts: ModelFacts) => {
     setIsLoading(true);
     try {
-      const response = await fetch(`/api/models/${modelId}/facts`, {
+      await apiRequest(`/api/models/${modelId}/facts`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(modelFacts),
       });
-
-      if (!response.ok) {
-        throw new Error('Failed to update model facts');
-      }
-
       await fetchEndpoints();
     } catch (error) {
       console.error('Error updating model facts:', error);
@@ -144,19 +132,12 @@ export const EndpointProvider: React.FC<{ children: ReactNode }> = ({ children }
     } finally {
       setIsLoading(false);
     }
-  }, [fetchEndpoints]);
+  }, [apiRequest, fetchEndpoints]);
 
   const removeModelFromEndpoint = useCallback(async (endpointName: string, modelId: string) => {
     setIsLoading(true);
     try {
-      const response = await fetch(`/api/endpoints/${endpointName}/models/${modelId}`, {
-        method: 'DELETE',
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to remove model from endpoint');
-      }
-
+      await apiRequest(`/api/endpoints/${endpointName}/models/${modelId}`, { method: 'DELETE' });
       await fetchEndpoints();
     } catch (error) {
       console.error('Error removing model from endpoint:', error);
@@ -164,7 +145,7 @@ export const EndpointProvider: React.FC<{ children: ReactNode }> = ({ children }
     } finally {
       setIsLoading(false);
     }
-  }, [fetchEndpoints]);
+  }, [apiRequest, fetchEndpoints]);
 
   const contextValue = useMemo(() => ({
     endpoints,
