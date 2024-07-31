@@ -1,100 +1,26 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React from 'react';
 import {
-  Box,
-  VStack,
-  Heading,
-  Text,
-  Divider,
-  useColorModeValue,
   Accordion,
   AccordionItem,
   AccordionButton,
   AccordionPanel,
   AccordionIcon,
-  Link,
+  Box,
+  Heading,
+  Text,
   List,
   ListItem,
   ListIcon,
-  Spinner,
-  useToast,
+  VStack,
 } from '@chakra-ui/react';
 import { InfoOutlineIcon, WarningIcon } from '@chakra-ui/icons';
-import { ModelFacts, OtherInformation } from '../types/facts';
+import { ModelFacts } from '../types/facts';
 
-interface ModelFactsTabProps {
-  modelId: string;
+interface ModelAccordionProps {
+  modelFacts: ModelFacts;
 }
 
-const ModelFactsTab: React.FC<ModelFactsTabProps> = ({ modelId }) => {
-  const [modelFacts, setModelFacts] = useState<ModelFacts | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const toast = useToast();
-
-  const bgColor = useColorModeValue('white', 'gray.700');
-  const borderColor = useColorModeValue('gray.200', 'gray.600');
-
-  const fetchModelFacts = useCallback(async () => {
-    try {
-      const response = await fetch(`/api/models/${modelId}/facts`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch model facts');
-      }
-      const data: ModelFacts = await response.json();
-      setModelFacts(data);
-    } catch (err) {
-      toast({
-        title: "Error fetching model facts",
-        description: err instanceof Error ? err.message : "An unknown error occurred",
-        status: "error",
-        duration: 5000,
-        isClosable: true,
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  }, [modelId, toast]);
-
-  useEffect(() => {
-    fetchModelFacts();
-  }, [fetchModelFacts]);
-
-  if (isLoading) {
-    return <Spinner size="xl" />;
-  }
-
-  if (!modelFacts) {
-    return <Text color="red.500">Failed to load model facts</Text>;
-  }
-
-  return (
-    <Box bg={bgColor} p={6} borderRadius="lg" boxShadow="md" borderColor={borderColor} borderWidth={1}>
-      <VStack align="stretch" spacing={6}>
-        <ModelHeader name={modelFacts.name} version={modelFacts.version} type={modelFacts.type} />
-        <ModelSummary summary={modelFacts.summary} />
-        <Divider />
-        <ModelAccordion modelFacts={modelFacts} />
-        <Divider />
-        <OtherInformationSection otherInfo={modelFacts.other_information} />
-      </VStack>
-    </Box>
-  );
-};
-
-const ModelHeader: React.FC<{ name: string; version: string; type: string }> = ({ name, version, type }) => (
-  <Box>
-    <Heading as="h2" size="xl" mb={2}>{name}</Heading>
-    <Text fontSize="md" color="gray.500">Version {version} | {type}</Text>
-  </Box>
-);
-
-const ModelSummary: React.FC<{ summary: string }> = ({ summary }) => (
-  <Box>
-    <Heading as="h3" size="md" mb={2}>Summary</Heading>
-    <Text>{summary}</Text>
-  </Box>
-);
-
-const ModelAccordion: React.FC<{ modelFacts: ModelFacts }> = ({ modelFacts }) => (
+const ModelAccordion: React.FC<ModelAccordionProps> = ({ modelFacts }) => (
   <Accordion allowMultiple>
     <AccordionItem>
       <AccordionButton>
@@ -206,20 +132,4 @@ const ModelAccordion: React.FC<{ modelFacts: ModelFacts }> = ({ modelFacts }) =>
   </Accordion>
 );
 
-const OtherInformationSection: React.FC<{ otherInfo: OtherInformation }> = ({ otherInfo }) => (
-  <Box>
-    <Heading as="h3" size="md" mb={2}>Other Information</Heading>
-    <VStack align="stretch" spacing={2}>
-      <Text><strong>Approval Date:</strong> {otherInfo.approval_date}</Text>
-      <Text><strong>License:</strong> {otherInfo.license}</Text>
-      <Text><strong>Contact:</strong> {otherInfo.contact_information}</Text>
-      {otherInfo.publication_link && (
-        <Link color="blue.500" href={otherInfo.publication_link} isExternal>
-          View Publication
-        </Link>
-      )}
-    </VStack>
-  </Box>
-);
-
-export default ModelFactsTab;
+export default ModelAccordion;

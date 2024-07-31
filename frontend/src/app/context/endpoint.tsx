@@ -2,7 +2,7 @@
 
 import React, { createContext, useState, useContext, ReactNode, useCallback, useMemo, useEffect } from 'react';
 import { MetricConfig } from '../configure/types/configure';
-import { ModelFacts } from '../model/[id]/types/facts';
+import { ModelFacts } from '../model/[id]/tabs/types/facts';
 
 interface Endpoint {
   name: string;

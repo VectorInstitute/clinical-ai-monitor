@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { Box, useColorModeValue, useTheme } from '@chakra-ui/react';
 import { Metric } from '../types/performance-metrics';
-import { rollingMean, rollingStd } from '../utils/statistics';
+import { rollingMean, rollingStd } from '../../utils/statistics';
 
 const Plot = dynamic(() => import('react-plotly.js'), { ssr: false });
 

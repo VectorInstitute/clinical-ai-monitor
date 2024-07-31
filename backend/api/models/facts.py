@@ -1,6 +1,6 @@
 """Model facts API functions."""
 
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 from pydantic import ValidationError
 
@@ -8,7 +8,7 @@ from api.models.data import ModelFacts
 from api.models.db import load_model_data, save_model_data
 
 
-def get_model_facts(model_id: str) -> ModelFacts:
+def get_model_facts(model_id: str) -> Optional[ModelFacts]:
     """
     Retrieve facts for a specific model.
 
@@ -19,8 +19,8 @@ def get_model_facts(model_id: str) -> ModelFacts:
 
     Returns
     -------
-    ModelFacts
-        The facts for the specified model.
+    Optional[ModelFacts]
+        The facts for the specified model, or None if not available.
 
     Raises
     ------

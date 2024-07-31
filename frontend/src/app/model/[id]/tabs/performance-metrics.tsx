@@ -13,14 +13,14 @@ import {
   AlertTitle,
   AlertDescription,
 } from '@chakra-ui/react';
-import { ErrorMessage } from '../components/error-message';
-import { LoadingSpinner } from '../components/loading-spinner';
-import { MetricCard } from '../components/metric-card';
-import { MetricSelector } from '../components/metric-selector';
-import { SliceSelector } from '../components/slice-selector';
-import { PlotSettings } from '../components/plot-settings';
-import { TimeSeriesChart } from '../components/time-series-chart';
-import { PerformanceData, PerformanceDataSchema } from '../types/performance-metrics';
+import { ErrorMessage } from './components/error-message';
+import { LoadingSpinner } from './components/loading-spinner';
+import { MetricCard } from './components/metric-card';
+import { MetricSelector } from './components/metric-selector';
+import { SliceSelector } from './components/slice-selector';
+import { PlotSettings } from './components/plot-settings';
+import { TimeSeriesChart } from './components/time-series-chart';
+import { PerformanceData, PerformanceDataSchema } from './types/performance-metrics';
 
 interface PerformanceMetricsTabProps {
   endpointName: string;

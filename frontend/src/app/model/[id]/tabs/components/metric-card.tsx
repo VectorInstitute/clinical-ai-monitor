@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Box, Text, Icon, useColorModeValue, Flex, Tooltip, VStack } from '@chakra-ui/react';
 import { FaArrowUp, FaArrowDown } from 'react-icons/fa';
 import { Metric } from '../types/performance-metrics';
-import { getTrend } from '../utils/trend';
+import { getTrend } from '../../utils/trend';
 import dynamic from 'next/dynamic';
 
 const Plot = dynamic(() => import('react-plotly.js'), { ssr: false });

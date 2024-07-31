@@ -16,9 +16,9 @@ import {
   useToast
 } from '@chakra-ui/react'
 import Sidebar from '../../components/sidebar'
-import ModelHealthTab from './tabs/model-health'
+import ModelHealthTab from './tabs/safety'
 import PerformanceMetricsTab from './tabs/performance-metrics'
-import ModelFactsTab from './tabs/model-facts'
+import ModelFactsTab from './tabs/facts'
 import { useModelContext } from '../../context/model'
 
 interface ModelDashboardProps {

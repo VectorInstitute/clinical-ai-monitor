@@ -16,7 +16,7 @@ import {
   Text,
 } from '@chakra-ui/react';
 import { InfoIcon, AddIcon, MinusIcon } from '@chakra-ui/icons';
-import { ModelFacts } from '../../model/[id]/types/facts';
+import { ModelFacts } from '../../model/[id]/tabs/types/facts';
 
 interface ModelFactsFormProps {
   initialValues: ModelFacts;

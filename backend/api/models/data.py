@@ -263,7 +263,7 @@ class EndpointData(BaseModel):
     config : EndpointConfig
         Configuration of the endpoint.
     evaluation_history : Dict[str, List[EvaluationResult]]
-        List of evaluation results.
+        List of evaluation results of each model.
     logs : List[EndpointLog]
         List of log entries.
     models : List[str]

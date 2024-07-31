@@ -1,6 +1,6 @@
 """Backend API routes."""
 
-from typing import Any, Dict, List, cast
+from typing import Any, Dict, List, Optional, cast
 
 from fastapi import APIRouter, HTTPException
 
@@ -29,7 +29,7 @@ router = APIRouter()
 
 
 @router.post("/endpoints", response_model=Dict[str, str])
-async def create_endpoint(config: EndpointConfig) -> Dict[str, str]:
+async def create_endpoint_route(config: EndpointConfig) -> Dict[str, str]:
     """
     Create a new evaluation endpoint.
 
@@ -62,7 +62,7 @@ async def create_endpoint(config: EndpointConfig) -> Dict[str, str]:
 
 
 @router.get("/endpoints", response_model=Dict[str, List[EndpointDetails]])
-async def get_evaluation_endpoints() -> Dict[str, List[EndpointDetails]]:
+async def get_evaluation_endpoints_route() -> Dict[str, List[EndpointDetails]]:
     """
     List all created evaluation endpoints.
 
@@ -76,7 +76,7 @@ async def get_evaluation_endpoints() -> Dict[str, List[EndpointDetails]]:
 
 
 @router.get("/models", response_model=Dict[str, ModelData])
-async def get_models() -> Dict[str, ModelData]:
+async def get_models_route() -> Dict[str, ModelData]:
     """
     List all models.
 
@@ -116,8 +116,10 @@ async def get_model_route(model_id: str) -> ModelData:
     return model
 
 
-@router.post("/evaluate/{endpoint_name}", response_model=Dict[str, Any])
-async def evaluate(endpoint_name: str, data: EvaluationInput) -> Dict[str, Any]:
+@router.post("/evaluate/{endpoint_name}/{model_id}", response_model=Dict[str, Any])
+async def evaluate_route(
+    endpoint_name: str, model_id: str, data: EvaluationInput
+) -> Dict[str, Any]:
     """
     Evaluate a model using the specified evaluation endpoint configuration.
 
@@ -125,6 +127,8 @@ async def evaluate(endpoint_name: str, data: EvaluationInput) -> Dict[str, Any]:
     ----------
     endpoint_name : str
         The name of the endpoint to use for evaluation.
+    model_id : str
+        The ID of the model to use for evaluation.
     data : EvaluationInput
         The input data for the evaluation.
 
@@ -139,7 +143,7 @@ async def evaluate(endpoint_name: str, data: EvaluationInput) -> Dict[str, Any]:
         If there's an error during evaluation.
     """
     try:
-        result = evaluate_model(endpoint_name, data)
+        result = evaluate_model(endpoint_name, model_id, data)
         if not isinstance(result, dict):
             raise ValueError("Unexpected result type from evaluate_model")
         return result
@@ -152,7 +156,7 @@ async def evaluate(endpoint_name: str, data: EvaluationInput) -> Dict[str, Any]:
 
 
 @router.get("/endpoint_logs", response_model=List[EndpointLog])
-async def endpoint_logs() -> List[EndpointLog]:
+async def get_endpoint_logs_route() -> List[EndpointLog]:
     """
     Get logs for all endpoints.
 
@@ -180,7 +184,7 @@ async def endpoint_logs() -> List[EndpointLog]:
 @router.get(
     "/performance_metrics/{endpoint_name}/{model_id}", response_model=Dict[str, Any]
 )
-async def get_performance_metrics_for_endpoint(
+async def get_performance_metrics_route(
     endpoint_name: str, model_id: str
 ) -> Dict[str, Any]:
     """
@@ -245,7 +249,7 @@ async def get_model_health_status(model_id: str) -> ModelHealth:
 
 
 @router.delete("/endpoints/{endpoint_name}", response_model=Dict[str, str])
-async def delete_endpoint(endpoint_name: str) -> Dict[str, str]:
+async def delete_endpoint_route(endpoint_name: str) -> Dict[str, str]:
     """
     Delete an existing evaluation endpoint configuration.
 
@@ -277,8 +281,8 @@ async def delete_endpoint(endpoint_name: str) -> Dict[str, str]:
         ) from e
 
 
-@router.get("/models/{model_id}/facts", response_model=ModelFacts)
-async def get_model_facts_route(model_id: str) -> ModelFacts:
+@router.get("/models/{model_id}/facts", response_model=Optional[ModelFacts])
+async def get_model_facts_route(model_id: str) -> Optional[ModelFacts]:
     """
     Retrieve facts for a specific model.
 
@@ -289,11 +293,14 @@ async def get_model_facts_route(model_id: str) -> ModelFacts:
 
     Returns
     -------
-    ModelFacts
-        The facts for the specified model.
+    Optional[ModelFacts]
+        The facts for the specified model, or None if not available.
     """
     try:
-        return get_model_facts(model_id)
+        facts = get_model_facts(model_id)
+        if facts is None:
+            return None
+        return facts
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:

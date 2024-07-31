@@ -1,7 +1,7 @@
 'use client'
 
 import React, { createContext, useState, useContext, ReactNode, useCallback, useMemo, useEffect } from 'react';
-import { ModelFacts } from '../model/[id]/types/facts';
+import { ModelFacts } from '../model/[id]/tabs/types/facts';
 
 interface ModelBasicInfo {
   name: string;

@@ -107,12 +107,14 @@ class EvaluationEndpoint:
             raise ValueError(f"Invalid condition type: {condition.type}")
         return condition_dict
 
-    def evaluate(self, data: EvaluationInput) -> Dict[str, Any]:
+    def evaluate(self, model_id: str, data: EvaluationInput) -> Dict[str, Any]:
         """
         Evaluate the model using the provided input data.
 
         Parameters
         ----------
+        model_id: str
+            The ID of the model associated to evaluate.
         data : EvaluationInput
             The input data for evaluation.
 
@@ -148,7 +150,9 @@ class EvaluationEndpoint:
             timestamp=evaluation_timestamp,
             sample_size=sample_size,
         )
-        self.data.evaluation_history.append(evaluation_result)
+        if model_id not in self.data.evaluation_history:
+            self.data.evaluation_history[model_id] = []
+        self.data.evaluation_history[model_id].append(evaluation_result)
         self.data.logs.append(
             EndpointLog(
                 timestamp=datetime.now(),
@@ -509,7 +513,9 @@ def remove_model_from_endpoint(endpoint_name: str, model_id: str) -> Dict[str, s
         raise ValueError(str(e))
 
 
-def evaluate_model(endpoint_name: str, data: EvaluationInput) -> Dict[str, Any]:
+def evaluate_model(
+    endpoint_name: str, model_id: str, data: EvaluationInput
+) -> Dict[str, Any]:
     """
     Evaluate a model using the specified evaluation endpoint configuration.
 
@@ -517,6 +523,8 @@ def evaluate_model(endpoint_name: str, data: EvaluationInput) -> Dict[str, Any]:
     ----------
     endpoint_name : str
         The name of the evaluation endpoint to use.
+    model_id : str
+        The ID of the model to use.
     data : EvaluationInput
         The input data for evaluation.
 
@@ -538,7 +546,7 @@ def evaluate_model(endpoint_name: str, data: EvaluationInput) -> Dict[str, Any]:
     if endpoint_name not in evaluation_endpoints:
         raise ValueError(f"Evaluation endpoint '{endpoint_name}' not found")
     endpoint = evaluation_endpoints[endpoint_name]
-    return endpoint.evaluate(data)
+    return endpoint.evaluate(model_id, data)
 
 
 def get_endpoint_logs() -> List[EndpointLog]:
