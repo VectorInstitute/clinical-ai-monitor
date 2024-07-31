@@ -21,8 +21,8 @@ from api.models.evaluate import (
     remove_model_from_endpoint,
 )
 from api.models.facts import ModelFacts, get_model_facts_test
-from api.models.health import ModelHealth, get_model_health
 from api.models.performance import get_performance_metrics
+from api.models.safety import ModelSafety, get_model_safety
 
 
 router = APIRouter()
@@ -218,20 +218,20 @@ async def get_performance_metrics_route(
         ) from e
 
 
-@router.get("/model/{model_id}/health", response_model=ModelHealth)
-async def get_model_health_status(model_id: str) -> ModelHealth:
+@router.get("/model/{model_id}/safety", response_model=ModelSafety)
+async def get_model_safety_route(model_id: str) -> ModelSafety:
     """
-    Retrieve health information for a specific model.
+    Retrieve safety status, checklist for a specific model.
 
     Parameters
     ----------
     model_id : str
-        The ID of the model to retrieve health information for.
+        The ID of the model to retrieve safety information for.
 
     Returns
     -------
-    ModelHealth
-        The health information for the specified model.
+    ModelSafety
+        The safety information for the specified model.
 
     Raises
     ------
@@ -239,7 +239,7 @@ async def get_model_health_status(model_id: str) -> ModelHealth:
         If there's an error retrieving the model health.
     """
     try:
-        return await get_model_health(model_id)
+        return await get_model_safety(model_id)
     except HTTPException:
         raise
     except Exception as e:
