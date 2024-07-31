@@ -1,21 +1,26 @@
 """Backend API routes."""
 
-from typing import Any, Dict, List, cast
+from typing import Any, Dict, List, Optional, cast
 
 from fastapi import APIRouter, HTTPException
 
 from api.models.config import EndpointConfig
+from api.models.data import ModelBasicInfo, ModelData
 from api.models.evaluate import (
     EndpointDetails,
     EndpointLog,
     EvaluationInput,
+    add_model_to_endpoint,
     create_evaluation_endpoint,
     delete_evaluation_endpoint,
     evaluate_model,
     get_endpoint_logs,
+    get_model_by_id,
     list_evaluation_endpoints,
+    list_models,
+    remove_model_from_endpoint,
 )
-from api.models.facts import ModelFacts, get_model_facts
+from api.models.facts import ModelFacts, get_model_facts_test
 from api.models.health import ModelHealth, get_model_health
 from api.models.performance import get_performance_metrics
 
@@ -23,8 +28,8 @@ from api.models.performance import get_performance_metrics
 router = APIRouter()
 
 
-@router.post("/create_evaluation_endpoint", response_model=Dict[str, str])
-async def create_endpoint(config: EndpointConfig) -> Dict[str, str]:
+@router.post("/endpoints", response_model=Dict[str, str])
+async def create_endpoint_route(config: EndpointConfig) -> Dict[str, str]:
     """
     Create a new evaluation endpoint.
 
@@ -56,8 +61,8 @@ async def create_endpoint(config: EndpointConfig) -> Dict[str, str]:
         ) from e
 
 
-@router.get("/evaluation_endpoints", response_model=Dict[str, List[EndpointDetails]])
-async def get_evaluation_endpoints() -> Dict[str, List[EndpointDetails]]:
+@router.get("/endpoints", response_model=Dict[str, List[EndpointDetails]])
+async def get_evaluation_endpoints_route() -> Dict[str, List[EndpointDetails]]:
     """
     List all created evaluation endpoints.
 
@@ -70,8 +75,51 @@ async def get_evaluation_endpoints() -> Dict[str, List[EndpointDetails]]:
     return cast(Dict[str, List[EndpointDetails]], result)
 
 
-@router.post("/evaluate/{endpoint_name}", response_model=Dict[str, Any])
-async def evaluate(endpoint_name: str, data: EvaluationInput) -> Dict[str, Any]:
+@router.get("/models", response_model=Dict[str, ModelData])
+async def get_models_route() -> Dict[str, ModelData]:
+    """
+    List all models.
+
+    Returns
+    -------
+    Dict[str, ModelData]
+        A dict with all models, with model IDs as keys and ModelData as values.
+    """
+    return cast(Dict[str, ModelData], list_models())
+
+
+@router.get("/models/{model_id}", response_model=ModelData)
+async def get_model_route(model_id: str) -> ModelData:
+    """
+    Get details of a specific model.
+
+    Parameters
+    ----------
+    model_id : str
+        The ID of the model to retrieve.
+
+    Returns
+    -------
+    ModelData
+        The detailed information of the specified model.
+
+    Raises
+    ------
+    HTTPException
+        If the model is not found or there's an error retrieving the model data.
+    """
+    model = get_model_by_id(model_id)
+    if model is None:
+        raise HTTPException(
+            status_code=404, detail=f"Model with ID {model_id} not found"
+        )
+    return model
+
+
+@router.post("/evaluate/{endpoint_name}/{model_id}", response_model=Dict[str, Any])
+async def evaluate_route(
+    endpoint_name: str, model_id: str, data: EvaluationInput
+) -> Dict[str, Any]:
     """
     Evaluate a model using the specified evaluation endpoint configuration.
 
@@ -79,6 +127,8 @@ async def evaluate(endpoint_name: str, data: EvaluationInput) -> Dict[str, Any]:
     ----------
     endpoint_name : str
         The name of the endpoint to use for evaluation.
+    model_id : str
+        The ID of the model to use for evaluation.
     data : EvaluationInput
         The input data for the evaluation.
 
@@ -93,7 +143,7 @@ async def evaluate(endpoint_name: str, data: EvaluationInput) -> Dict[str, Any]:
         If there's an error during evaluation.
     """
     try:
-        result = evaluate_model(endpoint_name, data)
+        result = evaluate_model(endpoint_name, model_id, data)
         if not isinstance(result, dict):
             raise ValueError("Unexpected result type from evaluate_model")
         return result
@@ -106,7 +156,7 @@ async def evaluate(endpoint_name: str, data: EvaluationInput) -> Dict[str, Any]:
 
 
 @router.get("/endpoint_logs", response_model=List[EndpointLog])
-async def endpoint_logs() -> List[EndpointLog]:
+async def get_endpoint_logs_route() -> List[EndpointLog]:
     """
     Get logs for all endpoints.
 
@@ -131,8 +181,12 @@ async def endpoint_logs() -> List[EndpointLog]:
         ) from e
 
 
-@router.get("/performance_metrics/{endpoint_name}", response_model=Dict[str, Any])
-async def get_performance_metrics_for_endpoint(endpoint_name: str) -> Dict[str, Any]:
+@router.get(
+    "/performance_metrics/{endpoint_name}/{model_id}", response_model=Dict[str, Any]
+)
+async def get_performance_metrics_route(
+    endpoint_name: str, model_id: str
+) -> Dict[str, Any]:
     """
     Retrieve performance metrics for the model.
 
@@ -140,6 +194,8 @@ async def get_performance_metrics_for_endpoint(endpoint_name: str) -> Dict[str, 
     ----------
     endpoint_name : str
         The name of the endpoint to retrieve performance metrics for.
+    model_id : str
+        The ID of the model for which the performance metrics are to be retrieved.
 
     Returns
     -------
@@ -152,7 +208,7 @@ async def get_performance_metrics_for_endpoint(endpoint_name: str) -> Dict[str, 
         If there's an error retrieving the performance metrics.
     """
     try:
-        metrics = await get_performance_metrics(endpoint_name)
+        metrics = await get_performance_metrics(endpoint_name, model_id)
         if not isinstance(metrics, dict):
             raise ValueError("Unexpected result type from get_performance_metrics")
         return metrics
@@ -192,10 +248,8 @@ async def get_model_health_status(model_id: str) -> ModelHealth:
         ) from e
 
 
-@router.delete(
-    "/delete_evaluation_endpoint/{endpoint_name}", response_model=Dict[str, str]
-)
-async def delete_endpoint(endpoint_name: str) -> Dict[str, str]:
+@router.delete("/endpoints/{endpoint_name}", response_model=Dict[str, str])
+async def delete_endpoint_route(endpoint_name: str) -> Dict[str, str]:
     """
     Delete an existing evaluation endpoint configuration.
 
@@ -227,8 +281,8 @@ async def delete_endpoint(endpoint_name: str) -> Dict[str, str]:
         ) from e
 
 
-@router.get("/model/{model_id}/facts", response_model=ModelFacts)
-async def get_model_facts_route(model_id: str) -> ModelFacts:
+@router.get("/models/{model_id}/facts", response_model=Optional[ModelFacts])
+async def get_model_facts_route(model_id: str) -> Optional[ModelFacts]:
     """
     Retrieve facts for a specific model.
 
@@ -239,8 +293,8 @@ async def get_model_facts_route(model_id: str) -> ModelFacts:
 
     Returns
     -------
-    ModelFacts
-        The facts for the specified model.
+    Optional[ModelFacts]
+        The facts for the specified model, or None if not available.
 
     Raises
     ------
@@ -248,10 +302,80 @@ async def get_model_facts_route(model_id: str) -> ModelFacts:
         If there's an error retrieving the model facts.
     """
     try:
-        return get_model_facts(model_id)
+        return get_model_facts_test(model_id)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e)) from e
     except Exception as e:
         raise HTTPException(
             status_code=500, detail=f"Error retrieving model facts: {str(e)}"
+        ) from e
+
+
+@router.post("/endpoints/{endpoint_name}/models", response_model=Dict[str, str])
+async def add_model_to_endpoint_route(
+    endpoint_name: str, model_info: ModelBasicInfo
+) -> Dict[str, str]:
+    """
+    Add a model to an existing endpoint.
+
+    Parameters
+    ----------
+    endpoint_name : str
+        The name of the endpoint to add the model to.
+    model_info : ModelBasicInfo
+        Basic information about the model to be added.
+
+    Returns
+    -------
+    Dict[str, str]
+        A dictionary containing a success message and the new model ID.
+
+    Raises
+    ------
+    HTTPException
+        If there's an error during model addition.
+    """
+    try:
+        return cast(Dict[str, str], add_model_to_endpoint(endpoint_name, model_info))
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e)) from e
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Internal server error: {str(e)}"
+        ) from e
+
+
+@router.delete(
+    "/endpoints/{endpoint_name}/models/{model_id}", response_model=Dict[str, str]
+)
+async def remove_model_from_endpoint_route(
+    endpoint_name: str, model_id: str
+) -> Dict[str, str]:
+    """
+    Remove a model from an existing endpoint.
+
+    Parameters
+    ----------
+    endpoint_name : str
+        The name of the endpoint to remove the model from.
+    model_id : str
+        The ID of the model to be removed.
+
+    Returns
+    -------
+    Dict[str, str]
+        A dictionary containing a success message.
+
+    Raises
+    ------
+    HTTPException
+        If there's an error during model removal.
+    """
+    try:
+        return cast(Dict[str, str], remove_model_from_endpoint(endpoint_name, model_id))
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e)) from e
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Internal server error: {str(e)}"
         ) from e

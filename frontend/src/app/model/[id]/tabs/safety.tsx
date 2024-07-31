@@ -1,9 +1,9 @@
 import React from 'react'
 import { Box, Heading, Text, useColorModeValue, Flex, SimpleGrid, Badge, List, ListItem, ListIcon, Stat, StatLabel, StatNumber, Tooltip } from '@chakra-ui/react'
 import { CheckCircleIcon, WarningIcon, InfoIcon } from '@chakra-ui/icons'
-import { ModelHealth, Metric } from '../types/health'
-import { ErrorMessage } from '../components/error-message'
-import { LoadingSpinner } from '../components/loading-spinner'
+import { ModelHealth, Metric } from './types/health'
+import { ErrorMessage } from './components/error-message'
+import { LoadingSpinner } from './components/loading-spinner'
 import { formatDistanceToNow } from 'date-fns'
 
 interface ModelHealthTabProps {

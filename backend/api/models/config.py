@@ -228,21 +228,12 @@ class EndpointConfig(BaseModel):
 
     Attributes
     ----------
-    endpoint_name : str
-        The name of the evaluation endpoint.
-    model_name : str
-        The name of the model.
-    model_description : str
-        A description of the model.
     metrics : List[MetricConfig]
         A list of metric configurations.
     subgroups : List[SubgroupConfig]
         A list of subgroup configurations.
     """
 
-    endpoint_name: str = Field(..., description="The name of the evaluation endpoint")
-    model_name: str = Field(..., description="The name of the model")
-    model_description: str = Field(..., description="A description of the model")
     metrics: List[MetricConfig] = Field(
         ..., description="A list of metric configurations"
     )

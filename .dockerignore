@@ -15,6 +15,7 @@
 **/*.pyd
 **/.Python
 **/.venv
+**/.venv_local
 **/pip-log.txt
 **/pip-delete-this-directory.txt
 **/.tox

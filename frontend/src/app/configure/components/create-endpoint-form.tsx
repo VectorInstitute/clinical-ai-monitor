@@ -14,17 +14,13 @@ import {
   ModalCloseButton,
   Text,
 } from '@chakra-ui/react';
-import { useModelContext } from '../../context/model';
+import { useEndpointContext } from '../../context/endpoint';
 import { useRouter } from 'next/navigation';
 import { EndpointConfigSchema, EndpointConfig } from '../types/configure';
 import { MetricsSection } from './metrics-section';
 import { SubgroupsSection } from './subgroups-section';
-import { EndpointInfoSection } from './endpoint-info-section';
 
 const initialValues: EndpointConfig = {
-  endpoint_name: '',
-  model_name: '',
-  model_description: '',
   metrics: [],
   subgroups: [],
 };
@@ -37,7 +33,7 @@ interface CreateEndpointFormProps {
 const CreateEndpointForm: React.FC<CreateEndpointFormProps> = ({ isOpen, onClose }) => {
   const toast = useToast();
   const router = useRouter();
-  const { addModel } = useModelContext();
+  const { addEndpoint } = useEndpointContext();
 
   const handleSubmit = async (
     values: EndpointConfig,
@@ -49,15 +45,7 @@ const CreateEndpointForm: React.FC<CreateEndpointFormProps> = ({ isOpen, onClose
         return;
       }
 
-      await addModel(
-        {
-          name: values.model_name,
-          description: values.model_description,
-          endpointName: values.endpoint_name,
-        },
-        values.metrics,
-        values.subgroups
-      );
+      await addEndpoint(values.metrics, values.subgroups);
 
       toast({
         title: "Evaluation endpoint created.",
@@ -68,30 +56,16 @@ const CreateEndpointForm: React.FC<CreateEndpointFormProps> = ({ isOpen, onClose
       });
 
       onClose();
-      router.push('/home');
+      router.push('/configure');
     } catch (error) {
       console.error('Error in handleSubmit:', error);
-      if (error instanceof Error) {
-        if (error.message.includes('already exists')) {
-          setFieldError('endpoint_name', 'Endpoint name already exists');
-        } else {
-          toast({
-            title: "Error",
-            description: error.message,
-            status: "error",
-            duration: 5000,
-            isClosable: true,
-          });
-        }
-      } else {
-        toast({
-          title: "Error",
-          description: 'An unknown error occurred',
-          status: "error",
-          duration: 5000,
-          isClosable: true,
-        });
-      }
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : 'An unknown error occurred',
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      });
     } finally {
       setSubmitting(false);
     }
@@ -112,10 +86,9 @@ const CreateEndpointForm: React.FC<CreateEndpointFormProps> = ({ isOpen, onClose
             <Form>
               <ModalBody>
                 <VStack spacing={4}>
-                  <EndpointInfoSection />
                   <MetricsSection />
                   <SubgroupsSection />
-                  {Object.keys(errors).length > 0 && touched.endpoint_name && (
+                  {Object.keys(errors).length > 0 && touched.metrics && (
                     <Text color="red.500">
                       Please fill in all required fields correctly before submitting.
                     </Text>

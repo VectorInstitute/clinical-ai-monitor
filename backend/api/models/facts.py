@@ -1,62 +1,39 @@
 """Model facts API functions."""
 
-from typing import List, Optional
+from typing import Any, Dict, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import ValidationError
 
-
-class ValidationAndPerformance(BaseModel):
-    """Validation and performance information for a model."""
-
-    internal_validation: str = Field(..., description="Internal validation results")
-    external_validation: str = Field(..., description="External validation results")
-    performance_in_subgroups: List[str] = Field(
-        ..., description="Performance in different subgroups"
-    )
+from api.models.data import ModelFacts, OtherInformation, ValidationAndPerformance
+from api.models.db import load_model_data, save_model_data
 
 
-class OtherInformation(BaseModel):
-    """Other information about a model."""
+def get_model_facts(model_id: str) -> Optional[ModelFacts]:
+    """
+    Retrieve facts for a specific model.
 
-    approval_date: str = Field(..., description="Date of model approval")
-    license: str = Field(..., description="License information")
-    contact_information: str = Field(
-        ..., description="Contact information for model support"
-    )
-    publication_link: Optional[str] = Field(
-        None, description="Link to related publication"
-    )
+    Parameters
+    ----------
+    model_id : str
+        The ID of the model to retrieve facts for.
 
+    Returns
+    -------
+    Optional[ModelFacts]
+        The facts for the specified model, or None if not available.
 
-class ModelFacts(BaseModel):
-    """Comprehensive facts about a model."""
-
-    name: str = Field(..., description="Name of the model")
-    version: str = Field(..., description="Version of the model")
-    type: str = Field(..., description="Type of the model")
-    intended_use: str = Field(..., description="Intended use of the model")
-    target_population: str = Field(..., description="Target population for the model")
-    input_data: List[str] = Field(..., description="Required input data for the model")
-    output_data: str = Field(..., description="Output data produced by the model")
-    summary: str = Field(..., description="Brief summary of the model")
-    mechanism_of_action: str = Field(
-        ..., description="Mechanism of action for the model"
-    )
-    validation_and_performance: ValidationAndPerformance = Field(
-        ..., description="Validation and performance information"
-    )
-    uses_and_directions: List[str] = Field(
-        ..., description="Uses and directions for the model"
-    )
-    warnings: List[str] = Field(
-        ..., description="Warnings and precautions for model use"
-    )
-    other_information: OtherInformation = Field(
-        ..., description="Additional model information"
-    )
+    Raises
+    ------
+    ValueError
+        If the model ID is not found.
+    """
+    model_data = load_model_data(model_id)
+    if not model_data:
+        raise ValueError(f"Model with ID {model_id} not found")
+    return model_data.facts
 
 
-def get_model_facts(model_id: str) -> ModelFacts:
+def get_model_facts_test(model_id: str) -> ModelFacts:
     """
     Retrieve facts for a specific model.
 
@@ -112,3 +89,37 @@ def get_model_facts(model_id: str) -> ModelFacts:
             publication_link="https://doi.org/10.1038/s41746-020-0253-3",
         ),
     )
+
+
+def update_model_facts(model_id: str, updated_facts: Dict[str, Any]) -> ModelFacts:
+    """
+    Update facts for a specific model.
+
+    Parameters
+    ----------
+    model_id : str
+        The ID of the model to update facts for.
+    updated_facts : Dict[str, Any]
+        A dictionary containing the updated facts.
+
+    Returns
+    -------
+    ModelFacts
+        The updated facts for the specified model.
+
+    Raises
+    ------
+    ValueError
+        If the model ID is not found or if the updated facts are invalid.
+    """
+    model_data = load_model_data(model_id)
+    if not model_data:
+        raise ValueError(f"Model with ID {model_id} not found")
+
+    try:
+        updated_model_facts = model_data.facts.copy(update=updated_facts)
+        model_data.facts = updated_model_facts
+        save_model_data(model_id, model_data)
+        return updated_model_facts
+    except ValidationError as e:
+        raise ValueError(f"Invalid updated facts: {str(e)}") from e

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import {
   Box,
   Tabs,
@@ -12,19 +12,14 @@ import {
   Heading,
   useColorModeValue,
   Spinner,
-  Center
+  Center,
+  useToast
 } from '@chakra-ui/react'
 import Sidebar from '../../components/sidebar'
-import ModelHealthTab from './tabs/model-health'
+import ModelHealthTab from './tabs/safety'
 import PerformanceMetricsTab from './tabs/performance-metrics'
-import ModelFactsTab from './tabs/model-facts'
+import ModelFactsTab from './tabs/facts'
 import { useModelContext } from '../../context/model'
-
-interface Model {
-  id: number;
-  endpointName: string;
-  // Add other model properties as needed
-}
 
 interface ModelDashboardProps {
   params: {
@@ -33,26 +28,40 @@ interface ModelDashboardProps {
 }
 
 export default function ModelDashboard({ params }: ModelDashboardProps): JSX.Element {
-  const { models, isLoading } = useModelContext()
-  const [model, setModel] = useState<Model | null>(null)
+  const { models, getModelById, isLoading } = useModelContext()
+  const [model, setModel] = useState<any | null>(null)
   const [isModelLoading, setIsModelLoading] = useState(true)
   const [activeTabIndex, setActiveTabIndex] = useState(0)
+  const toast = useToast()
 
   const hospitalName = "University Health Network" // This should come from your authentication state
 
   const bgColor = useColorModeValue('gray.50', 'gray.800')
   const textColor = useColorModeValue('gray.800', 'white')
 
-  useEffect(() => {
-    if (!isLoading && models.length > 0) {
-      const foundModel = models.find(m => m.id.toString() === params.id)
-      setModel(foundModel || null)
+  const fetchModel = useCallback(async () => {
+    if (isLoading) return
+    try {
+      const fetchedModel = await getModelById(params.id)
+      setModel(fetchedModel)
+    } catch (error) {
+      toast({
+        title: "Error fetching model",
+        description: error instanceof Error ? error.message : "An unknown error occurred",
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      })
+    } finally {
       setIsModelLoading(false)
     }
-  }, [models, params.id, isLoading])
+  }, [params.id, getModelById, isLoading, toast])
 
   useEffect(() => {
-    // Load the active tab index from localStorage
+    fetchModel()
+  }, [fetchModel])
+
+  useEffect(() => {
     const storedTabIndex = localStorage.getItem(`activeTab-${params.id}`)
     if (storedTabIndex !== null) {
       setActiveTabIndex(parseInt(storedTabIndex, 10))
@@ -61,7 +70,6 @@ export default function ModelDashboard({ params }: ModelDashboardProps): JSX.Ele
 
   const handleTabChange = (index: number) => {
     setActiveTabIndex(index)
-    // Save the active tab index to localStorage
     localStorage.setItem(`activeTab-${params.id}`, index.toString())
   }
 
@@ -105,7 +113,7 @@ export default function ModelDashboard({ params }: ModelDashboardProps): JSX.Ele
               <ModelHealthTab modelId={params.id} />
             </TabPanel>
             <TabPanel>
-              <PerformanceMetricsTab endpointName={model.endpointName} />
+              <PerformanceMetricsTab endpointName={model.endpoints[0]} modelId={params.id} />
             </TabPanel>
             <TabPanel>
               <ModelFactsTab modelId={params.id} />
