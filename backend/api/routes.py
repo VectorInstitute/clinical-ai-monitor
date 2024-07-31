@@ -20,7 +20,7 @@ from api.models.evaluate import (
     list_models,
     remove_model_from_endpoint,
 )
-from api.models.facts import ModelFacts, get_model_facts
+from api.models.facts import ModelFacts, get_model_facts_test
 from api.models.health import ModelHealth, get_model_health
 from api.models.performance import get_performance_metrics
 
@@ -302,7 +302,7 @@ async def get_model_facts_route(model_id: str) -> Optional[ModelFacts]:
         If there's an error retrieving the model facts.
     """
     try:
-        return get_model_facts(model_id)
+        return get_model_facts_test(model_id)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e)) from e
     except Exception as e:
