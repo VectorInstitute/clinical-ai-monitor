@@ -16,7 +16,7 @@ import {
   useToast
 } from '@chakra-ui/react'
 import Sidebar from '../../components/sidebar'
-import ModelHealthTab from './tabs/safety'
+import ModelSafetyTab from './tabs/safety'
 import PerformanceMetricsTab from './tabs/performance-metrics'
 import ModelFactsTab from './tabs/facts'
 import { useModelContext } from '../../context/model'
@@ -110,7 +110,7 @@ export default function ModelDashboard({ params }: ModelDashboardProps): JSX.Ele
 
           <TabPanels>
             <TabPanel>
-              <ModelHealthTab modelId={params.id} />
+              <ModelSafetyTab modelId={params.id} />
             </TabPanel>
             <TabPanel>
               <PerformanceMetricsTab endpointName={model.endpoints[0]} modelId={params.id} />

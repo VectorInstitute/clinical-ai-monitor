@@ -7,15 +7,15 @@ export const MetricSchema = z.object({
   status: z.enum(['met', 'not met'])
 });
 
-export const ModelHealthSchema = z.object({
+export const ModelSafetySchema = z.object({
   metrics: z.array(MetricSchema),
   last_evaluated: z.string().datetime()
 });
 
 export type Metric = z.infer<typeof MetricSchema>;
-export type ModelHealth = z.infer<typeof ModelHealthSchema>;
+export type ModelSafety = z.infer<typeof ModelSafetySchema>;
 
 // Function to validate the data
-export function validateModelHealth(data: unknown): ModelHealth {
-  return ModelHealthSchema.parse(data);
+export function validateModelSafety(data: unknown): ModelSafety {
+  return ModelSafetySchema.parse(data);
 }
