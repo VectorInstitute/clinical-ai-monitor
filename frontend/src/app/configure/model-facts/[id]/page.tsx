@@ -11,15 +11,17 @@ import {
   Button,
   useToast,
 } from '@chakra-ui/react';
-import { useRouter } from 'next/router';
+import { useRouter, useParams } from 'next/navigation';
 import ModelFactsForm from '../../components/model-facts-form';
 import { useModelContext } from '../../../context/model';
+import { ModelFacts } from '../../types/facts';
 
 const ModelFactsPage: React.FC = () => {
   const router = useRouter();
-  const { id } = router.query;
+  const params = useParams();
+  const id = params.id as string;
   const { getModelById, updateModelFacts } = useModelContext();
-  const [model, setModel] = useState(null);
+  const [model, setModel] = useState<{ name: string; version: string; facts: ModelFacts } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const toast = useToast();
 
@@ -30,8 +32,16 @@ const ModelFactsPage: React.FC = () => {
     const fetchModel = async () => {
       if (id) {
         try {
-          const fetchedModel = await getModelById(id as string);
-          setModel(fetchedModel);
+          const fetchedModel = await getModelById(id);
+          if (fetchedModel) {
+            setModel({
+              name: fetchedModel.basic_info.name,
+              version: fetchedModel.basic_info.version,
+              facts: fetchedModel.facts || {} as ModelFacts
+            });
+          } else {
+            setModel(null);
+          }
         } catch (error) {
           console.error('Error fetching model:', error);
           toast({
@@ -41,6 +51,7 @@ const ModelFactsPage: React.FC = () => {
             duration: 3000,
             isClosable: true,
           });
+          setModel(null);
         } finally {
           setIsLoading(false);
         }
@@ -50,9 +61,12 @@ const ModelFactsPage: React.FC = () => {
     fetchModel();
   }, [id, getModelById, toast]);
 
-  const handleSubmit = async (values) => {
+  const handleSubmit = async (values: ModelFacts) => {
+    if (!model) return;
+
     try {
-      await updateModelFacts(id as string, values);
+      await updateModelFacts(id, values);
+      setModel({ ...model, facts: values });
       toast({
         title: "Model facts updated",
         status: "success",

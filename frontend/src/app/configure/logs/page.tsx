@@ -61,7 +61,7 @@ export default function EndpointLogsPage() {
 
   return (
     <Flex minHeight="100vh" bg={bgColor}>
-      <Sidebar hospitalName="University Health Network" />
+      <Sidebar />
       <Box
         ml={{ base: 0, md: 60 }}
         p={{ base: 4, md: 8 }}

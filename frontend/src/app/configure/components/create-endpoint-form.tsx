@@ -45,7 +45,7 @@ const CreateEndpointForm: React.FC<CreateEndpointFormProps> = ({ isOpen, onClose
         return;
       }
 
-      await addEndpoint(values.metrics, values.subgroups);
+      await addEndpoint({ metrics: values.metrics, subgroups: values.subgroups });
 
       toast({
         title: "Evaluation endpoint created.",

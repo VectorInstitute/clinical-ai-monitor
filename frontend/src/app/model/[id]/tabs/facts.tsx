@@ -10,7 +10,7 @@ import {
   useToast,
   Button,
 } from '@chakra-ui/react';
-import { ModelFacts } from './types/facts';
+import { ModelFacts } from '../../../configure/types/facts';
 import ModelHeader from './components/model-header';
 import ModelSummary from './components/model-summary';
 import ModelAccordion from './components/model-accordian';
