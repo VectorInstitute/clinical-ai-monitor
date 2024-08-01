@@ -118,7 +118,7 @@ export default function PerformanceMetricsTab({ endpointName, modelId }: Perform
           No Evaluation Data Available
         </AlertTitle>
         <AlertDescription maxWidth="sm">
-          It looks like there's no evaluation data for this endpoint yet. Start logging evaluation data to see performance metrics here.
+          It looks like there&apos;s no evaluation data for this endpoint yet. Start logging evaluation data to see performance metrics here.
         </AlertDescription>
       </Alert>
     );

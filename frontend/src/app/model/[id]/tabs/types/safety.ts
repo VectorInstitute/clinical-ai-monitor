@@ -14,6 +14,7 @@ export const ModelSafetySchema = z.object({
 });
 
 export type Metric = z.infer<typeof MetricSchema>;
+export type SafetyMetric = Metric;
 export type ModelSafety = z.infer<typeof ModelSafetySchema>;
 
 // Function to validate the data

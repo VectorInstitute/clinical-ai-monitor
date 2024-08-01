@@ -1,5 +1,5 @@
 'use client'
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import {
   Box,
   Flex,
@@ -61,6 +61,18 @@ const SidebarContent: React.FC<SidebarContentProps> = ({ onClose, isCollapsed, t
   const textColor = useColorModeValue('#1e3a5f', '#e0e0e0')
   const borderColor = useColorModeValue('#8eb8f2', '#2c5282')
   const toggleBtnBgColor = useColorModeValue('#8eb8f2', '#2c5282')
+  const [fullLogoOpacity, setFullLogoOpacity] = useState(1)
+  const [iconLogoOpacity, setIconLogoOpacity] = useState(0)
+
+  useEffect(() => {
+    if (isCollapsed) {
+      setFullLogoOpacity(0)
+      setTimeout(() => setIconLogoOpacity(1), 150)
+    } else {
+      setIconLogoOpacity(0)
+      setTimeout(() => setFullLogoOpacity(1), 150)
+    }
+  }, [isCollapsed])
 
   return (
     <Box
@@ -74,15 +86,61 @@ const SidebarContent: React.FC<SidebarContentProps> = ({ onClose, isCollapsed, t
       {...rest}
     >
       <Flex direction="column" h="full">
-        <Flex h="20" alignItems="center" mx="8" justifyContent="space-between" mb={8}>
-          {!isCollapsed && (
-            <Image
-              src="/images/cyclops_logo-dark.png"
-              alt="Clinical AI Monitor"
-              width={64}
-              height={16}
-            />
-          )}
+        <Flex
+          h="32"
+          alignItems="center"
+          justifyContent="center"
+          mb={8}
+        >
+          <Box
+            position="relative"
+            width={isCollapsed ? "40px" : { base: "240px", md: "160px" }}
+            height="60px"
+            overflow="hidden"
+          >
+            <Box
+              position="absolute"
+              top="0"
+              left="0"
+              opacity={fullLogoOpacity}
+              transition="opacity 0.3s ease"
+              width="100%"
+              height="100%"
+              display="flex"
+              alignItems="center"
+              justifyContent="center"
+            >
+              <Image
+                src="/images/cyclops_logo-dark.png"
+                alt="Clinical AI Monitor"
+                objectFit="contain"
+                width="100%"
+                height="100%"
+                loading="eager"
+              />
+            </Box>
+            <Box
+              position="absolute"
+              top="0"
+              left="0"
+              opacity={iconLogoOpacity}
+              transition="opacity 0.3s ease"
+              width="100%"
+              height="100%"
+              display="flex"
+              alignItems="center"
+              justifyContent="center"
+            >
+              <Image
+                src="/images/cyclops_icon.png"
+                alt="Clinical AI Monitor"
+                objectFit="contain"
+                width="40px"
+                height="40px"
+                loading="eager"
+              />
+            </Box>
+          </Box>
         </Flex>
         <VStack spacing={4} align="stretch" flex={1}>
           <NavItems textColor={textColor} isCollapsed={isCollapsed} />
@@ -98,8 +156,8 @@ const SidebarContent: React.FC<SidebarContentProps> = ({ onClose, isCollapsed, t
               <Image
                 src="/images/vector_logo.png"
                 alt="Vector Institute"
-                width={32}
-                height={12}
+                maxW={{ base: "100px", md: "100px" }}
+                h="auto"
                 mb={2}
               />
               <Text fontSize="xs" color={textColor} textAlign="center" mt={2} mb={4}>
@@ -221,8 +279,8 @@ const MobileNav: React.FC<MobileNavProps> = ({ onOpen, ...rest }) => {
       <Image
         src="/images/cyclops_logo-dark.png"
         alt="Clinical AI Monitor"
-        width={40}
-        height={10}
+        maxW="150px"
+        h="auto"
         ml="4"
       />
     </Flex>

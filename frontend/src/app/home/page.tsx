@@ -36,8 +36,8 @@ export default function HomePage() {
   const dividerColor = useColorModeValue('gray.200', 'gray.600')
   const noModelsTextColor = useColorModeValue('gray.600', 'gray.400')
 
-  const debouncedFetchModels = useCallback(
-    debounce(async () => {
+  const debouncedFetchModels = useCallback(() => {
+    const fetchModelsAsync = async () => {
       try {
         await fetchModels()
       } catch (error) {
@@ -46,13 +46,15 @@ export default function HomePage() {
       } finally {
         setIsInitialLoadComplete(true)
       }
-    }, 300),
-    [fetchModels]
-  )
+    }
+
+    return debounce(fetchModelsAsync, 300)
+  }, [fetchModels, setError, setIsInitialLoadComplete])
 
   useEffect(() => {
-    debouncedFetchModels()
-    return () => debouncedFetchModels.cancel()
+    const fetchModelsDebounced = debouncedFetchModels()
+    fetchModelsDebounced()
+    return () => fetchModelsDebounced.cancel()
   }, [debouncedFetchModels])
 
   const renderContent = () => {

@@ -1,8 +1,8 @@
 'use client'
 
 import React, { createContext, useState, useContext, ReactNode, useCallback, useMemo, useEffect } from 'react';
-import { MetricConfig } from '../configure/types/configure';
-import { ModelFacts } from '../model/[id]/tabs/types/facts';
+import { EndpointConfig } from '../configure/types/configure';
+import { ModelFacts } from '../configure/types/facts'
 
 interface Endpoint {
   name: string;
@@ -12,7 +12,7 @@ interface Endpoint {
 
 interface EndpointContextType {
   endpoints: Endpoint[];
-  addEndpoint: (metrics: MetricConfig[]) => Promise<void>;
+  addEndpoint: (config: EndpointConfig) => Promise<void>;
   removeEndpoint: (name: string) => Promise<void>;
   addModelToEndpoint: (endpointName: string, modelName: string, modelVersion: string, isExistingModel: boolean) => Promise<void>;
   removeModelFromEndpoint: (endpointName: string, modelId: string) => Promise<void>;
@@ -34,7 +34,7 @@ export const EndpointProvider: React.FC<{ children: ReactNode }> = ({ children }
   const [endpoints, setEndpoints] = useState<Endpoint[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  const apiRequest = useCallback(async (url: string, options: RequestInit = {}) => {
+  const apiRequest = useCallback(async <T,>(url: string, options: RequestInit = {}): Promise<T> => {
     const response = await fetch(url, options);
     if (!response.ok) {
       throw new Error(`API request failed: ${response.statusText}`);
@@ -45,7 +45,7 @@ export const EndpointProvider: React.FC<{ children: ReactNode }> = ({ children }
   const fetchEndpoints = useCallback(async () => {
     setIsLoading(true);
     try {
-      const data = await apiRequest('/api/endpoints');
+      const data = await apiRequest<{ endpoints: Endpoint[] }>('/api/endpoints');
       setEndpoints(data.endpoints);
     } catch (error) {
       console.error('Error fetching endpoints:', error);
@@ -58,13 +58,13 @@ export const EndpointProvider: React.FC<{ children: ReactNode }> = ({ children }
     fetchEndpoints();
   }, [fetchEndpoints]);
 
-  const addEndpoint = useCallback(async (metrics: MetricConfig[]) => {
+  const addEndpoint = useCallback(async (config: EndpointConfig) => {
     setIsLoading(true);
     try {
       await apiRequest('/api/endpoints', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ metrics }),
+        body: JSON.stringify(config),
       });
       await fetchEndpoints();
     } catch (error) {

@@ -1,7 +1,7 @@
 'use client'
 
 import React, { createContext, useState, useContext, ReactNode, useCallback, useMemo, useEffect } from 'react';
-import { ModelFacts } from '../model/[id]/tabs/types/facts';
+import { ModelFacts } from '../configure/types/facts'
 
 interface ModelBasicInfo {
   name: string;
@@ -20,6 +20,7 @@ interface ModelContextType {
   models: ModelData[];
   fetchModels: () => Promise<void>;
   getModelById: (id: string) => Promise<ModelData | undefined>;
+  updateModelFacts: (id: string, facts: ModelFacts) => Promise<void>;
   isLoading: boolean;
 }
 
@@ -95,12 +96,35 @@ export const ModelProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     }
   }, [models, apiRequest]);
 
+  const updateModelFacts = useCallback(async (id: string, facts: ModelFacts) => {
+    setIsLoading(true);
+    try {
+      await apiRequest(`/api/models/${id}/facts`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(facts),
+      });
+
+      setModels(prevModels => prevModels.map(model =>
+        model.id === id ? { ...model, facts } : model
+      ));
+    } catch (error) {
+      console.error('Error updating model facts:', error);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [apiRequest]);
+
   const contextValue = useMemo(() => ({
     models,
     fetchModels,
     getModelById,
+    updateModelFacts,
     isLoading
-  }), [models, fetchModels, getModelById, isLoading]);
+  }), [models, fetchModels, getModelById, updateModelFacts, isLoading]);
 
   return (
     <ModelContext.Provider value={contextValue}>
