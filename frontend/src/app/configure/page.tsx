@@ -40,7 +40,6 @@ const ConfigurationPage: React.FC = () => {
   const { isOpen: isRemoveModelOpen, onOpen: onRemoveModelOpen, onClose: onRemoveModelClose } = useDisclosure();
   const [selectedEndpoint, setSelectedEndpoint] = useState<string | null>(null);
   const router = useRouter();
-  const hospitalName = "University Health Network"; // This should come from your authentication state
 
   const { endpoints } = useEndpointContext();
   const { models } = useModelContext();
@@ -79,7 +78,7 @@ const ConfigurationPage: React.FC = () => {
 
   return (
     <Flex minHeight="100vh" bg={bgColor}>
-      <Sidebar hospitalName={hospitalName} />
+      <Sidebar />
       <Box
         ml={{ base: 0, md: 60 }}
         p={{ base: 4, md: 8 }}

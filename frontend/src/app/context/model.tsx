@@ -13,6 +13,7 @@ interface ModelData {
   endpoints: string[];
   basic_info: ModelBasicInfo;
   facts: ModelFacts | null;
+  overall_status: string;
 }
 
 interface ModelContextType {
@@ -48,9 +49,13 @@ export const ModelProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     setIsLoading(true);
     try {
       const data = await apiRequest('/api/models');
-      const modelArray = Object.entries(data).map(([id, modelInfo]: [string, any]) => ({
-        id,
-        ...modelInfo,
+      const modelArray = await Promise.all(Object.entries(data).map(async ([id, modelInfo]: [string, any]) => {
+        const safetyData = await apiRequest(`/api/model/${id}/safety`);
+        return {
+          id,
+          ...modelInfo,
+          overall_status: safetyData.overall_status
+        };
       }));
       setModels(modelArray);
     } catch (error) {
@@ -74,7 +79,12 @@ export const ModelProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     setIsLoading(true);
     try {
       const data = await apiRequest(`/api/models/${id}`);
-      const newModel: ModelData = { id, ...data };
+      const safetyData = await apiRequest(`/api/model/${id}/safety`);
+      const newModel: ModelData = {
+        id,
+        ...data,
+        overall_status: safetyData.overall_status
+      };
       setModels(prevModels => [...prevModels, newModel]);
       return newModel;
     } catch (error) {

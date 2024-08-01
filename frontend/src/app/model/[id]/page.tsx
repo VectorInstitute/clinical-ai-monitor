@@ -34,8 +34,6 @@ export default function ModelDashboard({ params }: ModelDashboardProps): JSX.Ele
   const [activeTabIndex, setActiveTabIndex] = useState(0)
   const toast = useToast()
 
-  const hospitalName = "University Health Network" // This should come from your authentication state
-
   const bgColor = useColorModeValue('gray.50', 'gray.800')
   const textColor = useColorModeValue('gray.800', 'white')
 
@@ -91,7 +89,7 @@ export default function ModelDashboard({ params }: ModelDashboardProps): JSX.Ele
 
   return (
     <Flex minHeight="100vh" bg={bgColor}>
-      <Sidebar hospitalName={hospitalName} />
+      <Sidebar />
       <Box ml={{ base: 0, md: 60 }} p={{ base: 4, md: 8 }} w="full" transition="margin-left 0.3s">
         <Heading as="h1" size="xl" mb={6} color={textColor}>
           Model Dashboard - ID: {params.id}
