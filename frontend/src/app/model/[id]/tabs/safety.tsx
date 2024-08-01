@@ -43,7 +43,6 @@ const ModelSafetyTab: React.FC<ModelSafetyTabProps> = ({ modelId }) => {
   if (error) return <ErrorMessage message={error} />;
   if (!safetyData) return null;
 
-  const allSafetyCriteriaMet = safetyData.metrics.every(metric => metric.status === 'met');
   const lastEvaluatedDate = new Date(safetyData.last_evaluated)
 
   if (isNaN(lastEvaluatedDate.getTime())) {
@@ -61,8 +60,7 @@ const ModelSafetyTab: React.FC<ModelSafetyTabProps> = ({ modelId }) => {
       <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={8}>
         <Flex direction="column" justify="space-between">
           <SafetyStatusCard
-            allSafetyCriteriaMet={allSafetyCriteriaMet}
-            isRecentlyEvaluated={isRecentlyEvaluated}
+            overallStatus={safetyData.overall_status}
             cardBgColor={cardBgColor}
             borderColor={borderColor}
             textColor={textColor}
@@ -93,20 +91,16 @@ interface CardProps {
 }
 
 interface SafetyStatusCardProps extends CardProps {
-  allSafetyCriteriaMet: boolean;
-  isRecentlyEvaluated: boolean;
+  overallStatus: string;
 }
 
-const SafetyStatusCard: React.FC<SafetyStatusCardProps> = ({ allSafetyCriteriaMet, isRecentlyEvaluated, cardBgColor, borderColor, textColor }) => {
-  const tooltipLabel = !allSafetyCriteriaMet
-    ? "One or more safety criteria have not been met. Check the Safety Evaluation Checklist for details."
-    : !isRecentlyEvaluated
-    ? "It has been too long since the last safety evaluation. The model needs to be re-evaluated."
-    : "All safety criteria have been met and the model has been recently evaluated.";
+const SafetyStatusCard: React.FC<SafetyStatusCardProps> = ({ overallStatus, cardBgColor, borderColor, textColor }) => {
+  const tooltipLabel = overallStatus === 'No warnings'
+    ? "All safety criteria have been met and the model has been recently evaluated."
+    : "One or more safety criteria have not been met or the model needs re-evaluation. Check the Safety Evaluation Checklist for details.";
 
-  const statusColor = allSafetyCriteriaMet && isRecentlyEvaluated ? 'green' : 'red';
-  const statusText = allSafetyCriteriaMet && isRecentlyEvaluated ? 'No warnings' : 'Warning';
-  const StatusIcon = allSafetyCriteriaMet && isRecentlyEvaluated ? CheckCircleIcon : WarningIcon;
+  const statusColor = overallStatus === 'No warnings' ? 'green' : 'red';
+  const StatusIcon = overallStatus === 'No warnings' ? CheckCircleIcon : WarningIcon;
 
   return (
     <Box bg={cardBgColor} p={6} borderRadius="lg" boxShadow="md" borderColor={borderColor} borderWidth={1} mb={4}>
@@ -114,7 +108,7 @@ const SafetyStatusCard: React.FC<SafetyStatusCardProps> = ({ allSafetyCriteriaMe
       <Tooltip label={tooltipLabel} placement="top" hasArrow>
         <Flex align="center" cursor="help">
           <Badge colorScheme={statusColor} fontSize="2xl" p={2} borderRadius="md">
-            {statusText}
+            {overallStatus}
           </Badge>
           <StatusIcon color={`${statusColor}.500`} boxSize={8} ml={4} />
         </Flex>

@@ -9,7 +9,8 @@ export const MetricSchema = z.object({
 
 export const ModelSafetySchema = z.object({
   metrics: z.array(MetricSchema),
-  last_evaluated: z.string().datetime()
+  last_evaluated: z.string().datetime(),
+  overall_status: z.string()
 });
 
 export type Metric = z.infer<typeof MetricSchema>;

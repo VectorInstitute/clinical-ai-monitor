@@ -1,5 +1,5 @@
 'use client'
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useCallback } from 'react'
 import {
   Box,
   SimpleGrid,
@@ -13,46 +13,54 @@ import {
   Spinner,
   Container,
   Divider,
-  Icon
+  Icon,
 } from '@chakra-ui/react'
 import { useRouter } from 'next/navigation'
 import Sidebar from '../components/sidebar'
 import { useModelContext } from '../context/model'
 import Link from 'next/link'
 import { FiMonitor, FiAlertCircle } from 'react-icons/fi'
+import ModelCard from '../components/model-card'
+import { debounce } from 'lodash'
 
 export default function HomePage() {
   const router = useRouter()
   const { models, fetchModels, isLoading } = useModelContext()
   const [error, setError] = useState<string | null>(null)
+  const [isInitialLoadComplete, setIsInitialLoadComplete] = useState(false)
 
   const bgColor = useColorModeValue('gray.50', 'gray.800')
   const cardBgColor = useColorModeValue('white', 'gray.700')
-  const cardBorderColor = useColorModeValue('gray.200', 'gray.600')
   const textColor = useColorModeValue('gray.800', 'white')
   const accentColor = useColorModeValue('blue.500', 'blue.300')
   const dividerColor = useColorModeValue('gray.200', 'gray.600')
   const noModelsTextColor = useColorModeValue('gray.600', 'gray.400')
-  const modelVersionColor = useColorModeValue('gray.600', 'gray.300')
-  const modelEndpointColor = useColorModeValue('gray.500', 'gray.400')
 
-  useEffect(() => {
-    const loadModels = async () => {
+  const debouncedFetchModels = useCallback(
+    debounce(async () => {
       try {
         await fetchModels()
       } catch (error) {
         console.error('Failed to fetch models:', error)
         setError('Failed to load models. Please try again later.')
+      } finally {
+        setIsInitialLoadComplete(true)
       }
-    }
-    loadModels()
-  }, [fetchModels])
+    }, 300),
+    [fetchModels]
+  )
+
+  useEffect(() => {
+    debouncedFetchModels()
+    return () => debouncedFetchModels.cancel()
+  }, [debouncedFetchModels])
 
   const renderContent = () => {
-    if (isLoading) {
+    if (!isInitialLoadComplete || isLoading) {
       return (
-        <Center h="50vh">
-          <Spinner size="xl" color={accentColor} />
+        <Center h="50vh" flexDirection="column">
+          <Spinner size="xl" color={accentColor} mb={4} />
+          <Text color={textColor}>Loading models...</Text>
         </Center>
       )
     }
@@ -67,13 +75,14 @@ export default function HomePage() {
           <Text fontSize="md" mb={6} textAlign="center" color={noModelsTextColor}>
             {error}
           </Text>
-          <Button colorScheme="blue" onClick={() => fetchModels()}>
+          <Button colorScheme="blue" onClick={() => debouncedFetchModels()}>
             Retry
           </Button>
         </Center>
       )
     }
-    const monitoredModels = models.filter(model => model.endpoints.length > 0);
+
+    const monitoredModels = models.filter(model => model.endpoints.length > 0)
     if (monitoredModels.length === 0) {
       return (
         <Center flexDirection="column" p={8} bg={cardBgColor} borderRadius="lg" shadow="md">
@@ -94,40 +103,17 @@ export default function HomePage() {
     }
 
     return (
-      <SimpleGrid columns={{ base: 1, sm: 2, lg: 3 }} spacing={{ base: 4, lg: 8 }}>
+      <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
         {monitoredModels.map((model) => (
-          <Box
+          <ModelCard
             key={model.id}
-            p={6}
-            shadow="md"
-            borderWidth="1px"
-            borderRadius="lg"
-            bg={cardBgColor}
-            borderColor={cardBorderColor}
+            model={model}
             onClick={() => router.push(`/model/${model.id}`)}
-            cursor="pointer"
-            transition="all 0.3s"
-            _hover={{
-              shadow: 'lg',
-              transform: 'translateY(-5px)'
-            }}
-          >
-            <VStack align="start" spacing={3}>
-              <Heading as="h3" size="md" color={textColor}>
-                {model.basic_info.name}
-              </Heading>
-              <Text fontSize="sm" color={modelVersionColor}>
-                Version: {model.basic_info.version}
-              </Text>
-              <Text fontSize="xs" color={modelEndpointColor}>
-                Endpoints: {model.endpoints.join(', ')}
-              </Text>
-            </VStack>
-          </Box>
+          />
         ))}
       </SimpleGrid>
-    );
-  };
+    )
+  }
 
   return (
     <Flex minHeight="100vh" bg={bgColor}>

@@ -39,15 +39,18 @@ class ModelSafety(BaseModel):
         A list of individual metrics and their current status.
     last_evaluated : datetime
         A timestamp of when the model was last evaluated.
+    overall_status : str
+        The overall status of the model ('No warnings' or 'Warning').
     """
 
     metrics: List[Metric]
     last_evaluated: datetime
+    overall_status: str
 
 
 async def get_model_safety(model_id: str) -> ModelSafety:
     """
-    Retrieve the health data for a specific model.
+    Retrieve the safety data for a specific model.
 
     Parameters
     ----------
@@ -57,7 +60,7 @@ async def get_model_safety(model_id: str) -> ModelSafety:
     Returns
     -------
     ModelSafety
-        An object containing the overall health over time, time points,
+        An object containing the overall safety status, last evaluated date,
         and individual metrics.
 
     Raises
@@ -78,10 +81,21 @@ async def get_model_safety(model_id: str) -> ModelSafety:
             Metric(name="AUC-ROC", value=0.95, unit="", status="met"),
         ]
 
-        return ModelSafety(metrics=metrics, last_evaluated=last_evaluated)
+        # Compute overall status
+        all_criteria_met = all(metric.status == "met" for metric in metrics)
+        is_recently_evaluated = (current_date - last_evaluated).days <= 30
+        overall_status = (
+            "No warnings" if all_criteria_met and is_recently_evaluated else "Warning"
+        )
+
+        return ModelSafety(
+            metrics=metrics,
+            last_evaluated=last_evaluated,
+            overall_status=overall_status,
+        )
     except ValueError as ve:
         raise HTTPException(status_code=500, detail=str(ve)) from ve
     except Exception as e:
         raise HTTPException(
-            status_code=500, detail=f"Error retrieving model health: {str(e)}"
+            status_code=500, detail=f"Error retrieving model safety: {str(e)}"
         ) from e
