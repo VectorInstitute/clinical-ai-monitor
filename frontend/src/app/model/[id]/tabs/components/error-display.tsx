@@ -5,6 +5,11 @@ interface ErrorMessageProps {
   message: string;
 }
 
+interface ErrorDisplayProps {
+  error: string;
+  onRetry: () => void;
+}
+
 export const ErrorMessage: React.FC<ErrorMessageProps> = ({ message }) => {
   return (
     <Box textAlign="center" py={10}>
@@ -15,3 +20,10 @@ export const ErrorMessage: React.FC<ErrorMessageProps> = ({ message }) => {
     </Box>
   );
 };
+
+export const ErrorDisplay: React.FC<ErrorDisplayProps> = ({ error, onRetry }) => (
+  <Box textAlign="center">
+    <Text color="red.500" mb={4}>{error}</Text>
+    <Button onClick={onRetry} colorScheme="blue">Retry</Button>
+  </Box>
+);
