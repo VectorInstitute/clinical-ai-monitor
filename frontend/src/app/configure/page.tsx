@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   Box,
   VStack,
@@ -8,28 +8,20 @@ import {
   useColorModeValue,
   Flex,
   SimpleGrid,
-  Icon,
-  Tooltip,
   useDisclosure,
-  List,
-  ListItem,
-  Text,
-  Button,
-  Tag,
-  Divider,
-  Badge,
   Container,
-  Link,
+  Divider,
+  useBreakpointValue,
 } from '@chakra-ui/react';
-import { FiPlus, FiTrash2, FiInfo, FiList, FiEdit } from 'react-icons/fi';
+import { FiPlus, FiTrash2, FiList } from 'react-icons/fi';
 import { useRouter } from 'next/navigation';
-import NextLink from 'next/link';
 import Sidebar from '../components/sidebar';
 import CreateEndpointForm from './components/create-endpoint-form';
 import DeleteEndpointForm from './components/delete-endpoint-form';
 import AddModelToEndpointForm from './components/add-model-to-endpoint-form';
 import RemoveModelFromEndpointForm from './components/remove-model-from-endpoint-form';
 import ConfigCard from './components/config-card';
+import EndpointCard from './components/endpoint-card';
 import { useEndpointContext } from '../context/endpoint';
 import { useModelContext } from '../context/model';
 
@@ -40,22 +32,23 @@ const ConfigurationPage: React.FC = () => {
   const { isOpen: isRemoveModelOpen, onOpen: onRemoveModelOpen, onClose: onRemoveModelClose } = useDisclosure();
   const [selectedEndpoint, setSelectedEndpoint] = useState<string | null>(null);
   const router = useRouter();
-
   const { endpoints } = useEndpointContext();
   const { models } = useModelContext();
 
-  const bgColor = useColorModeValue('gray.50', 'gray.800');
-  const textColor = useColorModeValue('gray.800', 'white');
-  const cardBgColor = useColorModeValue('white', 'gray.700');
-  const borderColor = useColorModeValue('gray.200', 'gray.600');
+  const bgColor = useColorModeValue('gray.50', 'gray.900');
+  const textColor = useColorModeValue('gray.800', 'gray.100');
+  const borderColor = useColorModeValue('gray.200', 'gray.700');
 
-  const configCards = [
+  const isMobile = useBreakpointValue({ base: true, md: false });
+  const sidebarWidth = 60; // Fixed sidebar width
+
+  const configCards = useMemo(() => [
     {
       title: "Create New Endpoint",
       description: "Set up a new model monitoring endpoint with custom metrics.",
       icon: FiPlus,
       buttonText: "Create Endpoint",
-      buttonColor: "blue",
+      buttonColor: "green",
       onClick: onCreateOpen,
     },
     {
@@ -71,140 +64,104 @@ const ConfigurationPage: React.FC = () => {
       description: "Check logs and statistics for your evaluation endpoints.",
       icon: FiList,
       buttonText: "View Logs",
-      buttonColor: "green",
+      buttonColor: "blue",
       onClick: () => router.push('/configure/logs'),
     },
-  ];
+  ], [onCreateOpen, onDeleteOpen, router]);
+
+  const groupModelsByName = useCallback((modelIds: string[]) => {
+    const groupedModels: { [key: string]: { version: string; id: string }[] } = {};
+    modelIds.forEach(modelId => {
+      const model = models.find(m => m.id === modelId);
+      if (model) {
+        if (!groupedModels[model.basic_info.name]) {
+          groupedModels[model.basic_info.name] = [];
+        }
+        groupedModels[model.basic_info.name].push({
+          version: model.basic_info.version,
+          id: model.id
+        });
+      }
+    });
+    return groupedModels;
+  }, [models]);
+
+  const handleUpdateFacts = useCallback((modelId: string) => {
+    if (modelId) {
+      router.push(`/configure/model-facts/${modelId}`);
+    } else {
+      console.error('Invalid model ID for updating facts');
+    }
+  }, [router]);
+
+  const handleRemoveModel = useCallback((endpointName: string) => {
+    setSelectedEndpoint(endpointName);
+    onRemoveModelOpen();
+  }, [onRemoveModelOpen]);
 
   return (
     <Flex minHeight="100vh" bg={bgColor}>
       <Sidebar />
-      <Box
-        ml={{ base: 0, md: 60 }}
-        p={{ base: 4, md: 8 }}
-        w="full"
-        transition="margin-left 0.3s"
-      >
-        <Container maxW="container.xl">
+      <Box ml={{ base: 0, md: sidebarWidth }} w="full" transition="margin-left 0.3s">
+        <Container maxW="container.xl" px={{ base: 4, sm: 6, md: 8 }} py={8}>
           <VStack spacing={8} align="stretch">
-            <Flex justify="space-between" align="center">
-              <Heading as="h1" size="xl" color={textColor}>
-                Configure Monitoring Endpoints
-              </Heading>
-              <Tooltip label="Manage your model monitoring endpoints here" placement="top">
-                <Box>
-                  <Icon as={FiInfo} color={textColor} boxSize={6} cursor="pointer" />
-                </Box>
-              </Tooltip>
-            </Flex>
-            <Divider borderColor={borderColor} />
-            <SimpleGrid columns={{ base: 1, md: 3 }} spacing={8}>
+            <Heading as="h1" size={{ base: "lg", md: "xl" }} color={textColor} pb={4} borderBottom={`1px solid ${borderColor}`}>
+              Configure Monitoring Endpoints
+            </Heading>
+
+            <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
               {configCards.map((card, index) => (
                 <ConfigCard key={index} {...card} />
               ))}
             </SimpleGrid>
-            <Box>
-              <Heading as="h2" size="lg" mb={4}>
-                Existing Endpoints
-              </Heading>
-              <Divider borderColor={borderColor} mb={4} />
-              <List spacing={4}>
-                {endpoints.map((endpoint) => (
-                  <ListItem
+
+            <Divider my={8} borderColor={borderColor} />
+
+            <Heading as="h2" size={{ base: "md", md: "lg" }} color={textColor} pb={4} borderBottom={`1px solid ${borderColor}`}>
+              Existing Endpoints
+            </Heading>
+
+            <SimpleGrid columns={{ base: 1, xl: 2 }} spacing={8}>
+              {endpoints.map((endpoint) => {
+                const groupedModels = groupModelsByName(endpoint.models);
+                return (
+                  <EndpointCard
                     key={endpoint.name}
-                    p={4}
-                    borderWidth={1}
-                    borderRadius="md"
-                    borderColor={borderColor}
-                    bg={cardBgColor}
-                    boxShadow="sm"
-                    transition="all 0.2s"
-                    _hover={{ boxShadow: "md" }}
-                  >
-                    <Flex direction={{ base: 'column', md: 'row' }} justify="space-between" align="start">
-                      <VStack align="start" spacing={2} mb={{ base: 4, md: 0 }}>
-                        <Text fontWeight="bold" fontSize="lg">Endpoint: {endpoint.name}</Text>
-                        <Text fontSize="sm">
-                          Metrics:
-                          {endpoint.metrics.map((metric, index) => (
-                            <Badge key={index} ml={1} colorScheme="purple">
-                              {metric}
-                            </Badge>
-                          ))}
-                        </Text>
-                        <Flex wrap="wrap" gap={2}>
-                          {endpoint.models.map((modelId) => {
-                            const model = models.find(m => m.id === modelId);
-                            return model ? (
-                              <Tag
-                                key={modelId}
-                                colorScheme="blue"
-                                size="sm"
-                                cursor="pointer"
-                              >
-                                <NextLink href={`/model/${modelId}`} passHref>
-                                  <Link>{model.basic_info.name}</Link>
-                                </NextLink>
-                                <NextLink href={`/configure/model-facts/${modelId}`} passHref>
-                                  <Link ml={2}>
-                                    <Icon as={FiEdit} />
-                                  </Link>
-                                </NextLink>
-                              </Tag>
-                            ) : null;
-                          })}
-                        </Flex>
-                      </VStack>
-                      <Flex mt={{ base: 2, md: 0 }}>
-                        <Button
-                          size="sm"
-                          colorScheme="teal"
-                          mr={2}
-                          onClick={() => {
-                            setSelectedEndpoint(endpoint.name);
-                            onAddModelOpen();
-                          }}
-                        >
-                          Add Model
-                        </Button>
-                        <Button
-                          size="sm"
-                          colorScheme="red"
-                          onClick={() => {
-                            setSelectedEndpoint(endpoint.name);
-                            onRemoveModelOpen();
-                          }}
-                        >
-                          Remove Model
-                        </Button>
-                      </Flex>
-                    </Flex>
-                  </ListItem>
-                ))}
-              </List>
-            </Box>
+                    endpoint={endpoint}
+                    groupedModels={groupedModels}
+                    onAddModel={() => {
+                      setSelectedEndpoint(endpoint.name);
+                      onAddModelOpen();
+                    }}
+                    onRemoveModel={() => handleRemoveModel(endpoint.name)}
+                    onUpdateFacts={handleUpdateFacts}
+                  />
+                );
+              })}
+            </SimpleGrid>
+
+            <CreateEndpointForm isOpen={isCreateOpen} onClose={onCreateClose} />
+            <DeleteEndpointForm isOpen={isDeleteOpen} onClose={onDeleteClose} />
+            {selectedEndpoint && (
+              <AddModelToEndpointForm
+                isOpen={isAddModelOpen}
+                onClose={onAddModelClose}
+                endpointName={selectedEndpoint}
+              />
+            )}
+            {selectedEndpoint && (
+              <RemoveModelFromEndpointForm
+                isOpen={isRemoveModelOpen}
+                onClose={onRemoveModelClose}
+                endpointName={selectedEndpoint}
+                models={endpoints.find(e => e.name === selectedEndpoint)?.models || []}
+              />
+            )}
           </VStack>
         </Container>
       </Box>
-      <CreateEndpointForm isOpen={isCreateOpen} onClose={onCreateClose} />
-      <DeleteEndpointForm isOpen={isDeleteOpen} onClose={onDeleteClose} />
-      {selectedEndpoint && (
-        <AddModelToEndpointForm
-          isOpen={isAddModelOpen}
-          onClose={onAddModelClose}
-          endpointName={selectedEndpoint}
-        />
-      )}
-      {selectedEndpoint && (
-        <RemoveModelFromEndpointForm
-          isOpen={isRemoveModelOpen}
-          onClose={onRemoveModelClose}
-          endpointName={selectedEndpoint}
-          models={endpoints.find(e => e.name === selectedEndpoint)?.models || []}
-        />
-      )}
     </Flex>
   );
-}
+};
 
 export default ConfigurationPage;

@@ -32,7 +32,7 @@ const METRIC_NAMES = [
   "tnr"
 ];
 
-const METRIC_TYPES = ['binary', 'multilabel', 'multiclass'];
+const METRIC_TYPES = ['binary'];
 
 interface Metric {
   name: string;

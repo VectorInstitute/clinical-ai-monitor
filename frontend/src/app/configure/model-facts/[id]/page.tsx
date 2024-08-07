@@ -10,11 +10,21 @@ import {
   useColorModeValue,
   Button,
   useToast,
+  Divider,
+  Container,
+  Flex,
+  useBreakpointValue,
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  Icon,
 } from '@chakra-ui/react';
 import { useRouter, useParams } from 'next/navigation';
+import { FiHome, FiSettings, FiFileText } from 'react-icons/fi';
 import ModelFactsForm from '../../components/model-facts-form';
 import { useModelContext } from '../../../context/model';
 import { ModelFacts } from '../../types/facts';
+import Sidebar from '../../../components/sidebar';
 
 const ModelFactsPage: React.FC = () => {
   const router = useRouter();
@@ -25,8 +35,14 @@ const ModelFactsPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const toast = useToast();
 
-  const bgColor = useColorModeValue('white', 'gray.800');
-  const textColor = useColorModeValue('gray.800', 'white');
+  const bgColor = useColorModeValue('gray.50', 'gray.900');
+  const textColor = useColorModeValue('gray.800', 'gray.100');
+  const cardBgColor = useColorModeValue('white', 'gray.800');
+  const breadcrumbColor = useColorModeValue('gray.600', 'gray.400');
+
+  const sidebarWidth = useBreakpointValue({ base: 0, md: 60 });
+  const headingSize = useBreakpointValue({ base: "lg", md: "xl" });
+  const containerPadding = useBreakpointValue({ base: 4, md: 8 });
 
   useEffect(() => {
     const fetchModel = async () => {
@@ -86,24 +102,63 @@ const ModelFactsPage: React.FC = () => {
   };
 
   if (isLoading) {
-    return <Spinner />;
+    return (
+      <Flex h="100vh" alignItems="center" justifyContent="center">
+        <Spinner size="xl" />
+      </Flex>
+    );
   }
 
   if (!model) {
-    return <Text>Model not found</Text>;
+    return (
+      <Flex h="100vh" alignItems="center" justifyContent="center" direction="column">
+        <Text fontSize="xl" mb={4}>Model not found</Text>
+        <Button onClick={() => router.push('/configure')} colorScheme="blue">
+          Back to Configuration
+        </Button>
+      </Flex>
+    );
   }
 
   return (
-    <Box bg={bgColor} p={6} borderRadius="lg" boxShadow="md">
-      <VStack spacing={6} align="stretch">
-        <Heading as="h1" size="xl" color={textColor}>
-          Model Facts: {model.name}
-        </Heading>
-        <Text color={textColor}>Version: {model.version}</Text>
-        <ModelFactsForm initialValues={model.facts} onSubmit={handleSubmit} />
-        <Button onClick={() => router.push('/configure')}>Back to Configuration</Button>
-      </VStack>
-    </Box>
+    <Flex minHeight="100vh" bg={bgColor}>
+      <Sidebar />
+      <Box ml={{ base: 0, md: sidebarWidth }} w="full" transition="margin-left 0.3s">
+        <Container maxW="container.xl" py={containerPadding}>
+          <VStack spacing={6} align="stretch">
+            <Breadcrumb color={breadcrumbColor} fontSize="sm">
+              <BreadcrumbItem>
+                <BreadcrumbLink href="/" onClick={(e) => { e.preventDefault(); router.push('/'); }}>
+                  <Icon as={FiHome} mr={1} /> Home
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbItem>
+                <BreadcrumbLink href="/configure" onClick={(e) => { e.preventDefault(); router.push('/configure'); }}>
+                  <Icon as={FiSettings} mr={1} /> Configure
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbItem isCurrentPage>
+                <BreadcrumbLink href="#"><Icon as={FiFileText} mr={1} /> Model Facts</BreadcrumbLink>
+              </BreadcrumbItem>
+            </Breadcrumb>
+
+            <Heading as="h1" size={headingSize} color={textColor}>
+              Model Facts: {model.name}
+            </Heading>
+            <Text color={textColor} fontSize="md">Version: {model.version}</Text>
+            <Divider />
+            <Box bg={cardBgColor} p={{ base: 4, md: 6 }} borderRadius="lg" boxShadow="md">
+              <ModelFactsForm initialValues={model.facts} onSubmit={handleSubmit} />
+            </Box>
+            <Flex justifyContent="flex-end">
+              <Button onClick={() => router.push('/configure')} size="lg" colorScheme="blue" leftIcon={<FiSettings />}>
+                Back to Configuration
+              </Button>
+            </Flex>
+          </VStack>
+        </Container>
+      </Box>
+    </Flex>
   );
 };
 

@@ -35,7 +35,7 @@ const ConfigCard: React.FC<ConfigCardProps> = ({
   return (
     <Box
       bg={cardBgColor}
-      p={6}
+      p={{ base: 4, md: 6 }}
       borderRadius="lg"
       shadow="md"
       borderWidth={1}
@@ -45,16 +45,18 @@ const ConfigCard: React.FC<ConfigCardProps> = ({
     >
       <VStack spacing={4} align="stretch">
         <Flex align="center">
-          <Icon as={icon} boxSize={8} color={`${buttonColor}.500`} mr={4} />
-          <Heading as="h3" size="md" color={textColor}>
+          <Icon as={icon} boxSize={{ base: 6, md: 8 }} color={`${buttonColor}.500`} mr={4} />
+          <Heading as="h3" size={{ base: "sm", md: "md" }} color={textColor}>
             {title}
           </Heading>
         </Flex>
-        <Text color={textColor}>{description}</Text>
+        <Text color={textColor} fontSize={{ base: "sm", md: "md" }}>{description}</Text>
         <Button
           colorScheme={buttonColor}
           onClick={onClick}
           leftIcon={<Icon as={icon} />}
+          size={{ base: "sm", md: "md" }}
+          width="full"
         >
           {buttonText}
         </Button>
