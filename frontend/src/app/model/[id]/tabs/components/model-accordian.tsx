@@ -30,8 +30,10 @@ const ModelAccordion: React.FC<ModelAccordionProps> = ({ modelFacts }) => (
         <AccordionIcon />
       </AccordionButton>
       <AccordionPanel pb={4}>
-        <Text><strong>Intended Use:</strong> {modelFacts.intended_use}</Text>
-        <Text><strong>Target Population:</strong> {modelFacts.target_population}</Text>
+        <VStack align="stretch" spacing={3}>
+          <Text><strong>Intended Use:</strong> {modelFacts.intended_use}</Text>
+          <Text><strong>Target Population:</strong> {modelFacts.target_population}</Text>
+        </VStack>
       </AccordionPanel>
     </AccordionItem>
 
@@ -43,16 +45,18 @@ const ModelAccordion: React.FC<ModelAccordionProps> = ({ modelFacts }) => (
         <AccordionIcon />
       </AccordionButton>
       <AccordionPanel pb={4}>
-        <Text><strong>Input Data:</strong></Text>
-        <List spacing={2}>
-          {modelFacts.input_data.map((item, index) => (
-            <ListItem key={index}>
-              <ListIcon as={InfoOutlineIcon} color="blue.500" />
-              {item}
-            </ListItem>
-          ))}
-        </List>
-        <Text><strong>Output Data:</strong> {modelFacts.output_data}</Text>
+        <VStack align="stretch" spacing={3}>
+          <Text><strong>Input Data:</strong></Text>
+          <List spacing={2}>
+            {modelFacts.input_data.map((item, index) => (
+              <ListItem key={index}>
+                <ListIcon as={InfoOutlineIcon} color="blue.500" />
+                {item}
+              </ListItem>
+            ))}
+          </List>
+          <Text><strong>Output Data:</strong> {modelFacts.output_data}</Text>
+        </VStack>
       </AccordionPanel>
     </AccordionItem>
 

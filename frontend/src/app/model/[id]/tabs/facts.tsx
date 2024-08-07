@@ -2,19 +2,19 @@ import React, { useEffect, useState, useCallback } from 'react';
 import {
   Box,
   VStack,
-  Heading,
-  Text,
-  Divider,
-  useColorModeValue,
   Spinner,
   useToast,
   Button,
+  useColorModeValue,
+  Container,
 } from '@chakra-ui/react';
 import { ModelFacts } from '../../../configure/types/facts';
 import ModelHeader from './components/model-header';
 import ModelSummary from './components/model-summary';
 import ModelAccordion from './components/model-accordian';
 import OtherInformationSection from './components/other-information-section';
+import { ErrorDisplay } from './components/error-display';
+import NoFactsDisplay from './components/no-facts-display';
 
 interface ModelFactsTabProps {
   modelId: string;
@@ -57,39 +57,21 @@ const ModelFactsTab: React.FC<ModelFactsTabProps> = ({ modelId }) => {
     fetchModelFacts();
   }, [fetchModelFacts]);
 
-  if (isLoading) {
-    return <Spinner size="xl" />;
-  }
-
-  if (error) {
-    return (
-      <Box textAlign="center">
-        <Text color="red.500" mb={4}>{error}</Text>
-        <Button onClick={fetchModelFacts} colorScheme="blue">Retry</Button>
-      </Box>
-    );
-  }
-
-  if (!modelFacts) {
-    return (
-      <Box textAlign="center">
-        <Text mb={4}>No facts available for this model.</Text>
-        <Button onClick={fetchModelFacts} colorScheme="blue">Refresh</Button>
-      </Box>
-    );
-  }
+  if (isLoading) return <Spinner size="xl" />;
+  if (error) return <ErrorDisplay error={error} onRetry={fetchModelFacts} />;
+  if (!modelFacts) return <NoFactsDisplay onRefresh={fetchModelFacts} />;
 
   return (
-    <Box bg={bgColor} p={6} borderRadius="lg" boxShadow="md" borderColor={borderColor} borderWidth={1}>
-      <VStack align="stretch" spacing={6}>
-        <ModelHeader name={modelFacts.name} version={modelFacts.version} type={modelFacts.type} />
-        <ModelSummary summary={modelFacts.summary} />
-        <Divider />
-        <ModelAccordion modelFacts={modelFacts} />
-        <Divider />
-        <OtherInformationSection otherInfo={modelFacts.other_information} />
-      </VStack>
-    </Box>
+    <Container maxW="container.xl" p={0}>
+      <Box bg={bgColor} p={8} borderRadius="lg" boxShadow="md" borderColor={borderColor} borderWidth={1}>
+        <VStack align="stretch" spacing={8}>
+          <ModelHeader name={modelFacts.name} version={modelFacts.version} type={modelFacts.type} />
+          <ModelSummary summary={modelFacts.summary} />
+          <ModelAccordion modelFacts={modelFacts} />
+          <OtherInformationSection otherInfo={modelFacts.other_information} />
+        </VStack>
+      </Box>
+    </Container>
   );
 };
 

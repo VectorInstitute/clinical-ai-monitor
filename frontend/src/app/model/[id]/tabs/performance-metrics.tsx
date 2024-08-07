@@ -13,7 +13,7 @@ import {
   AlertTitle,
   AlertDescription,
 } from '@chakra-ui/react';
-import { ErrorMessage } from './components/error-message';
+import { ErrorMessage } from './components/error-display';
 import { LoadingSpinner } from './components/loading-spinner';
 import { MetricCard } from './components/metric-card';
 import { MetricSelector } from './components/metric-selector';

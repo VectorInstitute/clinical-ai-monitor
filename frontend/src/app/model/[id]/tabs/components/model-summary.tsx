@@ -7,8 +7,8 @@ interface ModelSummaryProps {
 
 const ModelSummary: React.FC<ModelSummaryProps> = ({ summary }) => (
   <Box>
-    <Heading as="h3" size="md" mb={2}>Summary</Heading>
-    <Text>{summary}</Text>
+    <Heading as="h3" size="md" mb={3}>Summary</Heading>
+    <Text fontSize="lg">{summary}</Text>
   </Box>
 );
 
