@@ -17,17 +17,13 @@ const METRIC_NAMES = [
   "accuracy",
   "auroc",
   "average_precision",
-  "confusion_matrix",
   "f1_score",
-  "fbeta_score",
   "mcc",
   "npv",
   "ppv",
   "precision",
   "recall",
   "tpr",
-  "precision_recall_curve",
-  "roc",
   "specificity",
   "tnr"
 ];
