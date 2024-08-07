@@ -334,8 +334,7 @@ async def update_model_facts_route(model_id: str, facts: ModelFacts) -> ModelFac
         If there's an error updating the model facts.
     """
     try:
-        updated_facts = update_model_facts(model_id, facts.dict(exclude_unset=True))
-        return ModelFacts(**updated_facts.dict())
+        return update_model_facts(model_id, facts.dict())
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e)) from e
     except Exception as e:

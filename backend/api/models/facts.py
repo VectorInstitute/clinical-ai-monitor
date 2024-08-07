@@ -30,7 +30,7 @@ def get_model_facts(model_id: str) -> Optional[ModelFacts]:
     model_data = load_model_data(model_id)
     if not model_data:
         raise ValueError(f"Model with ID {model_id} not found")
-    return model_data.facts
+    return model_data.facts if model_data.facts else None
 
 
 def update_model_facts(model_id: str, updated_facts: Dict[str, Any]) -> ModelFacts:

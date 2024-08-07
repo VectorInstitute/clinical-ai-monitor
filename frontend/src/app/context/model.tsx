@@ -72,21 +72,35 @@ export const ModelProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   }, [fetchModels]);
 
   const getModelById = useCallback(async (id: string): Promise<ModelData> => {
-    const cachedModel = models.find(m => m.id === id);
-    if (cachedModel) {
-      return cachedModel;
-    }
-
     setIsLoading(true);
     try {
+      const cachedModel = models.find(m => m.id === id);
+      if (cachedModel && cachedModel.facts) {
+        setIsLoading(false);
+        return cachedModel;
+      }
+
       const data = await apiRequest(`/api/models/${id}`);
       const safetyData = await apiRequest(`/api/model/${id}/safety`);
+      const factsData = await apiRequest(`/api/models/${id}/facts`);
+
       const newModel: ModelData = {
         id,
         ...data,
-        overall_status: safetyData.overall_status
+        overall_status: safetyData.overall_status,
+        facts: factsData
       };
-      setModels(prevModels => [...prevModels, newModel]);
+
+      setModels(prevModels => {
+        const index = prevModels.findIndex(m => m.id === id);
+        if (index !== -1) {
+          const updatedModels = [...prevModels];
+          updatedModels[index] = newModel;
+          return updatedModels;
+        }
+        return [...prevModels, newModel];
+      });
+
       return newModel;
     } catch (error) {
       console.error('Error fetching model:', error);
@@ -100,7 +114,7 @@ export const ModelProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     setIsLoading(true);
     try {
       await apiRequest(`/api/models/${id}/facts`, {
-        method: 'PUT',
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },

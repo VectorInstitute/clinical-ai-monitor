@@ -18,9 +18,12 @@ import {
   BreadcrumbItem,
   BreadcrumbLink,
   Icon,
+  Card,
+  CardBody,
+  CardHeader,
 } from '@chakra-ui/react';
 import { useRouter, useParams } from 'next/navigation';
-import { FiHome, FiSettings, FiFileText } from 'react-icons/fi';
+import { FiHome, FiSettings, FiFileText, FiSave } from 'react-icons/fi';
 import ModelFactsForm from '../../components/model-facts-form';
 import { useModelContext } from '../../../context/model';
 import { ModelFacts } from '../../types/facts';
@@ -31,8 +34,9 @@ const ModelFactsPage: React.FC = () => {
   const params = useParams();
   const id = params.id as string;
   const { getModelById, updateModelFacts } = useModelContext();
-  const [model, setModel] = useState<{ name: string; version: string; facts: ModelFacts } | null>(null);
+  const [model, setModel] = useState<{ name: string; version: string; facts: ModelFacts | null } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const toast = useToast();
 
   const bgColor = useColorModeValue('gray.50', 'gray.900');
@@ -47,19 +51,22 @@ const ModelFactsPage: React.FC = () => {
   useEffect(() => {
     const fetchModel = async () => {
       if (id) {
+        setIsLoading(true);
+        setError(null);
         try {
           const fetchedModel = await getModelById(id);
           if (fetchedModel) {
             setModel({
               name: fetchedModel.basic_info.name,
               version: fetchedModel.basic_info.version,
-              facts: fetchedModel.facts || {} as ModelFacts
+              facts: fetchedModel.facts
             });
           } else {
-            setModel(null);
+            setError("Model not found");
           }
         } catch (error) {
           console.error('Error fetching model:', error);
+          setError("Unable to load model details");
           toast({
             title: "Error fetching model",
             description: "Unable to load model details",
@@ -67,7 +74,6 @@ const ModelFactsPage: React.FC = () => {
             duration: 3000,
             isClosable: true,
           });
-          setModel(null);
         } finally {
           setIsLoading(false);
         }
@@ -109,10 +115,10 @@ const ModelFactsPage: React.FC = () => {
     );
   }
 
-  if (!model) {
+  if (error || !model) {
     return (
       <Flex h="100vh" alignItems="center" justifyContent="center" direction="column">
-        <Text fontSize="xl" mb={4}>Model not found</Text>
+        <Text fontSize="xl" mb={4}>{error || "Model not found"}</Text>
         <Button onClick={() => router.push('/configure')} colorScheme="blue">
           Back to Configuration
         </Button>
@@ -142,17 +148,30 @@ const ModelFactsPage: React.FC = () => {
               </BreadcrumbItem>
             </Breadcrumb>
 
-            <Heading as="h1" size={headingSize} color={textColor}>
-              Model Facts: {model.name}
-            </Heading>
-            <Text color={textColor} fontSize="md">Version: {model.version}</Text>
-            <Divider />
-            <Box bg={cardBgColor} p={{ base: 4, md: 6 }} borderRadius="lg" boxShadow="md">
-              <ModelFactsForm initialValues={model.facts} onSubmit={handleSubmit} />
-            </Box>
-            <Flex justifyContent="flex-end">
-              <Button onClick={() => router.push('/configure')} size="lg" colorScheme="blue" leftIcon={<FiSettings />}>
+            <Card>
+              <CardHeader>
+                <Heading as="h1" size={headingSize} color={textColor}>
+                  Model Facts: {model.name}
+                </Heading>
+                <Text color={textColor} fontSize="md" mt={2}>Version: {model.version}</Text>
+              </CardHeader>
+              <Divider />
+              <CardBody bg={cardBgColor} borderRadius="lg">
+                <ModelFactsForm initialValues={model.facts || {}} onSubmit={handleSubmit} />
+              </CardBody>
+            </Card>
+
+            <Flex justifyContent="space-between">
+              <Button onClick={() => router.push('/configure')} size="lg" colorScheme="gray" leftIcon={<FiSettings />}>
                 Back to Configuration
+              </Button>
+              <Button
+                onClick={() => document.getElementById('submit-form')?.click()}
+                size="lg"
+                colorScheme="blue"
+                leftIcon={<FiSave />}
+              >
+                Save Model Facts
               </Button>
             </Flex>
           </VStack>
