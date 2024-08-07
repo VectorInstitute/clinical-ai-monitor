@@ -20,7 +20,7 @@ from api.models.evaluate import (
     list_models,
     remove_model_from_endpoint,
 )
-from api.models.facts import ModelFacts, get_model_facts_test
+from api.models.facts import ModelFacts, get_model_facts, update_model_facts
 from api.models.performance import get_performance_metrics
 from api.models.safety import ModelSafety, get_model_safety
 
@@ -302,12 +302,45 @@ async def get_model_facts_route(model_id: str) -> Optional[ModelFacts]:
         If there's an error retrieving the model facts.
     """
     try:
-        return get_model_facts_test(model_id)
+        return get_model_facts(model_id)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e)) from e
     except Exception as e:
         raise HTTPException(
             status_code=500, detail=f"Error retrieving model facts: {str(e)}"
+        ) from e
+
+
+@router.post("/models/{model_id}/facts", response_model=ModelFacts)
+async def update_model_facts_route(model_id: str, facts: ModelFacts) -> ModelFacts:
+    """
+    Update facts for a specific model.
+
+    Parameters
+    ----------
+    model_id : str
+        The ID of the model to update facts for.
+    facts : ModelFacts
+        The updated facts for the model.
+
+    Returns
+    -------
+    ModelFacts
+        The updated facts for the specified model.
+
+    Raises
+    ------
+    HTTPException
+        If there's an error updating the model facts.
+    """
+    try:
+        updated_facts = update_model_facts(model_id, facts.dict(exclude_unset=True))
+        return ModelFacts(**updated_facts.dict())
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e)) from e
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Error updating model facts: {str(e)}"
         ) from e
 
 
