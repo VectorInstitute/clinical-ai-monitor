@@ -19,13 +19,14 @@ const ModelFactsForm: React.FC<ModelFactsFormProps> = ({ initialValues, onSubmit
     >
       {({ values, errors, touched, isSubmitting }) => (
         <Form>
-          <VStack spacing={6} align="stretch">
+          <VStack spacing={8} align="stretch">
             <ModelFormFields values={values} errors={errors} touched={touched} />
             <Button
               type="submit"
               colorScheme="blue"
               isLoading={isSubmitting}
               loadingText="Saving..."
+              size="lg"
             >
               Save Model Facts
             </Button>

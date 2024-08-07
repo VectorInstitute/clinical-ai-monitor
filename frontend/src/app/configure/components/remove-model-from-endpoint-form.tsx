@@ -34,7 +34,7 @@ const RemoveModelFromEndpointForm: React.FC<RemoveModelFromEndpointFormProps> = 
   const [selectedModel, setSelectedModel] = useState<string>('');
   const toast = useToast();
   const { removeModelFromEndpoint } = useEndpointContext();
-  const { getModelById } = useModelContext();
+  const { models: allModels } = useModelContext();
 
   const handleModelSelect = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
     setSelectedModel(e.target.value);
@@ -72,11 +72,14 @@ const RemoveModelFromEndpointForm: React.FC<RemoveModelFromEndpointFormProps> = 
   }, [selectedModel, removeModelFromEndpoint, endpointName, toast, onClose]);
 
   const modelOptions = useMemo(() => {
-    return models.map((modelId) => ({
-      value: modelId,
-      label: modelId,
-    }));
-  }, [models]);
+    return models.map((modelId) => {
+      const model = allModels.find(m => m.id === modelId);
+      return {
+        value: modelId,
+        label: model ? `${model.basic_info.name} (v${model.basic_info.version})` : modelId,
+      };
+    });
+  }, [models, allModels]);
 
   return (
     <Modal isOpen={isOpen} onClose={onClose}>

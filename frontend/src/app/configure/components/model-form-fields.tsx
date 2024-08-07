@@ -13,6 +13,7 @@ import {
   FormErrorMessage,
   VStack,
   HStack,
+  Divider,
 } from '@chakra-ui/react';
 import { AddIcon, MinusIcon } from '@chakra-ui/icons';
 import { ModelFacts } from '../types/facts';
@@ -78,29 +79,47 @@ const ModelFormFields: React.FC<ModelFormFieldsProps> = ({ values, errors, touch
   );
 
   return (
-    <VStack spacing={4} align="stretch">
-      {renderField('name', 'Model Name')}
-      {renderField('version', 'Version')}
-      {renderField('type', 'Type', 'select')}
-      {renderField('intended_use', 'Intended Use', 'textarea')}
-      {renderField('target_population', 'Target Population', 'textarea')}
-      {renderArrayField('input_data', 'Input Data')}
-      {renderField('output_data', 'Output Data')}
-      {renderField('summary', 'Summary', 'textarea')}
-      {renderField('mechanism_of_action', 'Mechanism of Action', 'textarea')}
+    <VStack spacing={6} align="stretch">
+      <Box>
+        <Text fontSize="xl" fontWeight="bold" mb={4}>Basic Information</Text>
+        {renderField('name', 'Model Name')}
+        {renderField('version', 'Version')}
+        {renderField('type', 'Type', 'select')}
+      </Box>
+
+      <Divider />
 
       <Box>
-        <Text fontWeight="bold">Validation and Performance</Text>
+        <Text fontSize="xl" fontWeight="bold" mb={4}>Model Details</Text>
+        {renderField('intended_use', 'Intended Use', 'textarea')}
+        {renderField('target_population', 'Target Population', 'textarea')}
+        {renderArrayField('input_data', 'Input Data')}
+        {renderField('output_data', 'Output Data')}
+        {renderField('summary', 'Summary', 'textarea')}
+        {renderField('mechanism_of_action', 'Mechanism of Action', 'textarea')}
+      </Box>
+
+      <Divider />
+
+      <Box>
+        <Text fontSize="xl" fontWeight="bold" mb={4}>Validation and Performance</Text>
         {renderField('validation_and_performance.internal_validation', 'Internal Validation', 'textarea')}
         {renderField('validation_and_performance.external_validation', 'External Validation', 'textarea')}
         {renderArrayField('validation_and_performance.performance_in_subgroups', 'Performance in Subgroups')}
       </Box>
 
-      {renderArrayField('uses_and_directions', 'Uses and Directions')}
-      {renderArrayField('warnings', 'Warnings')}
+      <Divider />
 
       <Box>
-        <Text fontWeight="bold">Other Information</Text>
+        <Text fontSize="xl" fontWeight="bold" mb={4}>Usage Information</Text>
+        {renderArrayField('uses_and_directions', 'Uses and Directions')}
+        {renderArrayField('warnings', 'Warnings')}
+      </Box>
+
+      <Divider />
+
+      <Box>
+        <Text fontSize="xl" fontWeight="bold" mb={4}>Other Information</Text>
         {renderField('other_information.approval_date', 'Approval Date')}
         {renderField('other_information.license', 'License')}
         {renderField('other_information.contact_information', 'Contact Information')}
