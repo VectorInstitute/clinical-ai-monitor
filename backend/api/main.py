@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from api.routes import router as api_router
 from api.users.crud import create_initial_admin
-from api.users.db import get_db, Base, engine
+from api.users.db import Base, engine, get_db
 
 
 Base.metadata.create_all(bind=engine)
