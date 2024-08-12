@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import {
   Box,
   VStack,
@@ -15,6 +15,7 @@ import {
 } from '@chakra-ui/react';
 import { FiPlus, FiTrash2, FiList } from 'react-icons/fi';
 import { useRouter } from 'next/navigation';
+import { useSession } from "next-auth/react";
 import Sidebar from '../components/sidebar';
 import CreateEndpointForm from './components/create-endpoint-form';
 import DeleteEndpointForm from './components/delete-endpoint-form';
@@ -24,6 +25,7 @@ import ConfigCard from './components/config-card';
 import EndpointCard from './components/endpoint-card';
 import { useEndpointContext } from '../context/endpoint';
 import { useModelContext } from '../context/model';
+import { LoadingSpinner } from '../components/loading-spinner';
 
 const ConfigurationPage: React.FC = () => {
   const { isOpen: isCreateOpen, onOpen: onCreateOpen, onClose: onCreateClose } = useDisclosure();
@@ -34,13 +36,19 @@ const ConfigurationPage: React.FC = () => {
   const router = useRouter();
   const { endpoints } = useEndpointContext();
   const { models } = useModelContext();
+  const { data: session, status } = useSession();
 
   const bgColor = useColorModeValue('gray.50', 'gray.900');
   const textColor = useColorModeValue('gray.800', 'gray.100');
   const borderColor = useColorModeValue('gray.200', 'gray.700');
 
-  const isMobile = useBreakpointValue({ base: true, md: false });
   const sidebarWidth = 60; // Fixed sidebar width
+
+  useEffect(() => {
+    if (status === "unauthenticated" || (session && session.user.role !== "admin")) {
+      router.push("/unauthorized");
+    }
+  }, [session, status, router]);
 
   const configCards = useMemo(() => [
     {
@@ -98,6 +106,14 @@ const ConfigurationPage: React.FC = () => {
     setSelectedEndpoint(endpointName);
     onRemoveModelOpen();
   }, [onRemoveModelOpen]);
+
+  if (status === "loading") {
+    return <LoadingSpinner />;
+  }
+
+  if (!session || session.user.role !== "admin") {
+    return null;
+  }
 
   return (
     <Flex minHeight="100vh" bg={bgColor}>

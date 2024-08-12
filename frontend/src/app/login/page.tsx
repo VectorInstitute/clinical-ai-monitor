@@ -1,19 +1,28 @@
-// frontend/src/app/login/page.tsx
 'use client'
 import { useState } from 'react'
 import { Box, Button, FormControl, FormLabel, Input, VStack, Flex, Text } from '@chakra-ui/react'
+import { signIn } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import Logo from './logo'
 
 export default function LoginPage() {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
+  const [error, setError] = useState('')
   const router = useRouter()
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
-    // TODO: Implement actual login logic
-    router.push('/home')
+    const result = await signIn('credentials', {
+      username,
+      password,
+      redirect: false,
+    })
+    if (result?.error) {
+      setError('Invalid username or password')
+    } else {
+      router.push('/home')
+    }
   }
 
   return (
@@ -32,6 +41,7 @@ export default function LoginPage() {
             <FormLabel>Password</FormLabel>
             <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
           </FormControl>
+          {error && <Text color="red.500">{error}</Text>}
           <Button type="submit" colorScheme="blue" width="full">
             Login
           </Button>

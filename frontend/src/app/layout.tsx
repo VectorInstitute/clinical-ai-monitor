@@ -1,6 +1,7 @@
 'use client'
 
 import { ChakraProvider } from '@chakra-ui/react'
+import { SessionProvider } from "next-auth/react"
 import { ModelProvider } from './context/model'
 import { EndpointProvider } from './context/endpoint';
 
@@ -12,13 +13,15 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <ChakraProvider>
-          <EndpointProvider>
-            <ModelProvider>
-              {children}
-            </ModelProvider>
-          </EndpointProvider>
-        </ChakraProvider>
+        <SessionProvider>
+          <ChakraProvider>
+            <EndpointProvider>
+              <ModelProvider>
+                {children}
+              </ModelProvider>
+            </EndpointProvider>
+          </ChakraProvider>
+        </SessionProvider>
       </body>
     </html>
   )
