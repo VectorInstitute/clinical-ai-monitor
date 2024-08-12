@@ -39,23 +39,29 @@ export default function HomePage() {
   const dividerColor = useColorModeValue('gray.200', 'gray.700')
   const noModelsTextColor = useColorModeValue('gray.600', 'gray.400')
 
-  const debouncedFetchModels = useCallback(
-    debounce(async () => {
+  const debouncedFetchModels = useCallback(() => {
+    const fetchModelsDebounced = debounce(async () => {
       try {
         await fetchModels()
+        setError(null)
       } catch (error) {
         console.error('Failed to fetch models:', error)
         setError('Failed to load models. Please try again later.')
       } finally {
         setIsInitialLoadComplete(true)
       }
-    }, 300),
-    [fetchModels]
-  )
+    }, 300)
+
+    fetchModelsDebounced()
+
+    return () => {
+      fetchModelsDebounced.cancel()
+    }
+  }, [fetchModels])
 
   useEffect(() => {
-    debouncedFetchModels()
-    return () => debouncedFetchModels.cancel()
+    const cleanup = debouncedFetchModels()
+    return cleanup
   }, [debouncedFetchModels])
 
   const getStatusColor = (status: string) => status === 'No warnings' ? 'green' : 'red'
@@ -77,7 +83,7 @@ export default function HomePage() {
           <Icon as={FiAlertCircle} boxSize={12} color="red.500" mb={4} />
           <Text fontSize="xl" fontWeight="bold" mb={4} textAlign="center">Error</Text>
           <Text fontSize="md" mb={6} textAlign="center" color={noModelsTextColor}>{error}</Text>
-          <Button colorScheme="blue" onClick={() => debouncedFetchModels()}>Retry</Button>
+          <Button colorScheme="blue" onClick={debouncedFetchModels}>Retry</Button>
         </Center>
       )
     }
@@ -92,7 +98,7 @@ export default function HomePage() {
             To start monitoring a model, you need to configure its evaluation parameters.
           </Text>
           <Link href="/configure" passHref>
-            <Button colorScheme="blue" size="lg" leftIcon={<FiMonitor />}>Configure a New Model</Button>
+            <Button as="a" colorScheme="blue" size="lg" leftIcon={<FiMonitor />}>Configure a New Model</Button>
           </Link>
         </Center>
       )
@@ -132,7 +138,7 @@ export default function HomePage() {
   return (
     <Flex minHeight="100vh" bg={bgColor}>
       <Sidebar />
-      <Box ml={{ base: 0, md: 60 }} w="full" transition="margin-left 0.3s">
+      <Box flex={1} ml={{ base: 0, md: 60 }} transition="margin-left 0.3s">
         <Container maxW="container.xl" py={8}>
           <VStack spacing={8} align="stretch">
             <Box bg={cardBgColor} p={8} borderRadius="lg" shadow="md">
