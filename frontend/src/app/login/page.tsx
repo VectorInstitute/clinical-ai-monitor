@@ -13,15 +13,20 @@ export default function LoginPage() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
-    const result = await signIn('credentials', {
-      username,
-      password,
-      redirect: false,
-    })
-    if (result?.error) {
-      setError('Invalid username or password')
-    } else {
-      router.push('/home')
+    try {
+      const result = await signIn('credentials', {
+        username,
+        password,
+        redirect: false,
+      })
+      if (result?.error) {
+        setError('Invalid username or password')
+      } else {
+        router.push('/home')
+      }
+    } catch (error) {
+      console.error('Login error:', error)
+      setError('An unexpected error occurred. Please try again.')
     }
   }
 
@@ -33,16 +38,16 @@ export default function LoginPage() {
       </Flex>
       <form onSubmit={handleLogin}>
         <VStack spacing={2}>
-          <FormControl>
+          <FormControl isRequired>
             <FormLabel>Username</FormLabel>
             <Input type="text" value={username} onChange={(e) => setUsername(e.target.value)} />
           </FormControl>
-          <FormControl>
+          <FormControl isRequired>
             <FormLabel>Password</FormLabel>
             <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
           </FormControl>
           {error && <Text color="red.500">{error}</Text>}
-          <Button type="submit" colorScheme="blue" width="full">
+          <Button type="submit" colorScheme="blue" width="full" isDisabled={!username || !password}>
             Login
           </Button>
         </VStack>

@@ -34,18 +34,19 @@ export const authOptions: NextAuthOptions = {
         };
       }
     }),
-    // Add other providers here for future extensibility (e.g., LDAP, Azure AD, etc.)
   ],
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
         token.role = user.role;
+        token.username = user.username;
       }
       return token;
     },
     async session({ session, token }) {
       if (session.user) {
         session.user.role = token.role as string;
+        session.user.username = token.username as string;
       }
       return session;
     },
