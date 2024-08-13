@@ -11,9 +11,13 @@ COPY . .
 ARG FRONTEND_PORT
 ARG BACKEND_PORT
 ARG BACKEND_HOST
+ARG NEXTAUTH_URL
+ARG NEXTAUTH_SECRET
 ENV NEXT_PUBLIC_FRONTEND_PORT=${FRONTEND_PORT} \
     NEXT_PUBLIC_BACKEND_PORT=${BACKEND_PORT} \
-    NEXT_PUBLIC_BACKEND_HOST=${BACKEND_HOST}
+    NEXT_PUBLIC_BACKEND_HOST=${BACKEND_HOST} \
+    NEXTAUTH_URL=${NEXTAUTH_URL} \
+    NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
 
 RUN npm run build
 
@@ -26,7 +30,6 @@ RUN addgroup -S nextjs && \
     adduser -S -G nextjs nextjs && \
     chown -R nextjs:nextjs /app
 
-# Install sharp for production Image Optimization
 RUN apk add --no-cache vips-dev
 RUN npm install --platform=linuxmusl --arch=x64 sharp
 
