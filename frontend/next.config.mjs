@@ -4,17 +4,14 @@ const nextConfig = {
     return [
       {
         source: '/api/:path*',
-        destination: `http://${process.env.NEXT_PUBLIC_BACKEND_HOST || 'localhost'}:${process.env.NEXT_PUBLIC_BACKEND_PORT || '8000'}/:path*`, // Proxy to Backend
+        destination: `http://${process.env.NEXT_PUBLIC_BACKEND_HOST}:${process.env.NEXT_PUBLIC_BACKEND_PORT}/:path*`, // Proxy to Backend
       },
     ]
   },
-  serverRuntimeConfig: {
-    backendHost: process.env.NEXT_PUBLIC_BACKEND_HOST || 'localhost',
-    backendPort: process.env.NEXT_PUBLIC_BACKEND_PORT || '8000',
-  },
   publicRuntimeConfig: {
-    backendHost: process.env.NEXT_PUBLIC_BACKEND_HOST || 'localhost',
-    backendPort: process.env.NEXT_PUBLIC_BACKEND_PORT || '8000',
+    backendHost: process.env.NEXT_PUBLIC_BACKEND_HOST,
+    backendPort: process.env.NEXT_PUBLIC_BACKEND_PORT,
+    frontendPort: process.env.NEXT_PUBLIC_FRONTEND_PORT,
   },
 }
 
