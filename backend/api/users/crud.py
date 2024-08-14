@@ -1,16 +1,16 @@
-"""Module for CRUD operations for user management."""
+"""CRUD operations for user management."""
 
 from typing import List, Optional
 
 from sqlalchemy import Boolean, Column, Integer, String
 from sqlalchemy.orm import Session
 
-from api.users.auth import get_password_hash
-from api.users.data import UserCreate
+from api.users.data import User, UserCreate
 from api.users.db import Base
+from api.users.utils import get_password_hash
 
 
-class User(Base):
+class UserModel(Base):
     """
     SQLAlchemy model for the users table.
 
@@ -36,8 +36,8 @@ class User(Base):
     username = Column(String, unique=True, index=True)
     email = Column(String, unique=True, index=True)
     hashed_password = Column(String)
-    is_active = Column(Boolean, default=True)
     role = Column(String)
+    is_active = Column(Boolean, default=True)
 
 
 def get_user(db: Session, user_id: int) -> Optional[User]:
@@ -56,7 +56,8 @@ def get_user(db: Session, user_id: int) -> Optional[User]:
     Optional[User]
         The user if found, None otherwise.
     """
-    return db.query(User).filter(User.id == user_id).first()
+    db_user = db.query(UserModel).filter(UserModel.id == user_id).first()
+    return User.from_orm(db_user) if db_user else None
 
 
 def get_user_by_username(db: Session, username: str) -> Optional[User]:
@@ -75,7 +76,17 @@ def get_user_by_username(db: Session, username: str) -> Optional[User]:
     Optional[User]
         The user if found, None otherwise.
     """
-    return db.query(User).filter(User.username == username).first()
+    db_user = db.query(UserModel).filter(UserModel.username == username).first()
+    if db_user:
+        return User(
+            id=db_user.id,
+            username=db_user.username,
+            email=db_user.email,
+            role=db_user.role,
+            is_active=db_user.is_active,
+            hashed_password=db_user.hashed_password,
+        )
+    return None
 
 
 def get_users(db: Session, skip: int = 0, limit: int = 100) -> List[User]:
@@ -96,7 +107,8 @@ def get_users(db: Session, skip: int = 0, limit: int = 100) -> List[User]:
     List[User]
         A list of User objects.
     """
-    return db.query(User).offset(skip).limit(limit).all()
+    db_users = db.query(UserModel).offset(skip).limit(limit).all()
+    return [User.from_orm(db_user) for db_user in db_users]
 
 
 def create_user(db: Session, user: UserCreate) -> User:
@@ -116,16 +128,17 @@ def create_user(db: Session, user: UserCreate) -> User:
         The created user object.
     """
     hashed_password = get_password_hash(user.password)
-    db_user = User(
+    db_user = UserModel(
         username=user.username,
         email=user.email,
-        hashed_password=hashed_password,
         role=user.role,
+        hashed_password=hashed_password,
+        is_active=True,
     )
     db.add(db_user)
     db.commit()
     db.refresh(db_user)
-    return db_user
+    return User.from_orm(db_user)
 
 
 def update_user(db: Session, user: User, user_update: UserCreate) -> User:
@@ -146,23 +159,41 @@ def update_user(db: Session, user: User, user_update: UserCreate) -> User:
     User
         The updated user object.
     """
-    user.username = user_update.username
-    user.email = user_update.email
-    user.role = user_update.role
+    db_user = db.query(UserModel).filter(UserModel.id == user.id).first()
+    if not db_user:
+        raise ValueError("User not found")
+
+    db_user.username = user_update.username
+    db_user.email = user_update.email
+    db_user.role = user_update.role
     if user_update.password:
-        user.hashed_password = get_password_hash(user_update.password)
+        db_user.hashed_password = get_password_hash(user_update.password)
+
     db.commit()
-    db.refresh(user)
-    return user
+    db.refresh(db_user)
+    return User.from_orm(db_user)
 
 
-def create_initial_admin(db: Session):
+def create_initial_admin(db: Session) -> User:
+    """
+    Create the initial admin user if it doesn't exist.
+
+    Parameters
+    ----------
+    db : Session
+        The database session.
+
+    Returns
+    -------
+    User
+        The created or existing admin user.
+    """
     admin_user = get_user_by_username(db, username="admin")
     if not admin_user:
         hashed_password = get_password_hash(
             "admin_password"
         )  # Change this to a secure password
-        admin_user = User(
+        admin_user = UserModel(
             username="admin",
             email="admin@example.com",
             hashed_password=hashed_password,
@@ -172,4 +203,4 @@ def create_initial_admin(db: Session):
         db.add(admin_user)
         db.commit()
         db.refresh(admin_user)
-    return admin_user
+    return User.from_orm(admin_user)

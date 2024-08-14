@@ -1,6 +1,5 @@
 """Database to store user information."""
 
-from contextlib import contextmanager
 from typing import Generator
 
 from sqlalchemy import create_engine
@@ -17,20 +16,14 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
 
-@contextmanager
 def get_db() -> Generator[Session, None, None]:
     """
-    Context manager for database sessions.
+    Generator function for database sessions.
 
     Yields
     ------
     Session
         A SQLAlchemy database session.
-
-    Raises
-    ------
-    Exception
-        Any exception that occurs during database operations.
     """
     db = SessionLocal()
     try:

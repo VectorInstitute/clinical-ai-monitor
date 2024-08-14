@@ -7,10 +7,12 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from api.routes import router as api_router
 from api.users.crud import create_initial_admin
-from api.users.db import Base, engine, get_db
+from api.users.db import Base, SessionLocal, engine
 
 
+# Create tables
 Base.metadata.create_all(bind=engine)
+
 app = FastAPI()
 
 frontend_port = os.getenv("FRONTEND_PORT", None)
@@ -29,10 +31,13 @@ app.include_router(api_router)
 
 
 @app.on_event("startup")
-async def startup_event():
+def startup_event():
     """Create the admin user on startup."""
-    with get_db() as db:
+    db = SessionLocal()
+    try:
         create_initial_admin(db)
+    finally:
+        db.close()
 
 
 @app.get("/")

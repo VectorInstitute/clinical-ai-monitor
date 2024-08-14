@@ -1,5 +1,3 @@
-"""Pydantic data models for authentication and user management."""
-
 from typing import Optional
 
 from pydantic import BaseModel, EmailStr
@@ -76,6 +74,8 @@ class User(UserBase):
         The unique identifier for the user.
     is_active : bool
         Flag indicating whether the user account is active.
+    hashed_password: str
+        Hashed password.
 
     Config
     ------
@@ -85,8 +85,7 @@ class User(UserBase):
 
     id: int
     is_active: bool
+    hashed_password: str
 
     class Config:
-        """Config."""
-
         orm_mode = True

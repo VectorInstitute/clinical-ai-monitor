@@ -1,11 +1,7 @@
 import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
-import { PrismaAdapter } from "@auth/prisma-adapter";
-import { prisma } from "./prisma";
-import bcrypt from "bcrypt";
 
 export const authOptions: NextAuthOptions = {
-  adapter: PrismaAdapter(prisma),
   providers: [
     CredentialsProvider({
       name: "Credentials",
@@ -17,21 +13,28 @@ export const authOptions: NextAuthOptions = {
         if (!credentials?.username || !credentials?.password) {
           return null;
         }
-        const user = await prisma.user.findUnique({
-          where: { username: credentials.username },
+
+        const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/token`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: new URLSearchParams({
+            username: credentials.username,
+            password: credentials.password,
+          }),
         });
-        if (!user) {
-          return null;
+
+        const user = await res.json();
+
+        if (res.ok && user) {
+          return {
+            id: user.id,
+            username: user.username,
+            role: user.role,
+            accessToken: user.access_token,
+          };
         }
-        const isPasswordValid = await bcrypt.compare(credentials.password, user.password);
-        if (!isPasswordValid) {
-          return null;
-        }
-        return {
-          id: user.id,
-          username: user.username,
-          role: user.role,
-        };
+
+        return null;
       }
     }),
   ],
@@ -40,6 +43,7 @@ export const authOptions: NextAuthOptions = {
       if (user) {
         token.role = user.role;
         token.username = user.username;
+        token.accessToken = user.accessToken;
       }
       return token;
     },
@@ -47,6 +51,7 @@ export const authOptions: NextAuthOptions = {
       if (session.user) {
         session.user.role = token.role as string;
         session.user.username = token.username as string;
+        session.user.accessToken = token.accessToken as string;
       }
       return session;
     },

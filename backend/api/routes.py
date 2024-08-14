@@ -5,6 +5,7 @@ from typing import Any, Dict, List, Optional, cast
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
+from sqlalchemy.orm import Session
 
 from api.models.config import EndpointConfig
 from api.models.data import ModelBasicInfo, ModelData
@@ -431,9 +432,18 @@ async def remove_model_from_endpoint_route(
 
 
 @router.post("/token", response_model=Token)
-async def login_for_access_token_route() -> Token:
+async def login_for_access_token_route(
+    form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)
+) -> Token:
     """
     Authenticate user and return an access token.
+
+    Parameters
+    ----------
+    form_data : OAuth2PasswordRequestForm
+        The form data containing username and password.
+    db : Session
+        The database session.
 
     Returns
     -------
@@ -445,24 +455,26 @@ async def login_for_access_token_route() -> Token:
     HTTPException
         If authentication fails.
     """
-    form_data = Depends(OAuth2PasswordRequestForm)()
-    with get_db() as db:
-        user = authenticate_user(db, form_data.username, form_data.password)
-        if not user:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Incorrect username or password",
-                headers={"WWW-Authenticate": "Bearer"},
-            )
-        access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-        access_token = create_access_token(
-            data={"sub": user.username}, expires_delta=access_token_expires
+    user = authenticate_user(db, form_data.username, form_data.password)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect username or password",
+            headers={"WWW-Authenticate": "Bearer"},
         )
-        return {"access_token": access_token, "token_type": "bearer"}
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": user.username}, expires_delta=access_token_expires
+    )
+    return {"access_token": access_token, "token_type": "bearer"}
 
 
 @router.post("/users", response_model=User)
-async def create_user_route(user: UserCreate) -> User:
+async def create_user_route(
+    user: UserCreate,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db),
+) -> User:
     """
     Create a new user (admin only).
 
@@ -470,6 +482,10 @@ async def create_user_route(user: UserCreate) -> User:
     ----------
     user : UserCreate
         The user data to create.
+    current_user : User
+        The current authenticated user.
+    db : Session
+        The database session.
 
     Returns
     -------
@@ -481,27 +497,34 @@ async def create_user_route(user: UserCreate) -> User:
     HTTPException
         If the current user is not an admin or if the username already exists.
     """
-    current_user = await get_current_active_user()
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Not authorized to create users")
-    with get_db() as db:
-        db_user = get_user_by_username(db, username=user.username)
-        if db_user:
-            raise HTTPException(status_code=400, detail="Username already registered")
-        return create_user(db=db, user=user)
+    db_user = get_user_by_username(db, username=user.username)
+    if db_user:
+        raise HTTPException(status_code=400, detail="Username already registered")
+    return create_user(db=db, user=user)
 
 
 @router.get("/users", response_model=List[User])
-async def get_users_route(skip: int = 0, limit: int = 100) -> List[User]:
+async def get_users_route(
+    current_user: User = Depends(get_current_active_user),
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db),
+) -> List[User]:
     """
     Retrieve a list of users (admin only).
 
     Parameters
     ----------
+    current_user : User
+        The current authenticated user.
     skip : int, optional
         The number of users to skip, by default 0.
     limit : int, optional
         The maximum number of users to return, by default 100.
+    db : Session
+        The database session.
 
     Returns
     -------
@@ -513,28 +536,38 @@ async def get_users_route(skip: int = 0, limit: int = 100) -> List[User]:
     HTTPException
         If the current user is not an admin.
     """
-    current_user = await get_current_active_user()
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Not authorized to view users")
-    with get_db() as db:
-        return get_users(db, skip=skip, limit=limit)
+    return get_users(db, skip=skip, limit=limit)
 
 
 @router.get("/users/me", response_model=User)
-async def get_current_active_user_route() -> User:
+async def get_current_active_user_route(
+    current_user: User = Depends(get_current_active_user),
+) -> User:
     """
     Get the current user's information.
+
+    Parameters
+    ----------
+    current_user : User
+        The current authenticated user.
 
     Returns
     -------
     User
         The current user's information.
     """
-    return await get_current_active_user()
+    return current_user
 
 
 @router.put("/users/{user_id}", response_model=User)
-async def update_user_route(user_id: int, user: UserCreate) -> User:
+async def update_user_route(
+    user_id: int,
+    user_update: UserCreate,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db),
+) -> User:
     """
     Update a user's information (admin only).
 
@@ -542,8 +575,12 @@ async def update_user_route(user_id: int, user: UserCreate) -> User:
     ----------
     user_id : int
         The ID of the user to update.
-    user : UserCreate
+    user_update : UserCreate
         The updated user data.
+    current_user : User
+        The current authenticated user.
+    db : Session
+        The database session.
 
     Returns
     -------
@@ -555,11 +592,9 @@ async def update_user_route(user_id: int, user: UserCreate) -> User:
     HTTPException
         If the current user is not an admin or if the user is not found.
     """
-    current_user = await get_current_active_user()
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Not authorized to update users")
-    with get_db() as db:
-        db_user = get_user(db, user_id=user_id)
-        if db_user is None:
-            raise HTTPException(status_code=404, detail="User not found")
-        return update_user(db=db, user=db_user, user_update=user)
+    db_user = get_user(db, user_id=user_id)
+    if db_user is None:
+        raise HTTPException(status_code=404, detail="User not found")
+    return update_user(db=db, user=db_user, user_update=user_update)

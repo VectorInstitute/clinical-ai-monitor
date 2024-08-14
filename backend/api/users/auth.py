@@ -1,60 +1,26 @@
-"""Handle authentication logic."""
+"""Authentication and authorization utilities."""
 
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta
 from typing import Any, Dict, Optional
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
-from passlib.context import CryptContext
 from sqlalchemy.orm import Session
 
+from api.users.crud import get_user_by_username
 from api.users.data import TokenData, User
 from api.users.db import get_db
+from api.users.utils import verify_password
 
 
-SECRET_KEY = "your-secret-key"  # Change this to a secure random key in production
+# Constants
+SECRET_KEY = "7f5157dd32f573a237cce2f2e83f88342a5034f3c9273c6104765dbef8e824f6"  # Change this in production
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# OAuth2 scheme
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
-
-
-def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """
-    Verify a plain password against a hashed password.
-
-    Parameters
-    ----------
-    plain_password : str
-        The plain text password to verify.
-    hashed_password : str
-        The hashed password to compare against.
-
-    Returns
-    -------
-    bool
-        True if the password is correct, False otherwise.
-    """
-    return pwd_context.verify(plain_password, hashed_password)
-
-
-def get_password_hash(password: str) -> str:
-    """
-    Hash a password for storing.
-
-    Parameters
-    ----------
-    password : str
-        The plain text password to hash.
-
-    Returns
-    -------
-    str
-        The hashed password.
-    """
-    return pwd_context.hash(password)
 
 
 def authenticate_user(db: Session, username: str, password: str) -> Optional[User]:
@@ -75,8 +41,10 @@ def authenticate_user(db: Session, username: str, password: str) -> Optional[Use
     Optional[User]
         The authenticated user if successful, None otherwise.
     """
-    user = db.query(User).filter(User.username == username).first()
-    if not user or not verify_password(password, user.hashed_password):
+    user = get_user_by_username(db, username)
+    if not user:
+        return None
+    if not verify_password(password, user.hashed_password):
         return None
     return user
 
@@ -100,10 +68,7 @@ def create_access_token(
         The encoded JWT token.
     """
     to_encode = data.copy()
-    if expires_delta:
-        expire = datetime.now(UTC) + expires_delta
-    else:
-        expire = datetime.now(UTC) + timedelta(minutes=15)
+    expire = datetime.utcnow() + (expires_delta or timedelta(minutes=15))
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
@@ -144,7 +109,8 @@ async def get_current_user(
         token_data = TokenData(username=username)
     except JWTError:
         raise credentials_exception
-    user = db.query(User).filter(User.username == token_data.username).first()
+
+    user = get_user_by_username(db, username=token_data.username)
     if user is None:
         raise credentials_exception
     return user
@@ -172,7 +138,5 @@ async def get_current_active_user(
         If the user is inactive.
     """
     if not current_user.is_active:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Inactive user"
-        )
+        raise HTTPException(status_code=400, detail="Inactive user")
     return current_user
