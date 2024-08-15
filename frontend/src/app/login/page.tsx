@@ -9,24 +9,35 @@ export default function LoginPage() {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
+    setIsLoading(true)
+    setError('')
+
     try {
       const result = await signIn('credentials', {
         username,
         password,
         redirect: false,
       })
+
       if (result?.error) {
-        setError('Invalid username or password')
+        if (result.status === 401) {
+          setError('Invalid username or password')
+        } else {
+          setError('An error occurred. Please try again.')
+        }
       } else {
         router.push('/home')
       }
     } catch (error) {
       console.error('Login error:', error)
       setError('An unexpected error occurred. Please try again.')
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -37,17 +48,34 @@ export default function LoginPage() {
         <Text fontSize="2xl" fontWeight="bold" mt={4} mb={6}>Login</Text>
       </Flex>
       <form onSubmit={handleLogin}>
-        <VStack spacing={2}>
+        <VStack spacing={4}>
           <FormControl isRequired>
             <FormLabel>Username</FormLabel>
-            <Input type="text" value={username} onChange={(e) => setUsername(e.target.value)} />
+            <Input
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              isDisabled={isLoading}
+            />
           </FormControl>
           <FormControl isRequired>
             <FormLabel>Password</FormLabel>
-            <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
+            <Input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              isDisabled={isLoading}
+            />
           </FormControl>
           {error && <Text color="red.500">{error}</Text>}
-          <Button type="submit" colorScheme="blue" width="full" isDisabled={!username || !password}>
+          <Button
+            type="submit"
+            colorScheme="blue"
+            width="full"
+            isLoading={isLoading}
+            loadingText="Logging in"
+            isDisabled={!username || !password || isLoading}
+          >
             Login
           </Button>
         </VStack>

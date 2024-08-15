@@ -14,24 +14,39 @@ export const authOptions: NextAuthOptions = {
           return null;
         }
 
-        const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/token`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: new URLSearchParams({
-            username: credentials.username,
-            password: credentials.password,
-          }),
-        });
+        try {
+          const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/token`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({
+              username: credentials.username,
+              password: credentials.password,
+            }),
+          });
 
-        const user = await res.json();
+          const tokenData = await res.json();
 
-        if (res.ok && user) {
-          return {
-            id: user.id,
-            username: user.username,
-            role: user.role,
-            accessToken: user.access_token,
-          };
+          if (res.ok && tokenData.access_token) {
+            // Fetch user details using the access token
+            const userRes = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/users/me`, {
+              headers: {
+                'Authorization': `Bearer ${tokenData.access_token}`
+              }
+            });
+
+            const userData = await userRes.json();
+
+            if (userRes.ok && userData) {
+              return {
+                id: userData.id.toString(),
+                username: userData.username,
+                role: userData.role,
+                accessToken: tokenData.access_token,
+              };
+            }
+          }
+        } catch (error) {
+          console.error("Authentication error:", error);
         }
 
         return null;
@@ -49,6 +64,7 @@ export const authOptions: NextAuthOptions = {
     },
     async session({ session, token }) {
       if (session.user) {
+        session.user.id = token.sub as string;
         session.user.role = token.role as string;
         session.user.username = token.username as string;
         session.user.accessToken = token.accessToken as string;

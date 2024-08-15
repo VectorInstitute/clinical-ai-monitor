@@ -9,6 +9,10 @@ export default withAuth(
     if (path.startsWith("/configure") && token?.role !== "admin") {
       return NextResponse.redirect(new URL("/unauthorized", req.url));
     }
+
+    if (path === "/home" && !token) {
+      return NextResponse.redirect(new URL("/login", req.url));
+    }
   },
   {
     callbacks: {
