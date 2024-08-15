@@ -9,6 +9,7 @@ services:
         - BACKEND_HOST=${BACKEND_HOST}
         - NEXTAUTH_URL=${NEXTAUTH_URL}
         - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
+        - NEXT_PUBLIC_BACKEND_URL=${NEXT_PUBLIC_BACKEND_URL}
     image: vectorinstitute/clinical-ai-monitor:frontend-${BUILD_ID}
     env_file: .env.production
     ports:
@@ -17,6 +18,7 @@ services:
       - NEXT_PUBLIC_BACKEND_HOST=${BACKEND_HOST}
       - NEXT_PUBLIC_BACKEND_PORT=${BACKEND_PORT}
       - NEXT_PUBLIC_FRONTEND_PORT=${FRONTEND_PORT}
+      - NEXT_PUBLIC_BACKEND_URL=${NEXT_PUBLIC_BACKEND_URL}
       - NEXTAUTH_URL=${NEXTAUTH_URL}
       - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
     depends_on:
