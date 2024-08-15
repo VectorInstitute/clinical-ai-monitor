@@ -1,9 +1,4 @@
-'use client'
-
-import { ChakraProvider } from '@chakra-ui/react'
-import { SessionProvider } from "next-auth/react"
-import { ModelProvider } from './context/model'
-import { EndpointProvider } from './context/endpoint';
+import { Providers } from './providers'
 
 export default function RootLayout({
   children,
@@ -13,15 +8,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <SessionProvider>
-          <ChakraProvider>
-            <EndpointProvider>
-              <ModelProvider>
-                {children}
-              </ModelProvider>
-            </EndpointProvider>
-          </ChakraProvider>
-        </SessionProvider>
+        <Providers>{children}</Providers>
       </body>
     </html>
   )

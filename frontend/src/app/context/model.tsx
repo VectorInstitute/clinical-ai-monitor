@@ -2,6 +2,9 @@
 
 import React, { createContext, useState, useContext, ReactNode, useCallback, useMemo, useEffect } from 'react';
 import { ModelFacts } from '../configure/types/facts'
+import getConfig from 'next/config';
+
+const { publicRuntimeConfig } = getConfig();
 
 interface ModelBasicInfo {
   name: string;
@@ -38,7 +41,8 @@ export const ModelProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const [models, setModels] = useState<ModelData[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  const apiRequest = useCallback(async (url: string, options: RequestInit = {}) => {
+  const apiRequest = useCallback(async (endpoint: string, options: RequestInit = {}) => {
+    const url = `${publicRuntimeConfig.backendUrl}${endpoint}`;
     const response = await fetch(url, options);
     if (!response.ok) {
       throw new Error(`API request failed: ${response.statusText}`);
@@ -49,9 +53,9 @@ export const ModelProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const fetchModels = useCallback(async () => {
     setIsLoading(true);
     try {
-      const data = await apiRequest('/api/models');
+      const data = await apiRequest('/models');
       const modelArray = await Promise.all(Object.entries(data).map(async ([id, modelInfo]: [string, any]) => {
-        const safetyData = await apiRequest(`/api/model/${id}/safety`);
+        const safetyData = await apiRequest(`/model/${id}/safety`);
         return {
           id,
           ...modelInfo,
@@ -76,13 +80,12 @@ export const ModelProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     try {
       const cachedModel = models.find(m => m.id === id);
       if (cachedModel && cachedModel.facts) {
-        setIsLoading(false);
         return cachedModel;
       }
 
-      const data = await apiRequest(`/api/models/${id}`);
-      const safetyData = await apiRequest(`/api/model/${id}/safety`);
-      const factsData = await apiRequest(`/api/models/${id}/facts`);
+      const data = await apiRequest(`/models/${id}`);
+      const safetyData = await apiRequest(`/model/${id}/safety`);
+      const factsData = await apiRequest(`/models/${id}/facts`);
 
       const newModel: ModelData = {
         id,
@@ -113,7 +116,7 @@ export const ModelProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const updateModelFacts = useCallback(async (id: string, facts: ModelFacts) => {
     setIsLoading(true);
     try {
-      await apiRequest(`/api/models/${id}/facts`, {
+      await apiRequest(`/models/${id}/facts`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

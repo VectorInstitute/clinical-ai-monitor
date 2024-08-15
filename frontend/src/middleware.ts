@@ -13,6 +13,11 @@ export default withAuth(
     if (path === "/home" && !token) {
       return NextResponse.redirect(new URL("/login", req.url));
     }
+
+    // Redirect authenticated users away from login page
+    if (path === "/login" && token) {
+      return NextResponse.redirect(new URL("/home", req.url));
+    }
   },
   {
     callbacks: {
@@ -22,5 +27,5 @@ export default withAuth(
 );
 
 export const config = {
-  matcher: ["/configure/:path*", "/home"],
+  matcher: ["/configure/:path*", "/home", "/login"],
 };

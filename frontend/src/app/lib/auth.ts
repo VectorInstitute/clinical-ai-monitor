@@ -1,5 +1,8 @@
 import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
+import getConfig from 'next/config';
+
+const { publicRuntimeConfig } = getConfig();
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -15,7 +18,7 @@ export const authOptions: NextAuthOptions = {
         }
 
         try {
-          const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/token`, {
+          const res = await fetch(`${publicRuntimeConfig.backendUrl}/token`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
             body: new URLSearchParams({
@@ -27,8 +30,7 @@ export const authOptions: NextAuthOptions = {
           const tokenData = await res.json();
 
           if (res.ok && tokenData.access_token) {
-            // Fetch user details using the access token
-            const userRes = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/users/me`, {
+            const userRes = await fetch(`${publicRuntimeConfig.backendUrl}/users/me`, {
               headers: {
                 'Authorization': `Bearer ${tokenData.access_token}`
               }
