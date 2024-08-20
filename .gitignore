@@ -43,3 +43,6 @@ next-env.d.ts
 .mypy_cache/
 .venv*
 **endpoint_data**
+
+# sqlite db
+*.db
