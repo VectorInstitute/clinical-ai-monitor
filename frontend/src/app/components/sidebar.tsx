@@ -17,6 +17,8 @@ import {
 } from '@chakra-ui/react'
 import { FiHome, FiSettings, FiLogOut, FiMenu, FiChevronLeft, FiChevronRight } from 'react-icons/fi'
 import NextLink from 'next/link'
+import { useAuth } from '../context/auth'
+import { useRouter } from 'next/navigation'
 
 const Sidebar = () => {
   const { isOpen, onOpen, onClose } = useDisclosure()
@@ -191,11 +193,31 @@ interface NavItemsProps {
 }
 
 const NavItems: React.FC<NavItemsProps> = ({ textColor, isCollapsed }) => {
+  const { logout } = useAuth()
+  const router = useRouter()
+
+  const handleLogout = async () => {
+    await logout()
+    router.push('/login')
+  }
+
   return (
     <>
-      <NavItem icon={FiHome} href="/home" textColor={textColor} isCollapsed={isCollapsed}>Dashboard</NavItem>
-      <NavItem icon={FiSettings} href="/configure" textColor={textColor} isCollapsed={isCollapsed}>Configure</NavItem>
-      <NavItem icon={FiLogOut} href="/logout" textColor={textColor} isCollapsed={isCollapsed}>Logout</NavItem>
+      <NavItem icon={FiHome} href="/home" textColor={textColor} isCollapsed={isCollapsed}>
+        Dashboard
+      </NavItem>
+      <NavItem icon={FiSettings} href="/configure" textColor={textColor} isCollapsed={isCollapsed}>
+        Configure
+      </NavItem>
+      <NavItem
+        icon={FiLogOut}
+        href="#"
+        textColor={textColor}
+        isCollapsed={isCollapsed}
+        onClick={handleLogout}
+      >
+        Logout
+      </NavItem>
     </>
   )
 }
@@ -206,15 +228,22 @@ interface NavItemProps {
   href: string
   textColor: string
   isCollapsed: boolean
+  onClick?: () => void
 }
 
-const NavItem: React.FC<NavItemProps> = ({ icon, children, href, textColor, isCollapsed }) => {
+const NavItem: React.FC<NavItemProps> = ({ icon, children, href, textColor, isCollapsed, onClick }) => {
   const bgHover = useColorModeValue('#8eb8f2', '#2c5282')
   const activeColor = useColorModeValue('#1e3a5f', '#ffffff')
 
   return (
     <Tooltip label={isCollapsed ? children : ''} placement="right" hasArrow>
-      <Link as={NextLink} href={href} style={{ textDecoration: 'none' }} _focus={{ boxShadow: 'none' }}>
+      <Link
+        as={NextLink}
+        href={href}
+        style={{ textDecoration: 'none' }}
+        _focus={{ boxShadow: 'none' }}
+        onClick={onClick}  // Add this line to handle the logout click
+      >
         <Flex
           align="center"
           p="4"

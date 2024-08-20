@@ -484,6 +484,34 @@ async def signin(
     }
 
 
+@router.post("/auth/signout")
+async def signout(
+    request: Request,
+    current_user: User = Depends(get_current_active_user),
+) -> Dict[str, str]:
+    """
+    Sign out the current user.
+
+    Parameters
+    ----------
+    request : Request
+        The incoming request object.
+    current_user : User
+        The current authenticated user.
+
+    Returns
+    -------
+    Dict[str, str]
+        A dictionary containing a success message.
+
+    Raises
+    ------
+    HTTPException
+        If the user is not authenticated.
+    """
+    return {"message": "Successfully signed out"}
+
+
 @router.get("/auth/session")
 async def get_session(
     current_user: User = Depends(get_current_active_user),

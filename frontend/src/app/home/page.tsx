@@ -25,8 +25,9 @@ import { useModelContext } from '../context/model'
 import Link from 'next/link'
 import { FiMonitor, FiAlertCircle, FiCheckCircle, FiBox } from 'react-icons/fi'
 import { debounce } from 'lodash'
+import { withAuth } from '../components/with-auth'
 
-export default function HomePage() {
+function HomePage() {
   const router = useRouter()
   const { models, fetchModels, isLoading } = useModelContext()
   const [error, setError] = useState<string | null>(null)
@@ -156,3 +157,5 @@ export default function HomePage() {
     </Flex>
   )
 }
+
+export default withAuth(HomePage)
