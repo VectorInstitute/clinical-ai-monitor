@@ -26,10 +26,10 @@ export default function LoginPage() {
   const router = useRouter()
 
   useEffect(() => {
-    if (isAuthenticated()) {
-      router.push('/home')
+    if (!isLoading && isAuthenticated()) {
+      router.replace('/home')
     }
-  }, [isAuthenticated, router])
+  }, [isAuthenticated, isLoading, router])
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target

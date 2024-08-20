@@ -15,6 +15,7 @@ interface AuthContextType {
   logout: () => Promise<void>
   isLoading: boolean
   isAuthenticated: () => boolean
+  getToken: () => string | null
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -110,12 +111,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return !!user && !!localStorage.getItem('token')
   }
 
+  const getToken = () => {
+    return localStorage.getItem('token')
+  }
+
   const contextValue: AuthContextType = {
     user,
     login,
     logout,
     isLoading,
     isAuthenticated,
+    getToken,
   }
 
   return (

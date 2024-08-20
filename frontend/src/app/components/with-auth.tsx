@@ -20,22 +20,33 @@ const LoadingScreen: React.FC = () => (
   </Flex>
 )
 
-export function withAuth<P extends object>(WrappedComponent: React.ComponentType<P>) {
+interface WithAuthOptions {
+  requiredRole?: 'admin' | 'viewer'
+}
+
+export function withAuth<P extends object>(
+  WrappedComponent: React.ComponentType<P>,
+  options: WithAuthOptions = {}
+) {
   return function WithAuth(props: P) {
     const { user, isLoading, isAuthenticated } = useAuth()
     const router = useRouter()
 
     useEffect(() => {
-      if (!isLoading && !isAuthenticated()) {
-        router.push('/login')
+      if (!isLoading) {
+        if (!isAuthenticated()) {
+          router.push('/login')
+        } else if (options.requiredRole && user?.role !== options.requiredRole) {
+          router.push('/unauthorized')
+        }
       }
-    }, [isLoading, isAuthenticated, router])
+    }, [isLoading, isAuthenticated, user, router])
 
     if (isLoading) {
       return <LoadingScreen />
     }
 
-    if (!isAuthenticated()) {
+    if (!isAuthenticated() || (options.requiredRole && user?.role !== options.requiredRole)) {
       return null
     }
 

@@ -20,6 +20,7 @@ import ModelSafetyTab from './tabs/safety'
 import PerformanceMetricsTab from './tabs/performance-metrics'
 import ModelFactsTab from './tabs/facts'
 import { useModelContext } from '../../context/model'
+import { withAuth } from '../../components/with-auth'
 
 interface ModelDashboardProps {
   params: {
@@ -27,8 +28,8 @@ interface ModelDashboardProps {
   };
 }
 
-export default function ModelDashboard({ params }: ModelDashboardProps): JSX.Element {
-  const { models, getModelById, isLoading } = useModelContext()
+function ModelDashboard({ params }: ModelDashboardProps): JSX.Element {
+  const { getModelById, isLoading: isContextLoading } = useModelContext()
   const [model, setModel] = useState<any | null>(null)
   const [isModelLoading, setIsModelLoading] = useState(true)
   const [activeTabIndex, setActiveTabIndex] = useState(0)
@@ -38,7 +39,8 @@ export default function ModelDashboard({ params }: ModelDashboardProps): JSX.Ele
   const textColor = useColorModeValue('gray.800', 'white')
 
   const fetchModel = useCallback(async () => {
-    if (isLoading) return
+    if (isContextLoading) return
+    setIsModelLoading(true)
     try {
       const fetchedModel = await getModelById(params.id)
       setModel(fetchedModel)
@@ -53,7 +55,7 @@ export default function ModelDashboard({ params }: ModelDashboardProps): JSX.Ele
     } finally {
       setIsModelLoading(false)
     }
-  }, [params.id, getModelById, isLoading, toast])
+  }, [params.id, getModelById, isContextLoading, toast])
 
   useEffect(() => {
     fetchModel()
@@ -71,7 +73,7 @@ export default function ModelDashboard({ params }: ModelDashboardProps): JSX.Ele
     localStorage.setItem(`activeTab-${params.id}`, index.toString())
   }
 
-  if (isLoading || isModelLoading) {
+  if (isContextLoading || isModelLoading) {
     return (
       <Center h="100vh">
         <Spinner size="xl" />
@@ -92,7 +94,7 @@ export default function ModelDashboard({ params }: ModelDashboardProps): JSX.Ele
       <Sidebar />
       <Box ml={{ base: 0, md: 60 }} p={{ base: 4, md: 8 }} w="full" transition="margin-left 0.3s">
         <Heading as="h1" size="xl" mb={6} color={textColor}>
-          Model Dashboard - ID: {params.id}
+          Model Dashboard - {model.basic_info.name}
         </Heading>
         <Tabs
           variant="soft-rounded"
@@ -122,3 +124,5 @@ export default function ModelDashboard({ params }: ModelDashboardProps): JSX.Ele
     </Flex>
   )
 }
+
+export default withAuth(ModelDashboard)

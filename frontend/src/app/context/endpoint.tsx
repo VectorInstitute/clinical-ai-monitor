@@ -2,7 +2,8 @@
 
 import React, { createContext, useState, useContext, ReactNode, useCallback, useMemo, useEffect } from 'react';
 import { EndpointConfig } from '../configure/types/configure';
-import { ModelFacts } from '../configure/types/facts'
+import { ModelFacts } from '../configure/types/facts';
+import { useAuth } from './auth';
 
 interface Endpoint {
   name: string;
@@ -33,16 +34,28 @@ export const useEndpointContext = () => {
 export const EndpointProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [endpoints, setEndpoints] = useState<Endpoint[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const { getToken, isAuthenticated } = useAuth();
 
   const apiRequest = useCallback(async <T,>(url: string, options: RequestInit = {}): Promise<T> => {
-    const response = await fetch(url, options);
+    const token = getToken();
+    if (!token) {
+      throw new Error('No authentication token available');
+    }
+    const response = await fetch(url, {
+      ...options,
+      headers: {
+        ...options.headers,
+        'Authorization': `Bearer ${token}`,
+      },
+    });
     if (!response.ok) {
       throw new Error(`API request failed: ${response.statusText}`);
     }
     return response.json();
-  }, []);
+  }, [getToken]);
 
   const fetchEndpoints = useCallback(async () => {
+    if (!isAuthenticated()) return;
     setIsLoading(true);
     try {
       const data = await apiRequest<{ endpoints: Endpoint[] }>('/api/endpoints');
@@ -52,7 +65,7 @@ export const EndpointProvider: React.FC<{ children: ReactNode }> = ({ children }
     } finally {
       setIsLoading(false);
     }
-  }, [apiRequest]);
+  }, [apiRequest, isAuthenticated]);
 
   useEffect(() => {
     fetchEndpoints();
