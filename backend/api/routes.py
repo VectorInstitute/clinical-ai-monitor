@@ -1,8 +1,10 @@
 """Backend API routes."""
 
+from datetime import timedelta
 from typing import Any, Dict, List, Optional, cast
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request, status
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.models.config import EndpointConfig
 from api.models.data import ModelBasicInfo, ModelData
@@ -23,6 +25,20 @@ from api.models.evaluate import (
 from api.models.facts import ModelFacts, get_model_facts, update_model_facts
 from api.models.performance import get_performance_metrics
 from api.models.safety import ModelSafety, get_model_safety
+from api.users.auth import (
+    ACCESS_TOKEN_EXPIRE_MINUTES,
+    authenticate_user,
+    create_access_token,
+    get_current_active_user,
+)
+from api.users.crud import (
+    create_user,
+    delete_user,
+    get_users,
+    update_user,
+)
+from api.users.data import User, UserCreate
+from api.users.db import get_async_session
 
 
 router = APIRouter()
@@ -411,3 +427,250 @@ async def remove_model_from_endpoint_route(
         raise HTTPException(
             status_code=500, detail=f"Internal server error: {str(e)}"
         ) from e
+
+
+@router.post("/auth/signin")
+async def signin(
+    request: Request, db: AsyncSession = Depends(get_async_session)
+) -> Dict[str, Any]:
+    """
+    Authenticate a user and return an access token.
+
+    Parameters
+    ----------
+    request : Request
+        The incoming request object.
+    db : AsyncSession
+        The database session.
+
+    Returns
+    -------
+    Dict[str, Any]
+        A dictionary containing the access token, token type, and user information.
+
+    Raises
+    ------
+    HTTPException
+        If the credentials are invalid or missing.
+    """
+    data = await request.json()
+    username = data.get("username")
+    password = data.get("password")
+
+    if not username or not password:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Username and password are required",
+        )
+
+    user = await authenticate_user(db, username, password)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect username or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": user.username, "role": user.role},
+        expires_delta=access_token_expires,
+    )
+
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "user": {"id": user.id, "username": user.username, "role": user.role},
+    }
+
+
+@router.get("/auth/session")
+async def get_session(
+    current_user: User = Depends(get_current_active_user),
+) -> Dict[str, Any]:
+    """
+    Get the current user's session information.
+
+    Parameters
+    ----------
+    current_user : User
+        The current authenticated user.
+
+    Returns
+    -------
+    Dict[str, Any]
+        A dictionary containing the user's session information.
+
+    Raises
+    ------
+    HTTPException
+        If the user is not authenticated.
+    """
+    if current_user is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    return {
+        "user": {
+            "id": current_user.id,
+            "username": current_user.username,
+            "email": current_user.email,
+            "role": current_user.role,
+        }
+    }
+
+
+@router.post("/auth/signup", response_model=User)
+async def signup(
+    user: UserCreate,
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_async_session),
+) -> User:
+    """
+    Create a new user (admin only).
+
+    Parameters
+    ----------
+    user : UserCreate
+        The user data to create.
+    current_user : User
+        The current authenticated user.
+    db : AsyncSession
+        The asynchronous database session.
+
+    Returns
+    -------
+    User
+        The created user.
+
+    Raises
+    ------
+    HTTPException
+        If the current user is not an admin.
+    """
+    if current_user.role != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not authorized to create users",
+        )
+    return await create_user(db=db, user=user)
+
+
+@router.get("/users", response_model=List[User])
+async def get_users_route(
+    current_user: User = Depends(get_current_active_user),
+    skip: int = 0,
+    limit: int = 100,
+    db: AsyncSession = Depends(get_async_session),
+) -> List[User]:
+    """
+    Get a list of users (admin only).
+
+    Parameters
+    ----------
+    current_user : User
+        The current authenticated user.
+    skip : int, optional
+        The number of users to skip, by default 0.
+    limit : int, optional
+        The maximum number of users to return, by default 100.
+    db : AsyncSession
+        The asynchronous database session.
+
+    Returns
+    -------
+    List[User]
+        A list of users.
+
+    Raises
+    ------
+    HTTPException
+        If the current user is not an admin.
+    """
+    if current_user.role != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to view users"
+        )
+    return await get_users(db, skip=skip, limit=limit)
+
+
+@router.put("/users/{user_id}", response_model=User)
+async def update_user_route(
+    user_id: int,
+    user_update: UserCreate,
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_async_session),
+) -> User:
+    """
+    Update a user (admin only).
+
+    Parameters
+    ----------
+    user_id : int
+        The ID of the user to update.
+    user_update : UserCreate
+        The updated user data.
+    current_user : User
+        The current authenticated user.
+    db : AsyncSession
+        The asynchronous database session.
+
+    Returns
+    -------
+    User
+        The updated user.
+
+    Raises
+    ------
+    HTTPException
+        If the current user is not an admin.
+    """
+    if current_user.role != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not authorized to update users",
+        )
+    return await update_user(db=db, user_id=user_id, user_update=user_update)
+
+
+@router.delete("/users/{user_id}")
+async def delete_user_route(
+    user_id: int,
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_async_session),
+) -> Dict[str, str]:
+    """
+    Delete a user (admin only).
+
+    Parameters
+    ----------
+    user_id : int
+        The ID of the user to delete.
+    current_user : User
+        The current authenticated user.
+    db : AsyncSession
+        The asynchronous database session.
+
+    Returns
+    -------
+    Dict[str, str]
+        A dictionary containing a success message.
+
+    Raises
+    ------
+    HTTPException
+        If the current user is not an admin or if the user is not found.
+    """
+    if current_user.role != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not authorized to delete users",
+        )
+
+    success = await delete_user(db=db, user_id=user_id)
+    if success:
+        return {"message": "User deleted successfully"}
+    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
