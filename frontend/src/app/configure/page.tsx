@@ -24,6 +24,7 @@ import ConfigCard from './components/config-card';
 import EndpointCard from './components/endpoint-card';
 import { useEndpointContext } from '../context/endpoint';
 import { useModelContext } from '../context/model';
+import { withAuth } from '../components/with-auth';
 
 const ConfigurationPage: React.FC = () => {
   const { isOpen: isCreateOpen, onOpen: onCreateOpen, onClose: onCreateClose } = useDisclosure();
@@ -164,4 +165,4 @@ const ConfigurationPage: React.FC = () => {
   );
 };
 
-export default ConfigurationPage;
+export default withAuth(ConfigurationPage);

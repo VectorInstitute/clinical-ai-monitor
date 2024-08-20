@@ -1,46 +1,122 @@
-// frontend/src/app/login/page.tsx
 'use client'
-import { useState } from 'react'
-import { Box, Button, FormControl, FormLabel, Input, VStack, Flex, Text } from '@chakra-ui/react'
+
+import React, { useState, FormEvent, useEffect } from 'react'
+import {
+  Box,
+  Button,
+  FormControl,
+  FormLabel,
+  Input,
+  VStack,
+  Flex,
+  useToast,
+  Container,
+  Heading,
+  Text,
+} from '@chakra-ui/react'
 import { useRouter } from 'next/navigation'
 import Logo from './logo'
+import { useAuth } from '../context/auth'
 
 export default function LoginPage() {
-  const [username, setUsername] = useState('')
-  const [password, setPassword] = useState('')
+  const [credentials, setCredentials] = useState({ username: '', password: '' })
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const { login, isLoading, isAuthenticated } = useAuth()
+  const toast = useToast()
   const router = useRouter()
 
-  const handleLogin = async (e: React.FormEvent) => {
+  useEffect(() => {
+    if (isAuthenticated()) {
+      router.push('/home')
+    }
+  }, [isAuthenticated, router])
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target
+    setCredentials(prev => ({ ...prev, [name]: value }))
+  }
+
+  const handleLogin = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    // TODO: Implement actual login logic
-    router.push('/home')
+    setIsSubmitting(true)
+    try {
+      await login(credentials.username, credentials.password)
+    } catch (error) {
+      toast({
+        title: 'Login failed',
+        description: error instanceof Error ? error.message : 'Please check your credentials and try again.',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      })
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  if (isLoading) {
+    return (
+      <Container maxWidth="md" centerContent>
+        <Box textAlign="center" mt={8}>
+          <Text fontSize="xl">Loading...</Text>
+        </Box>
+      </Container>
+    )
+  }
+
+  if (isAuthenticated()) {
+    return null
   }
 
   return (
-    <Box maxWidth="400px" margin="auto" mt={8} p={6} borderRadius="md" boxShadow="lg" bg="white">
-      <Flex direction="column" align="center" mb={6}>
-        <Logo src="/images/cyclops_logo-dark.png" alt="Cyclops Logo" width={240} height={240} />
-        <Text fontSize="2xl" fontWeight="bold" mt={4} mb={6}>Login</Text>
-      </Flex>
-      <form onSubmit={handleLogin}>
-        <VStack spacing={2}>
-          <FormControl>
-            <FormLabel>Username</FormLabel>
-            <Input type="text" value={username} onChange={(e) => setUsername(e.target.value)} />
-          </FormControl>
-          <FormControl>
-            <FormLabel>Password</FormLabel>
-            <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
-          </FormControl>
-          <Button type="submit" colorScheme="blue" width="full">
-            Login
-          </Button>
-        </VStack>
-      </form>
-      <Box height={16} />
-      <Flex justify="center" mt={6}>
-        <Logo src="/images/vector_logo.png" alt="Vector Institute Logo" width={120} height={120} />
-      </Flex>
-    </Box>
+    <Container maxWidth="md" centerContent>
+      <Box width="full" maxWidth="400px" mt={8} p={6} borderRadius="md" boxShadow="lg" bg="white">
+        <Flex direction="column" align="center" mb={6}>
+          <Logo src="/images/cyclops_logo-dark.png" alt="Cyclops Logo" width={240} height={240} />
+          <Heading as="h1" size="xl" mt={4} mb={6}>Login</Heading>
+        </Flex>
+        <form onSubmit={handleLogin}>
+          <VStack spacing={4}>
+            <FormControl isRequired>
+              <FormLabel htmlFor="username">Username</FormLabel>
+              <Input
+                id="username"
+                name="username"
+                type="text"
+                value={credentials.username}
+                onChange={handleInputChange}
+                autoComplete="username"
+                isDisabled={isSubmitting}
+              />
+            </FormControl>
+            <FormControl isRequired>
+              <FormLabel htmlFor="password">Password</FormLabel>
+              <Input
+                id="password"
+                name="password"
+                type="password"
+                value={credentials.password}
+                onChange={handleInputChange}
+                autoComplete="current-password"
+                isDisabled={isSubmitting}
+              />
+            </FormControl>
+            <Button
+              type="submit"
+              colorScheme="blue"
+              width="full"
+              isLoading={isSubmitting}
+              loadingText="Logging in..."
+              isDisabled={!credentials.username || !credentials.password}
+            >
+              Login
+            </Button>
+          </VStack>
+        </form>
+        <Flex justify="center" mt={8}>
+          <Logo src="/images/vector_logo.png" alt="Vector Institute Logo" width={120} height={120} />
+        </Flex>
+      </Box>
+    </Container>
   )
 }

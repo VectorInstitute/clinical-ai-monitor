@@ -2,7 +2,8 @@
 
 import { ChakraProvider } from '@chakra-ui/react'
 import { ModelProvider } from './context/model'
-import { EndpointProvider } from './context/endpoint';
+import { EndpointProvider } from './context/endpoint'
+import { AuthProvider } from './context/auth'
 
 export default function RootLayout({
   children,
@@ -13,11 +14,13 @@ export default function RootLayout({
     <html lang="en">
       <body>
         <ChakraProvider>
-          <EndpointProvider>
-            <ModelProvider>
-              {children}
-            </ModelProvider>
-          </EndpointProvider>
+          <AuthProvider>
+            <EndpointProvider>
+              <ModelProvider>
+                {children}
+              </ModelProvider>
+            </EndpointProvider>
+          </AuthProvider>
         </ChakraProvider>
       </body>
     </html>
