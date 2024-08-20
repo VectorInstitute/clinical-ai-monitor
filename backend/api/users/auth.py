@@ -72,11 +72,12 @@ def create_access_token(
     to_encode = data.copy()
     expire = datetime.utcnow() + (expires_delta or timedelta(minutes=15))
     to_encode.update({"exp": expire})
-    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return str(jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM))
 
 
 async def get_current_user(
-    token: str = Depends(oauth2_scheme), db: AsyncSession = Depends(get_async_session)
+    token: str = Depends(oauth2_scheme),  # noqa: B008
+    db: AsyncSession = Depends(get_async_session),  # noqa: B008
 ) -> User:
     """
     Get the current authenticated user from the token.
@@ -109,8 +110,8 @@ async def get_current_user(
         if username is None:
             raise credentials_exception
         token_data = TokenData(username=username)
-    except JWTError:
-        raise credentials_exception
+    except JWTError as err:
+        raise credentials_exception from err
 
     user = await get_user_by_username(db, username=token_data.username)
     if user is None:
@@ -119,7 +120,7 @@ async def get_current_user(
 
 
 async def get_current_active_user(
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user),  # noqa: B008
 ) -> User:
     """
     Get the current active user.

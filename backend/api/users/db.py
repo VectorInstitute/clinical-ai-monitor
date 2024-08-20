@@ -1,18 +1,20 @@
 """Database module to store user information."""
 
-from typing import AsyncGenerator
+from typing import Any, AsyncGenerator
 
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
-from sqlalchemy.orm import declarative_base, sessionmaker
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.orm import declarative_base
 
 
 # Use a local SQLite database
 DATABASE_URL = "sqlite+aiosqlite:///./users.db"
 
 engine = create_async_engine(DATABASE_URL, echo=False)
-AsyncSessionLocal = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+AsyncSessionLocal = async_sessionmaker(
+    engine, class_=AsyncSession, expire_on_commit=False
+)
 
-Base = declarative_base()
+Base: Any = declarative_base()
 
 
 async def init_db() -> None:

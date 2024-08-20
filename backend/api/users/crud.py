@@ -10,7 +10,7 @@ from api.users.db import Base
 from api.users.utils import get_password_hash
 
 
-class UserModel(Base):
+class UserModel(Base):  # type: ignore
     """
     SQLAlchemy model for the users table.
 

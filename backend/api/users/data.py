@@ -90,4 +90,6 @@ class User(UserBase):
     hashed_password: str
 
     class Config:
+        """Override config."""
+
         orm_mode = True

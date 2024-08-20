@@ -431,7 +431,8 @@ async def remove_model_from_endpoint_route(
 
 @router.post("/auth/signin")
 async def signin(
-    request: Request, db: AsyncSession = Depends(get_async_session)
+    request: Request,
+    db: AsyncSession = Depends(get_async_session),  # noqa: B008
 ) -> Dict[str, Any]:
     """
     Authenticate a user and return an access token.
@@ -487,7 +488,7 @@ async def signin(
 @router.post("/auth/signout")
 async def signout(
     request: Request,
-    current_user: User = Depends(get_current_active_user),
+    current_user: User = Depends(get_current_active_user),  # noqa: B008
 ) -> Dict[str, str]:
     """
     Sign out the current user.
@@ -514,7 +515,7 @@ async def signout(
 
 @router.get("/auth/session")
 async def get_session(
-    current_user: User = Depends(get_current_active_user),
+    current_user: User = Depends(get_current_active_user),  # noqa: B008
 ) -> Dict[str, Any]:
     """
     Get the current user's session information.
@@ -554,8 +555,8 @@ async def get_session(
 @router.post("/auth/signup", response_model=User)
 async def signup(
     user: UserCreate,
-    current_user: User = Depends(get_current_active_user),
-    db: AsyncSession = Depends(get_async_session),
+    current_user: User = Depends(get_current_active_user),  # noqa: B008
+    db: AsyncSession = Depends(get_async_session),  # noqa: B008
 ) -> User:
     """
     Create a new user (admin only).
@@ -589,10 +590,10 @@ async def signup(
 
 @router.get("/users", response_model=List[User])
 async def get_users_route(
-    current_user: User = Depends(get_current_active_user),
+    current_user: User = Depends(get_current_active_user),  # noqa: B008
     skip: int = 0,
     limit: int = 100,
-    db: AsyncSession = Depends(get_async_session),
+    db: AsyncSession = Depends(get_async_session),  # noqa: B008
 ) -> List[User]:
     """
     Get a list of users (admin only).
@@ -622,15 +623,15 @@ async def get_users_route(
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to view users"
         )
-    return await get_users(db, skip=skip, limit=limit)
+    return list(await get_users(db, skip=skip, limit=limit))
 
 
 @router.put("/users/{user_id}", response_model=User)
 async def update_user_route(
     user_id: int,
     user_update: UserCreate,
-    current_user: User = Depends(get_current_active_user),
-    db: AsyncSession = Depends(get_async_session),
+    current_user: User = Depends(get_current_active_user),  # noqa: B008
+    db: AsyncSession = Depends(get_async_session),  # noqa: B008
 ) -> User:
     """
     Update a user (admin only).
@@ -667,8 +668,8 @@ async def update_user_route(
 @router.delete("/users/{user_id}")
 async def delete_user_route(
     user_id: int,
-    current_user: User = Depends(get_current_active_user),
-    db: AsyncSession = Depends(get_async_session),
+    current_user: User = Depends(get_current_active_user),  # noqa: B008
+    db: AsyncSession = Depends(get_async_session),  # noqa: B008
 ) -> Dict[str, str]:
     """
     Delete a user (admin only).

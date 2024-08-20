@@ -1,6 +1,7 @@
 """Backend server for the app."""
 
 import os
+from typing import Dict
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -38,20 +39,20 @@ async def startup_event() -> None:
 
 
 @app.get("/")
-async def root() -> dict:
+async def root() -> Dict[str, str]:
     """
     Root endpoint of the API.
 
     Returns
     -------
-    dict
+    Dict[str, str]
         A welcome message for the Clinical AI Monitor API.
     """
     return {"message": "Welcome to the Clinical AI Monitor API"}
 
 
 @app.get("/healthcheck")
-async def healthcheck() -> dict:
+async def healthcheck() -> Dict[str, str]:
     """
     Health check endpoint.
 
@@ -59,7 +60,7 @@ async def healthcheck() -> dict:
 
     Returns
     -------
-    dict
+    Dict[str, str]
         A dictionary indicating the health status of the API.
     """
     return {"status": "healthy"}
