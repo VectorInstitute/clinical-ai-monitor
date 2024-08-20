@@ -7,9 +7,6 @@ services:
         - FRONTEND_PORT=${FRONTEND_PORT}
         - BACKEND_PORT=${BACKEND_PORT}
         - BACKEND_HOST=${BACKEND_HOST}
-        - NEXT_PUBLIC_BACKEND_URL=${NEXT_PUBLIC_BACKEND_URL}
-        - NEXTAUTH_URL=${NEXTAUTH_URL}
-        - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
     image: vectorinstitute/clinical-ai-monitor:frontend-dev-${BUILD_ID}
     env_file: .env.development
     ports:
@@ -18,9 +15,6 @@ services:
       - NEXT_PUBLIC_BACKEND_HOST=${BACKEND_HOST}
       - NEXT_PUBLIC_BACKEND_PORT=${BACKEND_PORT}
       - NEXT_PUBLIC_FRONTEND_PORT=${FRONTEND_PORT}
-      - NEXT_PUBLIC_BACKEND_URL=${NEXT_PUBLIC_BACKEND_URL}
-      - NEXTAUTH_URL=${NEXTAUTH_URL}
-      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
     volumes:
       - ./frontend:/app
       - /app/node_modules

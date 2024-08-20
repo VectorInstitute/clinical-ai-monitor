@@ -11,8 +11,7 @@
   "dependencies": {
     "@chakra-ui/icons": "^2.1.1",
     "@chakra-ui/react": "^2.8.2",
-    "@auth/core": "^0.34.2",
-    "bcrypt": "^5.1.1",
+    "axios": "^1.7.2",
     "chart.js": "^4.4.3",
     "date-fns": "^3.6.0",
     "formik": "^2.4.6",

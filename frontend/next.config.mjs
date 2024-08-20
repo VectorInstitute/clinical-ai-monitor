@@ -1,24 +1,21 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  publicRuntimeConfig: {
-    backendHost: process.env.NEXT_PUBLIC_BACKEND_HOST,
-    backendPort: process.env.NEXT_PUBLIC_BACKEND_PORT,
-    frontendPort: process.env.NEXT_PUBLIC_FRONTEND_PORT,
-    backendUrl: process.env.NEXT_PUBLIC_BACKEND_URL,
-  },
-  reactStrictMode: true,
-  poweredByHeader: false,
-  images: {
-    domains: ['localhost', process.env.NEXT_PUBLIC_BACKEND_HOST].filter(Boolean),
-  },
   async rewrites() {
     return [
       {
         source: '/api/:path*',
-        destination: `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/:path*`,
+        destination: `http://${process.env.NEXT_PUBLIC_BACKEND_HOST || 'localhost'}:${process.env.NEXT_PUBLIC_BACKEND_PORT || '8000'}/:path*`, // Proxy to Backend
       },
     ]
-  }
+  },
+  serverRuntimeConfig: {
+    backendHost: process.env.NEXT_PUBLIC_BACKEND_HOST || 'localhost',
+    backendPort: process.env.NEXT_PUBLIC_BACKEND_PORT || '8000',
+  },
+  publicRuntimeConfig: {
+    backendHost: process.env.NEXT_PUBLIC_BACKEND_HOST || 'localhost',
+    backendPort: process.env.NEXT_PUBLIC_BACKEND_PORT || '8000',
+  },
 }
 
 export default nextConfig
