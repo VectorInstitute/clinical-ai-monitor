@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   Box, VStack, Heading, Text, Button, FormControl, FormLabel, Input, useToast,
   Container, useColorModeValue, Flex, Divider, Badge, Table, Thead, Tbody, Tr, Th, Td,
@@ -33,13 +33,9 @@ const ProfilePage: React.FC = () => {
   const textColor = useColorModeValue('gray.800', 'gray.100');
   const dividerColor = useColorModeValue('gray.200', 'gray.700');
 
-  useEffect(() => {
-    if (user?.role === 'admin') {
-      fetchUsers();
-    }
-  }, [user]);
+  const fetchUsers = useCallback(async () => {
+    if (user?.role !== 'admin') return;
 
-  const fetchUsers = async () => {
     try {
       const token = localStorage.getItem('token');
       if (!token) throw new Error('No authentication token found');
@@ -51,13 +47,13 @@ const ProfilePage: React.FC = () => {
         },
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        setUsers(data);
-      } else {
+      if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.detail || 'Failed to fetch users');
       }
+
+      const data = await response.json();
+      setUsers(data);
     } catch (error) {
       toast({
         title: 'Error fetching users',
@@ -67,7 +63,11 @@ const ProfilePage: React.FC = () => {
         isClosable: true,
       });
     }
-  };
+  }, [user?.role, toast]);
+
+  React.useEffect(() => {
+    fetchUsers();
+  }, [fetchUsers]);
 
   const handlePasswordUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -80,6 +80,7 @@ const ProfilePage: React.FC = () => {
       });
       return;
     }
+
     try {
       await updatePassword(currentPassword, newPassword);
       toast({
@@ -117,21 +118,21 @@ const ProfilePage: React.FC = () => {
         body: JSON.stringify(newUser),
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        toast({
-          title: 'User created successfully',
-          status: 'success',
-          duration: 3000,
-          isClosable: true,
-        });
-        onClose();
-        fetchUsers();
-        setNewUser({ username: '', email: '', password: '', role: 'viewer' });
-      } else {
+      if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.detail || 'Failed to create user');
       }
+
+      await response.json();
+      toast({
+        title: 'User created successfully',
+        status: 'success',
+        duration: 3000,
+        isClosable: true,
+      });
+      onClose();
+      fetchUsers();
+      setNewUser({ username: '', email: '', password: '', role: 'viewer' });
     } catch (error) {
       toast({
         title: 'Failed to create user',
@@ -153,6 +154,7 @@ const ProfilePage: React.FC = () => {
       });
       return;
     }
+
     try {
       const token = localStorage.getItem('token');
       if (!token) throw new Error('No authentication token found');
@@ -165,18 +167,18 @@ const ProfilePage: React.FC = () => {
         },
       });
 
-      if (response.ok) {
-        toast({
-          title: 'User deleted successfully',
-          status: 'success',
-          duration: 3000,
-          isClosable: true,
-        });
-        fetchUsers();
-      } else {
+      if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.detail || 'Failed to delete user');
       }
+
+      toast({
+        title: 'User deleted successfully',
+        status: 'success',
+        duration: 3000,
+        isClosable: true,
+      });
+      fetchUsers();
     } catch (error) {
       toast({
         title: 'Failed to delete user',
@@ -200,156 +202,149 @@ const ProfilePage: React.FC = () => {
   };
 
   return (
-    <Flex minHeight="100vh" bg={bgColor}>
+    <Flex>
       <Sidebar />
-      <Box flex={1} ml={{ base: 0, md: 60 }} transition="margin-left 0.3s">
-        <Container maxW="container.xl" py={8}>
+      <Box flex={1} bg={bgColor} p={8}>
+        <Container maxW="container.xl">
           <VStack spacing={8} align="stretch">
-            <Box bg={cardBgColor} p={8} borderRadius="lg" shadow="md">
-              <Heading as="h1" size="xl" color={textColor} mb={4}>User Profile</Heading>
-              <Text fontSize="lg" color={useColorModeValue('gray.600', 'gray.400')} mb={6}>
-                Manage your account information and security settings.
-              </Text>
-            </Box>
-            <Divider borderColor={dividerColor} />
-            <Box bg={cardBgColor} p={8} borderRadius="lg" shadow="md">
-              <VStack spacing={6} align="stretch">
-                <Box>
-                  <Text fontSize="lg" fontWeight="bold" color={textColor}>Username:</Text>
-                  <Text fontSize="md" color={textColor}>{user?.username}</Text>
-                </Box>
-                <Box>
-                  <Text fontSize="lg" fontWeight="bold" color={textColor} mb={2}>Role:</Text>
-                  <Badge colorScheme={getRoleBadgeColor(user?.role || '')} fontSize="md" px={2} py={1}>
-                    {user?.role}
-                  </Badge>
-                </Box>
-                <Divider borderColor={dividerColor} />
-                <Heading as="h3" size="md" color={textColor}>Change Password</Heading>
-                <form onSubmit={handlePasswordUpdate}>
-                  <VStack spacing={4}>
-                    <FormControl id="current-password" isRequired>
-                      <FormLabel color={textColor}>Current Password</FormLabel>
-                      <Input
-                        type="password"
-                        value={currentPassword}
-                        onChange={(e) => setCurrentPassword(e.target.value)}
-                        required
-                      />
-                    </FormControl>
-                    <FormControl id="new-password" isRequired>
-                      <FormLabel color={textColor}>New Password</FormLabel>
-                      <Input
-                        type="password"
-                        value={newPassword}
-                        onChange={(e) => setNewPassword(e.target.value)}
-                        required
-                      />
-                    </FormControl>
-                    <FormControl id="confirm-password" isRequired>
-                      <FormLabel color={textColor}>Confirm New Password</FormLabel>
-                      <Input
-                        type="password"
-                        value={confirmPassword}
-                        onChange={(e) => setConfirmPassword(e.target.value)}
-                        required
-                      />
-                    </FormControl>
-                    <Button type="submit" colorScheme="blue" width="full">
-                      Update Password
-                    </Button>
-                  </VStack>
-                </form>
+            <Heading as="h1" size="xl" color={textColor}>User Profile</Heading>
+            <Text color={textColor}>Manage your account information and security settings.</Text>
+
+            <Box bg={cardBgColor} p={6} borderRadius="md" boxShadow="md">
+              <VStack spacing={4} align="stretch">
+                <Heading as="h2" size="lg" color={textColor}>Account Information</Heading>
+                <Text><strong>Username:</strong> {user?.username}</Text>
+                <Text><strong>Role:</strong> {user?.role}</Text>
               </VStack>
             </Box>
+
+            <Box bg={cardBgColor} p={6} borderRadius="md" boxShadow="md">
+              <form onSubmit={handlePasswordUpdate}>
+                <VStack spacing={4} align="stretch">
+                  <Heading as="h2" size="lg" color={textColor}>Change Password</Heading>
+                  <FormControl>
+                    <FormLabel>Current Password</FormLabel>
+                    <Input
+                      type="password"
+                      value={currentPassword}
+                      onChange={(e) => setCurrentPassword(e.target.value)}
+                      required
+                    />
+                  </FormControl>
+                  <FormControl>
+                    <FormLabel>New Password</FormLabel>
+                    <Input
+                      type="password"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      required
+                    />
+                  </FormControl>
+                  <FormControl>
+                    <FormLabel>Confirm New Password</FormLabel>
+                    <Input
+                      type="password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      required
+                    />
+                  </FormControl>
+                  <Button type="submit" colorScheme="blue">Update Password</Button>
+                </VStack>
+              </form>
+            </Box>
+
             {user?.role === 'admin' && (
-              <Box bg={cardBgColor} p={8} borderRadius="lg" shadow="md">
-                <Heading as="h3" size="md" color={textColor} mb={4}>User Management</Heading>
-                <Button colorScheme="green" mb={4} onClick={onOpen}>Create New User</Button>
-                <Table variant="simple">
-                  <Thead>
-                    <Tr>
-                      <Th>Username</Th>
-                      <Th>Email</Th>
-                      <Th>Role</Th>
-                      <Th>Actions</Th>
-                    </Tr>
-                  </Thead>
-                  <Tbody>
-                    {users.map((u) => (
-                      <Tr key={u.id}>
-                        <Td>{u.username}</Td>
-                        <Td>{u.email}</Td>
-                        <Td>
-                          <Badge colorScheme={getRoleBadgeColor(u.role)}>{u.role}</Badge>
-                        </Td>
-                        <Td>
-                          <Button
-                            colorScheme="red"
-                            size="sm"
-                            onClick={() => handleDeleteUser(u.id)}
-                            isDisabled={u.id === user.id}
-                          >
-                            Delete
-                          </Button>
-                        </Td>
+              <Box bg={cardBgColor} p={6} borderRadius="md" boxShadow="md">
+                <VStack spacing={4} align="stretch">
+                  <Heading as="h2" size="lg" color={textColor}>User Management</Heading>
+                  <Button onClick={onOpen} colorScheme="green">Create New User</Button>
+                  <Table variant="simple">
+                    <Thead>
+                      <Tr>
+                        <Th>Username</Th>
+                        <Th>Email</Th>
+                        <Th>Role</Th>
+                        <Th>Actions</Th>
                       </Tr>
-                    ))}
-                  </Tbody>
-                </Table>
+                    </Thead>
+                    <Tbody>
+                      {users.map((u) => (
+                        <Tr key={u.id}>
+                          <Td>{u.username}</Td>
+                          <Td>{u.email}</Td>
+                          <Td>
+                            <Badge colorScheme={getRoleBadgeColor(u.role)}>{u.role}</Badge>
+                          </Td>
+                          <Td>
+                            <Button
+                              colorScheme="red"
+                              size="sm"
+                              onClick={() => handleDeleteUser(u.id)}
+                              isDisabled={u.id === user.id}
+                            >
+                              Delete
+                            </Button>
+                          </Td>
+                        </Tr>
+                      ))}
+                    </Tbody>
+                  </Table>
+                </VStack>
               </Box>
             )}
           </VStack>
         </Container>
       </Box>
+
       <Modal isOpen={isOpen} onClose={onClose}>
         <ModalOverlay />
         <ModalContent>
           <ModalHeader>Create New User</ModalHeader>
           <ModalCloseButton />
-          <ModalBody>
-            <VStack spacing={4}>
-              <FormControl isRequired>
-                <FormLabel>Username</FormLabel>
-                <Input
-                  value={newUser.username}
-                  onChange={(e) => setNewUser({ ...newUser, username: e.target.value })}
-                />
-              </FormControl>
-              <FormControl isRequired>
-                <FormLabel>Email</FormLabel>
-                <Input
-                  type="email"
-                  value={newUser.email}
-                  onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
-                />
-              </FormControl>
-              <FormControl isRequired>
-                <FormLabel>Password</FormLabel>
-                <Input
-                  type="password"
-                  value={newUser.password}
-                  onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
-                />
-              </FormControl>
-              <FormControl isRequired>
-                <FormLabel>Role</FormLabel>
-                <Select
-                  value={newUser.role}
-                  onChange={(e) => setNewUser({ ...newUser, role: e.target.value })}
-                >
-                  <option value="viewer">Viewer</option>
-                  <option value="admin">Admin</option>
-                </Select>
-              </FormControl>
-            </VStack>
-          </ModalBody>
-          <ModalFooter>
-            <Button colorScheme="blue" mr={3} onClick={handleCreateUser}>
-              Create
-            </Button>
-            <Button variant="ghost" onClick={onClose}>Cancel</Button>
-          </ModalFooter>
+          <form onSubmit={handleCreateUser}>
+            <ModalBody>
+              <VStack spacing={4}>
+                <FormControl>
+                  <FormLabel>Username</FormLabel>
+                  <Input
+                    value={newUser.username}
+                    onChange={(e) => setNewUser({ ...newUser, username: e.target.value })}
+                  />
+                </FormControl>
+                <FormControl>
+                  <FormLabel>Email</FormLabel>
+                  <Input
+                    type="email"
+                    value={newUser.email}
+                    onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
+                  />
+                </FormControl>
+                <FormControl>
+                  <FormLabel>Password</FormLabel>
+                  <Input
+                    type="password"
+                    value={newUser.password}
+                    onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
+                  />
+                </FormControl>
+                <FormControl>
+                  <FormLabel>Role</FormLabel>
+                  <Select
+                    value={newUser.role}
+                    onChange={(e) => setNewUser({ ...newUser, role: e.target.value })}
+                  >
+                    <option value="viewer">Viewer</option>
+                    <option value="admin">Admin</option>
+                  </Select>
+                </FormControl>
+              </VStack>
+            </ModalBody>
+            <ModalFooter>
+              <Button type="submit" colorScheme="blue" mr={3}>Create</Button>
+              <Button onClick={onClose}>Cancel</Button>
+            </ModalFooter>
+          </form>
         </ModalContent>
       </Modal>
     </Flex>

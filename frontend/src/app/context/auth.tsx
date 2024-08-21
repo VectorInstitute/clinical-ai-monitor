@@ -7,6 +7,7 @@ interface User {
   id: number
   username: string
   role: 'admin' | 'viewer'
+  avatarUrl?: string;
 }
 
 interface AuthContextType {

@@ -225,12 +225,11 @@ const NavItems: React.FC<NavItemsProps> = ({ textColor, isCollapsed }) => {
   )
 }
 
-const UserSection: React.FC<{ isCollapsed: boolean }> = ({ isCollapsed }) => {
+const UserSection: React.FC<{ isCollapsed: boolean; textColor: string }> = ({ isCollapsed, textColor }) => {
   const { user } = useAuth();
   const router = useRouter();
 
   const bgColor = useColorModeValue('#B0CAF5', '#1E3A5F');
-  const textColor = useColorModeValue('#1E3A5F', '#F7FAFC');
   const iconColor = useColorModeValue('#1E3A5F', '#B0CAF5');
   const hoverBgColor = useColorModeValue('#8EB8F2', '#2C5282');
 
