@@ -165,4 +165,4 @@ const ConfigurationPage: React.FC = () => {
   );
 };
 
-export default withAuth(ConfigurationPage);
+export default withAuth(ConfigurationPage, { requiredRole: 'admin' });

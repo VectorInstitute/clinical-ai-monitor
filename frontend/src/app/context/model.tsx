@@ -1,7 +1,8 @@
 'use client'
 
 import React, { createContext, useState, useContext, ReactNode, useCallback, useMemo, useEffect } from 'react';
-import { ModelFacts } from '../configure/types/facts'
+import { ModelFacts } from '../configure/types/facts';
+import { useAuth } from './auth';
 
 interface ModelBasicInfo {
   name: string;
@@ -37,21 +38,33 @@ export const useModelContext = () => {
 export const ModelProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [models, setModels] = useState<ModelData[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const { getToken, isAuthenticated } = useAuth();
 
-  const apiRequest = useCallback(async (url: string, options: RequestInit = {}) => {
-    const response = await fetch(url, options);
+  const apiRequest = useCallback(async <T,>(url: string, options: RequestInit = {}): Promise<T> => {
+    const token = getToken();
+    if (!token) {
+      throw new Error('No authentication token available');
+    }
+    const response = await fetch(url, {
+      ...options,
+      headers: {
+        ...options.headers,
+        'Authorization': `Bearer ${token}`,
+      },
+    });
     if (!response.ok) {
       throw new Error(`API request failed: ${response.statusText}`);
     }
     return response.json();
-  }, []);
+  }, [getToken]);
 
   const fetchModels = useCallback(async () => {
+    if (!isAuthenticated()) return;
     setIsLoading(true);
     try {
-      const data = await apiRequest('/api/models');
+      const data = await apiRequest<Record<string, any>>('/api/models');
       const modelArray = await Promise.all(Object.entries(data).map(async ([id, modelInfo]: [string, any]) => {
-        const safetyData = await apiRequest(`/api/model/${id}/safety`);
+        const safetyData = await apiRequest<{ overall_status: string }>(`/api/model/${id}/safety`);
         return {
           id,
           ...modelInfo,
@@ -65,13 +78,13 @@ export const ModelProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     } finally {
       setIsLoading(false);
     }
-  }, [apiRequest]);
+  }, [apiRequest, isAuthenticated]);
 
   useEffect(() => {
     fetchModels();
   }, [fetchModels]);
 
-  const getModelById = useCallback(async (id: string): Promise<ModelData> => {
+  const getModelById = useCallback(async (id: string): Promise<ModelData | undefined> => {
     setIsLoading(true);
     try {
       const cachedModel = models.find(m => m.id === id);
@@ -80,9 +93,9 @@ export const ModelProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         return cachedModel;
       }
 
-      const data = await apiRequest(`/api/models/${id}`);
-      const safetyData = await apiRequest(`/api/model/${id}/safety`);
-      const factsData = await apiRequest(`/api/models/${id}/facts`);
+      const data = await apiRequest<any>(`/api/models/${id}`);
+      const safetyData = await apiRequest<{ overall_status: string }>(`/api/model/${id}/safety`);
+      const factsData = await apiRequest<ModelFacts>(`/api/models/${id}/facts`);
 
       const newModel: ModelData = {
         id,

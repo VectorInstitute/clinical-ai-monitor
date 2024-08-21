@@ -13,13 +13,21 @@ import {
   useColorModeValue,
   Spinner,
   Center,
-  useToast
+  useToast,
+  Container,
+  Divider,
+  Badge,
+  HStack,
+  VStack,
+  Icon,
 } from '@chakra-ui/react'
+import { FiBox, FiAlertCircle, FiCheckCircle } from 'react-icons/fi'
 import Sidebar from '../../components/sidebar'
 import ModelSafetyTab from './tabs/safety'
 import PerformanceMetricsTab from './tabs/performance-metrics'
 import ModelFactsTab from './tabs/facts'
 import { useModelContext } from '../../context/model'
+import { withAuth } from '../../components/with-auth'
 
 interface ModelDashboardProps {
   params: {
@@ -27,8 +35,8 @@ interface ModelDashboardProps {
   };
 }
 
-export default function ModelDashboard({ params }: ModelDashboardProps): JSX.Element {
-  const { models, getModelById, isLoading } = useModelContext()
+function ModelDashboard({ params }: ModelDashboardProps): JSX.Element {
+  const { getModelById, isLoading: isContextLoading } = useModelContext()
   const [model, setModel] = useState<any | null>(null)
   const [isModelLoading, setIsModelLoading] = useState(true)
   const [activeTabIndex, setActiveTabIndex] = useState(0)
@@ -36,9 +44,11 @@ export default function ModelDashboard({ params }: ModelDashboardProps): JSX.Ele
 
   const bgColor = useColorModeValue('gray.50', 'gray.800')
   const textColor = useColorModeValue('gray.800', 'white')
+  const borderColor = useColorModeValue('gray.200', 'gray.700')
 
   const fetchModel = useCallback(async () => {
-    if (isLoading) return
+    if (isContextLoading) return
+    setIsModelLoading(true)
     try {
       const fetchedModel = await getModelById(params.id)
       setModel(fetchedModel)
@@ -53,7 +63,7 @@ export default function ModelDashboard({ params }: ModelDashboardProps): JSX.Ele
     } finally {
       setIsModelLoading(false)
     }
-  }, [params.id, getModelById, isLoading, toast])
+  }, [params.id, getModelById, isContextLoading, toast])
 
   useEffect(() => {
     fetchModel()
@@ -71,7 +81,7 @@ export default function ModelDashboard({ params }: ModelDashboardProps): JSX.Ele
     localStorage.setItem(`activeTab-${params.id}`, index.toString())
   }
 
-  if (isLoading || isModelLoading) {
+  if (isContextLoading || isModelLoading) {
     return (
       <Center h="100vh">
         <Spinner size="xl" />
@@ -87,38 +97,62 @@ export default function ModelDashboard({ params }: ModelDashboardProps): JSX.Ele
     )
   }
 
+  const getStatusColor = (status: string) => status === 'No warnings' ? 'green' : 'red'
+  const getStatusIcon = (status: string) => status === 'No warnings' ? FiCheckCircle : FiAlertCircle
+
   return (
     <Flex minHeight="100vh" bg={bgColor}>
       <Sidebar />
       <Box ml={{ base: 0, md: 60 }} p={{ base: 4, md: 8 }} w="full" transition="margin-left 0.3s">
-        <Heading as="h1" size="xl" mb={6} color={textColor}>
-          Model Dashboard - ID: {params.id}
-        </Heading>
-        <Tabs
-          variant="soft-rounded"
-          colorScheme="blue"
-          index={activeTabIndex}
-          onChange={handleTabChange}
-        >
-          <TabList mb="1em">
-            <Tab>Model Safety</Tab>
-            <Tab>Performance Metrics</Tab>
-            <Tab>Model Facts</Tab>
-          </TabList>
+        <Container maxW="container.xl">
+          <VStack spacing={4} align="stretch">
+            <Flex justifyContent="space-between" alignItems="center">
+              <HStack spacing={4}>
+                <Icon as={FiBox} boxSize={6} color={textColor} />
+                <Heading as="h1" size="xl" color={textColor}>
+                  {model.basic_info.name}
+                </Heading>
+                <Badge colorScheme="blue" fontSize="md">v{model.basic_info.version}</Badge>
+              </HStack>
+              <Badge colorScheme={getStatusColor(model.overall_status)} p={2} borderRadius="md">
+                <HStack spacing={2}>
+                  <Icon as={getStatusIcon(model.overall_status)} />
+                  <Box>{model.overall_status}</Box>
+                </HStack>
+              </Badge>
+            </Flex>
+            <Divider borderColor={borderColor} />
 
-          <TabPanels>
-            <TabPanel>
-              <ModelSafetyTab modelId={params.id} />
-            </TabPanel>
-            <TabPanel>
-              <PerformanceMetricsTab endpointName={model.endpoints[0]} modelId={params.id} />
-            </TabPanel>
-            <TabPanel>
-              <ModelFactsTab modelId={params.id} />
-            </TabPanel>
-          </TabPanels>
-        </Tabs>
+            <Tabs
+              variant="soft-rounded"
+              colorScheme="blue"
+              index={activeTabIndex}
+              onChange={handleTabChange}
+              isLazy
+            >
+              <TabList mb="1em">
+                <Tab>Model Safety</Tab>
+                <Tab>Performance Metrics</Tab>
+                <Tab>Model Facts</Tab>
+              </TabList>
+
+              <TabPanels>
+                <TabPanel>
+                  <ModelSafetyTab modelId={params.id} />
+                </TabPanel>
+                <TabPanel>
+                  <PerformanceMetricsTab endpointName={model.endpoints[0]} modelId={params.id} />
+                </TabPanel>
+                <TabPanel>
+                  <ModelFactsTab modelId={params.id} />
+                </TabPanel>
+              </TabPanels>
+            </Tabs>
+          </VStack>
+        </Container>
       </Box>
     </Flex>
   )
 }
+
+export default withAuth(ModelDashboard)

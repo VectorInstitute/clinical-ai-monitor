@@ -15,7 +15,7 @@ import {
   useColorModeValue,
 } from '@chakra-ui/react';
 import { FiPlus, FiMinus } from 'react-icons/fi';
-import { ModelFacts, ValidationAndPerformance, OtherInformation } from '../types/facts';
+import { ModelFacts } from '../types/facts';
 
 interface ModelFactsFormProps {
   initialValues: Partial<ModelFacts>;

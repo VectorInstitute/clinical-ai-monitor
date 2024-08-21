@@ -11,6 +11,21 @@ from api.models.data import ModelFacts
 
 BASE_URL = "http://localhost:8001"  # Adjust this to your API's base URL
 
+VALID_METRIC_NAMES = [
+    "binary_accuracy",
+    "binary_auroc",
+    "binary_average_precision",
+    "binary_f1_score",
+    "binary_mcc",
+    "binary_npv",
+    "binary_ppv",
+    "binary_precision",
+    "binary_recall",
+    "binary_tpr",
+    "binary_specificity",
+    "binary_tnr",
+]
+
 
 def create_endpoint(config: Dict) -> Dict:
     """Create an evaluation endpoint."""
@@ -44,7 +59,7 @@ def add_model_facts(model_id: str, facts: Dict) -> Dict:
 
 
 def create_test_endpoints() -> List[Tuple[str, Dict]]:
-    """Create 5 different evaluation endpoints with binary classification metrics."""
+    """Create 5 different evaluation endpoints with various metrics."""
     endpoints = [
         {
             "metrics": [
@@ -60,6 +75,7 @@ def create_test_endpoints() -> List[Tuple[str, Dict]]:
         },
         {
             "metrics": [
+                {"type": "binary", "name": "accuracy"},
                 {"type": "binary", "name": "precision"},
                 {"type": "binary", "name": "recall"},
             ],
@@ -69,6 +85,7 @@ def create_test_endpoints() -> List[Tuple[str, Dict]]:
         },
         {
             "metrics": [
+                {"type": "binary", "name": "accuracy"},
                 {"type": "binary", "name": "auroc"},
                 {"type": "binary", "name": "tpr"},
             ],
@@ -81,6 +98,7 @@ def create_test_endpoints() -> List[Tuple[str, Dict]]:
         },
         {
             "metrics": [
+                {"type": "binary", "name": "accuracy"},
                 {"type": "binary", "name": "ppv"},
                 {"type": "binary", "name": "npv"},
             ],
@@ -90,6 +108,7 @@ def create_test_endpoints() -> List[Tuple[str, Dict]]:
         },
         {
             "metrics": [
+                {"type": "binary", "name": "accuracy"},
                 {"type": "binary", "name": "sensitivity"},
                 {"type": "binary", "name": "specificity"},
             ],
@@ -101,7 +120,6 @@ def create_test_endpoints() -> List[Tuple[str, Dict]]:
             ],
         },
     ]
-
     return [(create_endpoint(config)["endpoint_name"], config) for config in endpoints]
 
 
@@ -109,12 +127,10 @@ def generate_dummy_data(sample_size: int, config: Dict, timestamp: datetime) -> 
     """Generate dummy data for evaluation."""
     preds_prob = [random.random() for _ in range(sample_size)]
     target = [random.choice([0, 1]) for _ in range(sample_size)]
-
     metadata = {}
     for subgroup in config["subgroups"]:
         column = subgroup["column"]
         condition = subgroup["condition"]
-
         if condition["type"] == "range":
             min_value = condition.get("min_value", 0)
             max_value = condition.get("max_value", min_value + 100)
@@ -125,7 +141,6 @@ def generate_dummy_data(sample_size: int, config: Dict, timestamp: datetime) -> 
             metadata[column] = [
                 random.choice([condition["value"], "other"]) for _ in range(sample_size)
             ]
-
     return {
         "preds_prob": preds_prob,
         "target": target,
@@ -135,42 +150,113 @@ def generate_dummy_data(sample_size: int, config: Dict, timestamp: datetime) -> 
 
 
 def generate_model_facts(model_name: str, model_version: str) -> Dict:
-    """Generate dummy model facts."""
+    """Generate realistic model facts for clinical scenarios."""
+    clinical_scenarios = {
+        "Sepsis Prediction Model": {
+            "intended_use": "Predict sepsis risk in ICU patients",
+            "target_population": "Adult ICU patients (18+ years)",
+            "input_data": [
+                "Vital signs",
+                "Laboratory results",
+                "Demographic information",
+            ],
+            "output_data": "Sepsis risk score (0-1)",
+            "summary": "This model predicts the risk of sepsis in ICU patients within the next 6 hours.",
+            "mechanism_of_action": "The model uses a recurrent neural network to process time-series data of patient vitals and lab results, identifying patterns indicative of impending sepsis.",
+        },
+        "Delirium Prediction Model": {
+            "intended_use": "Predict delirium risk in hospitalized elderly patients",
+            "target_population": "Hospitalized patients aged 65 and older",
+            "input_data": [
+                "Medication history",
+                "Cognitive assessments",
+                "Laboratory results",
+                "Demographic information",
+            ],
+            "output_data": "Delirium risk score (0-1)",
+            "summary": "This model predicts the risk of delirium onset in elderly hospitalized patients within 24 hours.",
+            "mechanism_of_action": "The model employs a gradient boosting algorithm to analyze patient data, focusing on known risk factors for delirium in the elderly population.",
+        },
+        "Pneumothorax Detection Model": {
+            "intended_use": "Detect pneumothorax in chest X-rays",
+            "target_population": "Patients undergoing chest X-ray examination",
+            "input_data": ["Chest X-ray images"],
+            "output_data": "Pneumothorax probability and localization",
+            "summary": "This model analyzes chest X-rays to detect and localize pneumothorax, aiding in rapid diagnosis.",
+            "mechanism_of_action": "The model uses a convolutional neural network trained on a large dataset of annotated chest X-rays to identify radiographic signs of pneumothorax.",
+        },
+        "Heart Failure Prediction Model": {
+            "intended_use": "Predict risk of heart failure exacerbation",
+            "target_population": "Patients with diagnosed heart failure",
+            "input_data": [
+                "Echocardiogram results",
+                "BNP levels",
+                "Medication adherence",
+                "Vital signs",
+                "Demographic information",
+            ],
+            "output_data": "Heart failure exacerbation risk score (0-1)",
+            "summary": "This model predicts the risk of heart failure exacerbation within the next 30 days for patients with diagnosed heart failure.",
+            "mechanism_of_action": "The model uses a random forest algorithm to analyze a combination of clinical, laboratory, and patient-reported data to identify patterns associated with impending heart failure exacerbation.",
+        },
+        "Stroke Risk Assessment Model": {
+            "intended_use": "Assess long-term stroke risk in patients with atrial fibrillation",
+            "target_population": "Adult patients diagnosed with atrial fibrillation",
+            "input_data": [
+                "Age",
+                "Blood pressure",
+                "Clinical history",
+                "ECG data",
+                "Echocardiography results",
+            ],
+            "output_data": "5-year stroke risk probability",
+            "summary": "This model provides a 5-year stroke risk assessment for patients with atrial fibrillation to guide anticoagulation therapy decisions.",
+            "mechanism_of_action": "The model uses a Cox proportional hazards model trained on long-term follow-up data from atrial fibrillation cohorts to estimate stroke risk based on established and novel risk factors.",
+        },
+    }
+
+    scenario = clinical_scenarios.get(
+        model_name, clinical_scenarios["Sepsis Prediction Model"]
+    )
+
     return {
         "name": model_name,
         "version": model_version,
-        "type": "Machine Learning Model",
-        "intended_use": f"Predict {model_name.lower()} risk",
-        "target_population": "Adult patients (18+ years)",
-        "input_data": ["Patient demographics", "Clinical data"],
-        "output_data": f"{model_name} risk score (0-1)",
-        "summary": f"This model predicts the risk of {model_name.lower()}.",
-        "mechanism_of_action": f"The model uses machine learning algorithms to process patient data and predict {model_name.lower()} risk.",
+        "type": "Clinical Decision Support AI Model",
+        "intended_use": scenario["intended_use"],
+        "target_population": scenario["target_population"],
+        "input_data": scenario["input_data"],
+        "output_data": scenario["output_data"],
+        "summary": scenario["summary"],
+        "mechanism_of_action": scenario["mechanism_of_action"],
         "validation_and_performance": {
-            "internal_validation": f"AUC: {random.uniform(0.7, 0.9):.2f}",
-            "external_validation": f"AUC: {random.uniform(0.7, 0.9):.2f} at Example Hospital",
+            "internal_validation": f"AUC: {random.uniform(0.75, 0.95):.2f}, Sensitivity: {random.uniform(0.70, 0.90):.2f}, Specificity: {random.uniform(0.75, 0.95):.2f}",
+            "external_validation": f"AUC: {random.uniform(0.70, 0.90):.2f} at {random.choice(['City General Hospital', 'University Medical Center', 'Regional Health System'])}",
             "performance_in_subgroups": [
-                "Similar performance across age groups",
-                f"Slightly {'lower' if random.random() > 0.5 else 'higher'} performance in female patients",
+                f"{'Similar' if random.random() > 0.5 else 'Slightly lower'} performance in patients over 75 years old",
+                f"{'Comparable' if random.random() > 0.5 else 'Marginally better'} performance in female patients",
+                f"Performance {'maintained' if random.random() > 0.5 else 'slightly decreased'} in patients with multiple comorbidities",
             ],
         },
         "uses_and_directions": [
-            "Use for adult patients (18+ years)",
-            "Check risk score periodically",
-            f"High risk (>0.7): Consider immediate clinical assessment for {model_name.lower()}",
+            f"Use for {scenario['target_population']}",
+            "Integrate model predictions into clinical workflow for risk stratification",
+            f"High risk (>0.7): Consider immediate clinical assessment and intervention as appropriate for {model_name.lower()}",
+            "Use in conjunction with clinical judgment and established guidelines",
         ],
         "warnings": [
-            f"Do not use for patients already diagnosed with {model_name.lower()}",
-            "Not validated for use in pediatric populations",
-            "Model performance may degrade over time - regular re-validation required",
+            f"Do not use as the sole basis for clinical decisions related to {model_name.lower()}",
+            "Performance may vary in populations not well-represented in the training data",
+            "Model predictions should be interpreted in the context of each patient's unique clinical presentation",
+            "Regular revalidation and potential retraining may be necessary to maintain performance over time",
         ],
         "other_information": {
             "approval_date": (
                 datetime.now() - timedelta(days=random.randint(30, 365))
             ).strftime("%B %d, %Y"),
-            "license": "MIT License",
-            "contact_information": "support@example.com",
-            "publication_link": f"https://doi.org/10.1000/example.{random.randint(1000, 9999)}",
+            "license": "Proprietary - For use only within approved healthcare institutions",
+            "contact_information": "clinicalsupport@aimodelco.com",
+            "publication_link": f"https://doi.org/10.1000/clinicalai.{random.randint(1000, 9999)}.{random.randint(100, 999)}",
         },
     }
 
@@ -178,22 +264,19 @@ def generate_model_facts(model_name: str, model_version: str) -> Dict:
 def add_models_and_evaluate(endpoints: List[Tuple[str, Dict]]) -> None:
     """Add models to the created endpoints, add model facts, and perform evaluations."""
     models = [
-        {"name": "Sepsis Prediction Model", "version": "1.0"},
-        {"name": "Delirium Prediction Model", "version": "2.1"},
-        {"name": "Pneumothorax Detection Model", "version": "1.5"},
-        {"name": "Heart Failure Prediction Model", "version": "3.2"},
-        {"name": "Stroke Risk Assessment Model", "version": "2.0"},
+        {"name": "Sepsis Prediction Model", "version": "2.3"},
+        {"name": "Delirium Prediction Model", "version": "1.5"},
+        {"name": "Pneumothorax Detection Model", "version": "3.0"},
+        {"name": "Heart Failure Prediction Model", "version": "2.1"},
+        {"name": "Stroke Risk Assessment Model", "version": "1.8"},
     ]
 
     base_date = datetime.now() - timedelta(days=100)  # Start 100 days ago
-
     for (endpoint_name, config), model in zip(endpoints, models):
         model_response = add_model_to_endpoint(endpoint_name, model)
         model_id = model_response.get("model_id")
-
         if model_id:
             print(f"Model {model['name']} added to endpoint {endpoint_name}")
-
             # Add model facts
             model_facts = generate_model_facts(model["name"], model["version"])
             try:
@@ -203,7 +286,6 @@ def add_models_and_evaluate(endpoints: List[Tuple[str, Dict]]) -> None:
                 print(f"Error adding facts for model {model['name']}: {str(e)}")
 
             days_between_evaluations = random.randint(3, 10)
-
             for j in range(10):  # Perform 10 evaluations for each model
                 evaluation_date = base_date + timedelta(
                     days=j * days_between_evaluations
@@ -224,11 +306,9 @@ if __name__ == "__main__":
     print("Creating endpoints...")
     endpoints = create_test_endpoints()
     print("Endpoints created successfully.")
-
     print(
         "Adding models to endpoints, adding model facts, and performing evaluations..."
     )
     add_models_and_evaluate(endpoints)
     print("Models added, facts added, and evaluations performed successfully.")
-
     print("Test script completed.")

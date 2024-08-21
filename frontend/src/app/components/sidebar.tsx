@@ -14,8 +14,10 @@ import {
   IconButton,
   useDisclosure,
   Tooltip,
+  Avatar,
 } from '@chakra-ui/react'
 import { FiHome, FiSettings, FiLogOut, FiMenu, FiChevronLeft, FiChevronRight } from 'react-icons/fi'
+import { RiUserLine } from 'react-icons/ri'
 import NextLink from 'next/link'
 import { useAuth } from '../context/auth'
 import { useRouter } from 'next/navigation'
@@ -147,6 +149,7 @@ const SidebarContent: React.FC<SidebarContentProps> = ({ onClose, isCollapsed, t
         <VStack spacing={4} align="stretch" flex={1}>
           <NavItems textColor={textColor} isCollapsed={isCollapsed} />
         </VStack>
+        <UserSection textColor={textColor} isCollapsed={isCollapsed} />
         <Flex
           direction="column"
           alignItems="center"
@@ -222,6 +225,75 @@ const NavItems: React.FC<NavItemsProps> = ({ textColor, isCollapsed }) => {
   )
 }
 
+const UserSection: React.FC<{ isCollapsed: boolean }> = ({ isCollapsed }) => {
+  const { user } = useAuth();
+  const router = useRouter();
+
+  const bgColor = useColorModeValue('#B0CAF5', '#1E3A5F');
+  const textColor = useColorModeValue('#1E3A5F', '#F7FAFC');
+  const iconColor = useColorModeValue('#1E3A5F', '#B0CAF5');
+  const hoverBgColor = useColorModeValue('#8EB8F2', '#2C5282');
+
+  const handleClick = () => {
+    router.push('/profile');
+  };
+
+  return (
+    <Tooltip label={isCollapsed ? "View Profile" : ""} placement="right" isDisabled={!isCollapsed}>
+      <Flex
+        align="center"
+        p={isCollapsed ? 2 : 3}
+        mx={isCollapsed ? '2' : '4'}
+        borderRadius="md"
+        bg={bgColor}
+        mb={4}
+        cursor="pointer"
+        transition="all 0.2s ease"
+        _hover={{ bg: hoverBgColor, transform: 'translateY(-2px)' }}
+        onClick={handleClick}
+        role="group"
+      >
+        <Box position="relative">
+          {isCollapsed ? (
+            <Icon
+              as={RiUserLine}
+              boxSize={6}
+              color={iconColor}
+            />
+          ) : (
+            <Avatar
+              size="sm"
+              name={user?.username || 'User'}
+              src={user?.avatarUrl}
+              bg={iconColor}
+              color={bgColor}
+            />
+          )}
+        </Box>
+        {!isCollapsed && (
+          <Box ml={3}>
+            <Text
+              fontSize="sm"
+              fontWeight="medium"
+              color={textColor}
+              isTruncated
+            >
+              {user?.username || 'User'}
+            </Text>
+            <Text
+              fontSize="xs"
+              color={textColor}
+              opacity={0.8}
+            >
+              {user?.role || 'Role'}
+            </Text>
+          </Box>
+        )}
+      </Flex>
+    </Tooltip>
+  );
+};
+
 interface NavItemProps {
   icon: React.ElementType
   children: React.ReactNode
@@ -242,7 +314,7 @@ const NavItem: React.FC<NavItemProps> = ({ icon, children, href, textColor, isCo
         href={href}
         style={{ textDecoration: 'none' }}
         _focus={{ boxShadow: 'none' }}
-        onClick={onClick}  // Add this line to handle the logout click
+        onClick={onClick}
       >
         <Flex
           align="center"
