@@ -1,16 +1,20 @@
 """Backend server for the app."""
 
+import logging
 import os
 from typing import Dict
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from api.db_config import get_users_async_session
+from api.models.db import init_models_db
 from api.routes import router as api_router
 from api.users.crud import create_initial_admin
-from api.users.db import get_async_session, init_db
+from api.users.db import init_users_db
 
 
+logging.basicConfig(level=logging.INFO)
 app = FastAPI()
 frontend_port = os.getenv("FRONTEND_PORT", None)
 if not frontend_port:
@@ -28,14 +32,30 @@ app.include_router(api_router)
 @app.on_event("startup")
 async def startup_event() -> None:
     """
-    Initialize the database and create the initial admin user on startup.
+    Initialize the database and create the initial admin user.
 
-    This function is called when the FastAPI application starts up. It initializes
-    the database and creates an initial admin user if one doesn't already exist.
+    This function is called when the FastAPI application starts up.
+    It initializes both the users and models databases, creates an initial admin user,
+    and checks if the expected tables exist in the databases.
+
+    Raises
+    ------
+    Exception
+        If there's an error during the startup process.
     """
-    await init_db()
-    async for session in get_async_session():
-        await create_initial_admin(session)
+    logging.info("Starting up the application...")
+    try:
+        await init_users_db()
+        await init_models_db()
+
+        async for users_session in get_users_async_session():
+            await create_initial_admin(users_session)
+            break
+
+        logging.info("Startup complete.")
+    except Exception as e:
+        logging.error(f"Error during startup: {str(e)}")
+        raise
 
 
 @app.get("/")

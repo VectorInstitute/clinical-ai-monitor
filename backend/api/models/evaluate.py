@@ -1,6 +1,5 @@
 """Evaluation API functions."""
 
-import json
 import uuid
 from datetime import datetime
 from typing import Any, Dict, List, Optional
@@ -11,8 +10,19 @@ from cyclops.evaluate import evaluator
 from cyclops.evaluate.metrics import create_metric
 from cyclops.evaluate.metrics.experimental import MetricDict
 from datasets.arrow_dataset import Dataset
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
 
 from api.models.config import EndpointConfig, SubgroupCondition
+from api.models.crud import (
+    delete_endpoint_data,
+    list_all_endpoints,
+    list_all_models,
+    load_endpoint_data,
+    load_model_data,
+    save_endpoint_data,
+    save_model_data,
+)
 from api.models.data import (
     EndpointData,
     EndpointDetails,
@@ -22,8 +32,7 @@ from api.models.data import (
     ModelBasicInfo,
     ModelData,
 )
-from api.models.db import DATA_DIR, load_model_data, save_model_data
-from api.models.utils import deep_convert_numpy
+from api.models.db import EndpointDataDB, ModelDataDB
 
 
 class EvaluationEndpoint:
@@ -51,8 +60,7 @@ class EvaluationEndpoint:
             }
         )
         self.slice_spec = self._create_slice_spec()
-        self.data = self._load_data() or EndpointData(config=config)
-        self._save_data()
+        self.data = EndpointData(config=config)
 
     def _create_slice_spec(self) -> SliceSpec:
         """
@@ -107,16 +115,20 @@ class EvaluationEndpoint:
             raise ValueError(f"Invalid condition type: {condition.type}")
         return condition_dict
 
-    def evaluate(self, model_id: str, data: EvaluationInput) -> Dict[str, Any]:
+    async def evaluate(
+        self, model_id: str, data: EvaluationInput, session: AsyncSession
+    ) -> Dict[str, Any]:
         """
         Evaluate the model using the provided input data.
 
         Parameters
         ----------
-        model_id: str
+        model_id : str
             The ID of the model associated to evaluate.
         data : EvaluationInput
             The input data for evaluation.
+        session : AsyncSession
+            The database session.
 
         Returns
         -------
@@ -128,6 +140,7 @@ class EvaluationEndpoint:
         )
         df["target"] = df["target"].astype(int)
         dataset = Dataset.from_pandas(df)
+
         result = evaluator.evaluate(
             dataset=dataset,
             metrics=self.metrics,
@@ -136,11 +149,8 @@ class EvaluationEndpoint:
             prediction_columns="preds_prob",
         )
 
-        # Extract unique slices from the evaluation result
         slices = list(result["model_for_preds_prob"].keys())
         sample_size = len(data.preds_prob)
-
-        # Use the provided timestamp or default to current time
         evaluation_timestamp = data.timestamp or datetime.now()
 
         evaluation_result = EvaluationResult(
@@ -150,9 +160,11 @@ class EvaluationEndpoint:
             timestamp=evaluation_timestamp,
             sample_size=sample_size,
         )
+
         if model_id not in self.data.evaluation_history:
             self.data.evaluation_history[model_id] = []
         self.data.evaluation_history[model_id].append(evaluation_result)
+
         self.data.logs.append(
             EndpointLog(
                 timestamp=datetime.now(),
@@ -160,26 +172,11 @@ class EvaluationEndpoint:
                 endpoint_name=self.name,
             )
         )
-        self._save_data()
-        return evaluation_result.dict()  # type: ignore
 
-    def _load_data(self) -> Optional[EndpointData]:
-        """Load endpoint data from JSON file."""
-        file_path = DATA_DIR / f"{self.name}.json"
-        if file_path.exists():
-            with open(file_path, "r") as f:
-                data = json.load(f)
-            return EndpointData(**data)
-        return None
+        await save_endpoint_data(session, self.name, self.data)
+        return evaluation_result.dict()
 
-    def _save_data(self) -> None:
-        """Save endpoint data to JSON file."""
-        file_path = DATA_DIR / f"{self.name}.json"
-        serializable_data = self.data.dict()
-        with open(file_path, "w") as f:
-            json.dump(deep_convert_numpy(serializable_data), f)
-
-    def add_model(self, model_info: ModelBasicInfo) -> str:
+    async def add_model(self, model_info: ModelBasicInfo, session: AsyncSession) -> str:
         """
         Add a model to the endpoint.
 
@@ -187,6 +184,8 @@ class EvaluationEndpoint:
         ----------
         model_info : ModelBasicInfo
             Basic information about the model to add.
+        session : AsyncSession
+            The database session.
 
         Returns
         -------
@@ -196,11 +195,12 @@ class EvaluationEndpoint:
         model_id = str(uuid.uuid4())
         model_data = ModelData(
             id=model_id,
-            endpoint_name=self.name,
-            basic_info=model_info,
             endpoints=[self.name],
+            basic_info=model_info,
         )
-        save_model_data(model_id, model_data)
+        await save_model_data(session, model_data)
+
+        # Update the endpoint data
         self.data.models.append(model_id)
         self.data.logs.append(
             EndpointLog(
@@ -210,10 +210,11 @@ class EvaluationEndpoint:
                 endpoint_name=self.name,
             )
         )
-        self._save_data()
+        await save_endpoint_data(session, self.name, self.data)
+
         return model_id
 
-    def remove_model(self, model_id: str) -> None:
+    async def remove_model(self, model_id: str, session: AsyncSession) -> None:
         """
         Remove a model from the endpoint.
 
@@ -221,6 +222,8 @@ class EvaluationEndpoint:
         ----------
         model_id : str
             The ID of the model to remove.
+        session : AsyncSession
+            The database session.
 
         Raises
         ------
@@ -238,17 +241,21 @@ class EvaluationEndpoint:
                 endpoint_name=self.name,
             )
         )
-        self._save_data()
+        await save_endpoint_data(session, self.name, self.data)
 
     @classmethod
-    def load(cls, endpoint_name: str) -> "EvaluationEndpoint":
+    async def load(
+        cls, endpoint_name: str, session: AsyncSession
+    ) -> "EvaluationEndpoint":
         """
-        Load endpoint data from JSON file.
+        Load endpoint data from the database.
 
         Parameters
         ----------
         endpoint_name : str
             The name of the endpoint to load.
+        session : AsyncSession
+            The database session.
 
         Returns
         -------
@@ -258,65 +265,19 @@ class EvaluationEndpoint:
         Raises
         ------
         ValueError
-            If the endpoint file is not found.
+            If the endpoint is not found.
         """
-        file_path = DATA_DIR / f"{endpoint_name}.json"
-        if not file_path.exists():
+        data = await load_endpoint_data(session, endpoint_name)
+        if not data:
             raise ValueError(f"Endpoint '{endpoint_name}' not found")
-        with open(file_path, "r") as f:
-            data = json.load(f)
-        config = EndpointConfig(**data["config"])
-        endpoint = cls(config, endpoint_name)
-        endpoint.data = EndpointData(**data)
+        endpoint = cls(data.config, endpoint_name)
+        endpoint.data = data
         return endpoint
 
 
-def load_all_endpoints() -> Dict[str, EvaluationEndpoint]:
-    """
-    Load all endpoints from JSON files.
-
-    Returns
-    -------
-    Dict[str, EvaluationEndpoint]
-        A dictionary of all loaded endpoints.
-    """
-    endpoints: Dict[str, EvaluationEndpoint] = {}
-    for file_path in DATA_DIR.glob("endpoint_*.json"):
-        endpoint_name = file_path.stem
-        try:
-            endpoint = EvaluationEndpoint.load(endpoint_name)
-            endpoints[endpoint_name] = endpoint
-        except Exception as e:
-            print(f"Error loading endpoint {endpoint_name}: {str(e)}")
-    return endpoints
-
-
-def load_all_models() -> Dict[str, ModelData]:
-    """
-    Load all models from JSON files.
-
-    Returns
-    -------
-    Dict[str, ModelData]
-        A dictionary with loaded model data.
-    """
-    models = {}
-    for file_path in DATA_DIR.glob("model_*.json"):
-        model_id = file_path.stem.replace("model_", "")
-        try:
-            model_data = load_model_data(model_id)
-            if model_data:
-                models[model_id] = model_data
-        except Exception as e:
-            print(f"Error loading model {model_id}: {str(e)}")
-    return models
-
-
-evaluation_endpoints: Dict[str, EvaluationEndpoint] = load_all_endpoints()
-models: Dict[str, ModelData] = load_all_models()
-
-
-def create_evaluation_endpoint(config: EndpointConfig) -> Dict[str, str]:
+async def create_evaluation_endpoint(
+    config: EndpointConfig, session: AsyncSession
+) -> Dict[str, str]:
     """
     Create a new evaluation endpoint configuration.
 
@@ -324,6 +285,8 @@ def create_evaluation_endpoint(config: EndpointConfig) -> Dict[str, str]:
     ----------
     config : EndpointConfig
         The configuration for the new evaluation endpoint.
+    session : AsyncSession
+        The database session.
 
     Returns
     -------
@@ -333,7 +296,7 @@ def create_evaluation_endpoint(config: EndpointConfig) -> Dict[str, str]:
     try:
         endpoint_name = f"endpoint_{uuid.uuid4().hex[:8]}"
         endpoint = EvaluationEndpoint(config, endpoint_name)
-        evaluation_endpoints[endpoint_name] = endpoint
+        await save_endpoint_data(session, endpoint_name, endpoint.data)
         return {
             "message": f"Evaluation endpoint '{endpoint_name}' created successfully",
             "endpoint_name": endpoint_name,
@@ -342,7 +305,9 @@ def create_evaluation_endpoint(config: EndpointConfig) -> Dict[str, str]:
         return {"error": str(e)}
 
 
-def delete_evaluation_endpoint(endpoint_name: str) -> Dict[str, str]:
+async def delete_evaluation_endpoint(
+    endpoint_name: str, session: AsyncSession
+) -> Dict[str, str]:
     """
     Delete an evaluation endpoint configuration.
 
@@ -350,6 +315,8 @@ def delete_evaluation_endpoint(endpoint_name: str) -> Dict[str, str]:
     ----------
     endpoint_name : str
         The name of the evaluation endpoint to delete.
+    session : AsyncSession
+        The database session.
 
     Returns
     -------
@@ -360,67 +327,68 @@ def delete_evaluation_endpoint(endpoint_name: str) -> Dict[str, str]:
     ------
     ValueError
         If the endpoint with the given name doesn't exist.
-
-    Notes
-    -----
-    This function removes the endpoint from the in-memory dictionary and
-    deletes the corresponding JSON file from the disk.
     """
-    if endpoint_name not in evaluation_endpoints:
-        raise ValueError(f"Evaluation endpoint '{endpoint_name}' not found")
-
-    # Remove the endpoint from the in-memory dictionary
-    del evaluation_endpoints[endpoint_name]
-
-    # Delete the corresponding JSON file
-    file_path = DATA_DIR / f"{endpoint_name}.json"
-    if file_path.exists():
-        file_path.unlink()
-
-    return {"message": f"Evaluation endpoint '{endpoint_name}' deleted successfully"}
+    try:
+        await delete_endpoint_data(session, endpoint_name)
+        return {
+            "message": f"Evaluation endpoint '{endpoint_name}' deleted successfully"
+        }
+    except ValueError as e:
+        raise ValueError(f"Error deleting endpoint: {str(e)}") from e
 
 
-def list_evaluation_endpoints() -> Dict[str, List[EndpointDetails]]:
+async def list_evaluation_endpoints(
+    session: AsyncSession,
+) -> Dict[str, List[EndpointDetails]]:
     """
     List all created evaluation endpoints.
+
+    Parameters
+    ----------
+    session : AsyncSession
+        The database session.
 
     Returns
     -------
     Dict[str, List[EndpointDetails]]
         A dictionary containing a list of endpoint details.
-
-    Notes
-    -----
-    This function returns details about each endpoint, including its name,
-    configured metrics, and associated models.
     """
-    return {
-        "endpoints": [
-            EndpointDetails(
-                name=name,
-                metrics=[
-                    f"{metric.type}_{metric.name}" for metric in endpoint.config.metrics
-                ],
-                models=list(endpoint.data.models),
+    endpoints = await list_all_endpoints(session)
+    endpoint_details = []
+    for endpoint_name in endpoints:
+        endpoint_data = await load_endpoint_data(session, endpoint_name)
+        if endpoint_data:
+            endpoint_details.append(
+                EndpointDetails(
+                    name=endpoint_name,
+                    metrics=[
+                        f"{metric.type}_{metric.name}"
+                        for metric in endpoint_data.config.metrics
+                    ],
+                    models=endpoint_data.models,
+                )
             )
-            for name, endpoint in evaluation_endpoints.items()
-        ]
-    }
+    return {"endpoints": endpoint_details}
 
 
-def list_models() -> Dict[str, ModelData]:
+async def list_models(session: AsyncSession) -> Dict[str, ModelData]:
     """
     List all models.
+
+    Parameters
+    ----------
+    session : AsyncSession
+        The database session.
 
     Returns
     -------
     Dict[str, ModelData]
         A dict with all models, with model IDs as keys and ModelData as values.
     """
-    return models
+    return await list_all_models(session)
 
 
-def get_model_by_id(model_id: str) -> Optional[ModelData]:
+async def get_model_by_id(model_id: str, session: AsyncSession) -> Optional[ModelData]:
     """
     Get a model by its ID.
 
@@ -428,17 +396,19 @@ def get_model_by_id(model_id: str) -> Optional[ModelData]:
     ----------
     model_id : str
         The ID of the model to retrieve.
+    session : AsyncSession
+        The database session.
 
     Returns
     -------
     Optional[ModelData]
         The model data if found, None otherwise.
     """
-    return models.get(model_id)
+    return await load_model_data(session, model_id)
 
 
-def add_model_to_endpoint(
-    endpoint_name: str, model_info: ModelBasicInfo
+async def add_model_to_endpoint(
+    endpoint_name: str, model_info: ModelBasicInfo, session: AsyncSession
 ) -> Dict[str, str]:
     """
     Add a model to an existing evaluation endpoint.
@@ -449,6 +419,8 @@ def add_model_to_endpoint(
         The name of the endpoint to add the model to.
     model_info : ModelBasicInfo
         Basic information about the model to be added.
+    session : AsyncSession
+        The database session.
 
     Returns
     -------
@@ -460,26 +432,17 @@ def add_model_to_endpoint(
     ValueError
         If the endpoint doesn't exist.
     """
-    if endpoint_name not in evaluation_endpoints:
-        raise ValueError(f"Endpoint '{endpoint_name}' not found")
-
-    endpoint = evaluation_endpoints[endpoint_name]
-    model_id = endpoint.add_model(model_info)
-
-    if model_id in models:
-        models[model_id].endpoints.append(endpoint_name)
-    else:
-        models[model_id] = ModelData(
-            id=model_id, endpoints=[endpoint_name], basic_info=model_info, facts=None
-        )
-
+    endpoint = await EvaluationEndpoint.load(endpoint_name, session)
+    model_id = await endpoint.add_model(model_info, session)
     return {
         "message": f"Model '{model_info.name}' added to endpoint '{endpoint_name}' successfully",
         "model_id": model_id,
     }
 
 
-def remove_model_from_endpoint(endpoint_name: str, model_id: str) -> Dict[str, str]:
+async def remove_model_from_endpoint(
+    endpoint_name: str, model_id: str, session: AsyncSession
+) -> Dict[str, str]:
     """
     Remove a model from an existing evaluation endpoint.
 
@@ -489,6 +452,8 @@ def remove_model_from_endpoint(endpoint_name: str, model_id: str) -> Dict[str, s
         The name of the endpoint to remove the model from.
     model_id : str
         The ID of the model to be removed.
+    session : AsyncSession
+        The database session.
 
     Returns
     -------
@@ -500,12 +465,9 @@ def remove_model_from_endpoint(endpoint_name: str, model_id: str) -> Dict[str, s
     ValueError
         If the endpoint or model doesn't exist.
     """
-    if endpoint_name not in evaluation_endpoints:
-        raise ValueError(f"Endpoint '{endpoint_name}' not found")
-    endpoint = evaluation_endpoints[endpoint_name]
+    endpoint = await EvaluationEndpoint.load(endpoint_name, session)
     try:
-        endpoint.remove_model(model_id)
-        del models[model_id]
+        await endpoint.remove_model(model_id, session)
         return {
             "message": f"Model '{model_id}' removed from endpoint '{endpoint_name}' successfully"
         }
@@ -513,8 +475,8 @@ def remove_model_from_endpoint(endpoint_name: str, model_id: str) -> Dict[str, s
         raise ValueError(f"Error removing model: {str(e)}") from e
 
 
-def evaluate_model(
-    endpoint_name: str, model_id: str, data: EvaluationInput
+async def evaluate_model(
+    endpoint_name: str, model_id: str, data: EvaluationInput, session: AsyncSession
 ) -> Dict[str, Any]:
     """
     Evaluate a model using the specified evaluation endpoint configuration.
@@ -527,6 +489,8 @@ def evaluate_model(
         The ID of the model to use.
     data : EvaluationInput
         The input data for evaluation.
+    session : AsyncSession
+        The database session.
 
     Returns
     -------
@@ -537,21 +501,19 @@ def evaluate_model(
     ------
     ValueError
         If the specified endpoint does not exist.
-
-    Notes
-    -----
-    This function uses the endpoint configuration to evaluate the provided data.
-    It no longer assumes any specific model is associated with the endpoint.
     """
-    if endpoint_name not in evaluation_endpoints:
-        raise ValueError(f"Evaluation endpoint '{endpoint_name}' not found")
-    endpoint = evaluation_endpoints[endpoint_name]
-    return endpoint.evaluate(model_id, data)
+    endpoint = await EvaluationEndpoint.load(endpoint_name, session)
+    return await endpoint.evaluate(model_id, data, session)
 
 
-def get_endpoint_logs() -> List[EndpointLog]:
+async def get_endpoint_logs(session: AsyncSession) -> List[EndpointLog]:
     """
     Get logs for all endpoints.
+
+    Parameters
+    ----------
+    session : AsyncSession
+        The database session.
 
     Returns
     -------
@@ -564,7 +526,8 @@ def get_endpoint_logs() -> List[EndpointLog]:
     with the most recent logs first.
     """
     all_logs = []
-    for endpoint_name, endpoint in evaluation_endpoints.items():
+    endpoints = await load_all_endpoints(session)
+    for endpoint_name, endpoint in endpoints.items():
         endpoint_logs = [
             EndpointLog(
                 timestamp=log.timestamp,
@@ -580,3 +543,57 @@ def get_endpoint_logs() -> List[EndpointLog]:
     all_logs.sort(key=lambda x: x.timestamp, reverse=True)
 
     return all_logs
+
+
+# Additional utility functions that might be needed
+
+
+async def load_all_endpoints(session: AsyncSession) -> Dict[str, EvaluationEndpoint]:
+    """
+    Load all endpoints from the database.
+
+    Parameters
+    ----------
+    session : AsyncSession
+        The database session.
+
+    Returns
+    -------
+    Dict[str, EvaluationEndpoint]
+        A dictionary of all loaded endpoints.
+    """
+    endpoints: Dict[str, EvaluationEndpoint] = {}
+    result = await session.execute(select(EndpointDataDB))
+    for db_endpoint in result.scalars():
+        try:
+            endpoint = await EvaluationEndpoint.load(db_endpoint.name, session)
+            endpoints[db_endpoint.name] = endpoint
+        except Exception as e:
+            print(f"Error loading endpoint {db_endpoint.name}: {str(e)}")
+    return endpoints
+
+
+async def load_all_models(session: AsyncSession) -> Dict[str, ModelData]:
+    """
+    Load all models from the database.
+
+    Parameters
+    ----------
+    session : AsyncSession
+        The database session.
+
+    Returns
+    -------
+    Dict[str, ModelData]
+        A dictionary with loaded model data.
+    """
+    models = {}
+    result = await session.execute(select(ModelDataDB))
+    for db_model in result.scalars():
+        try:
+            model_data = await load_model_data(session, db_model.id)
+            if model_data:
+                models[db_model.id] = model_data
+        except Exception as e:
+            print(f"Error loading model {db_model.id}: {str(e)}")
+    return models

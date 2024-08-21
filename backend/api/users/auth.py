@@ -8,9 +8,9 @@ from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from api.db_config import get_users_async_session
 from api.users.crud import get_user_by_username
 from api.users.data import TokenData, User
-from api.users.db import get_async_session
 from api.users.utils import verify_password
 
 
@@ -77,7 +77,7 @@ def create_access_token(
 
 async def get_current_user(
     token: str = Depends(oauth2_scheme),  # noqa: B008
-    db: AsyncSession = Depends(get_async_session),  # noqa: B008
+    db: AsyncSession = Depends(get_users_async_session),  # noqa: B008
 ) -> User:
     """
     Get the current authenticated user from the token.

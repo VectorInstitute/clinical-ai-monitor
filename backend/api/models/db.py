@@ -1,91 +1,48 @@
-"""Save and load data."""
+"""Database models and session management for the evaluation API."""
 
-import json
-from pathlib import Path
-from typing import Optional
+import logging
 
-from api.models.data import (
-    EndpointData,
-    ModelData,
-)
+from sqlalchemy import JSON, Column, String
+from sqlalchemy.ext.declarative import DeclarativeMeta
+from sqlalchemy.orm import declarative_base
 
-
-# Define the path for storing endpoint data
-DATA_DIR = Path("endpoint_data")
-DATA_DIR.mkdir(exist_ok=True)
+from api.db_config import models_engine
 
 
-def save_endpoint_data(endpoint_name: str, data: EndpointData) -> None:
-    """
-    Save endpoint data to a JSON file.
-
-    Parameters
-    ----------
-    endpoint_name : str
-        The name of the endpoint.
-    data : EndpointData
-        The endpoint data to save.
-    """
-    file_path = DATA_DIR / f"{endpoint_name}.json"
-    with open(file_path, "w") as f:
-        json.dump(data.dict(), f, indent=2)
+# Create declarative base
+Base: DeclarativeMeta = declarative_base()
 
 
-def load_endpoint_data(endpoint_name: str) -> Optional[EndpointData]:
-    """
-    Load endpoint data from a JSON file.
+class ModelDataDB(Base):
+    """Database model for storing model data."""
 
-    Parameters
-    ----------
-    endpoint_name : str
-        The name of the endpoint.
+    __tablename__ = "model_data"
 
-    Returns
-    -------
-    Optional[EndpointData]
-        The loaded endpoint data, or None if the file doesn't exist.
-    """
-    file_path = DATA_DIR / f"{endpoint_name}.json"
-    if file_path.exists():
-        with open(file_path, "r") as f:
-            data = json.load(f)
-        return EndpointData(**data)
-    return None
+    id = Column(String, primary_key=True, index=True)
+    name = Column(String)
+    version = Column(String)
+    endpoints = Column(JSON)
+    facts = Column(JSON)
 
 
-def save_model_data(model_id: str, data: ModelData) -> None:
-    """
-    Save model data to a JSON file.
+class EndpointDataDB(Base):
+    """Database model for storing endpoint data."""
 
-    Parameters
-    ----------
-    model_id : str
-        The ID of the model.
-    data : ModelData
-        The model data to save.
-    """
-    file_path = DATA_DIR / f"model_{model_id}.json"
-    with open(file_path, "w") as f:
-        json.dump(data.dict(), f, indent=2)
+    __tablename__ = "endpoint_data"
+
+    name = Column(String, primary_key=True, index=True)
+    config = Column(JSON)
+    evaluation_history = Column(JSON)
+    logs = Column(JSON)
+    models = Column(JSON)
 
 
-def load_model_data(model_id: str) -> Optional[ModelData]:
-    """
-    Load model data from a JSON file.
-
-    Parameters
-    ----------
-    model_id : str
-        The ID of the model.
-
-    Returns
-    -------
-    Optional[ModelData]
-        The loaded model data, or None if the file doesn't exist.
-    """
-    file_path = DATA_DIR / f"model_{model_id}.json"
-    if file_path.exists():
-        with open(file_path, "r") as f:
-            data = json.load(f)
-        return ModelData(**data)
-    return None
+async def init_models_db() -> None:
+    """Initialize the database by creating all tables."""
+    try:
+        async with models_engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+        logging.info("Database tables created successfully")
+    except Exception as e:
+        logging.error(f"Error creating database tables: {str(e)}")
+        raise

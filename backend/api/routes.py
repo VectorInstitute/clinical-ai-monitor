@@ -6,6 +6,7 @@ from typing import Any, Dict, List, Optional, cast
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from api.db_config import get_models_async_session, get_users_async_session
 from api.models.config import EndpointConfig
 from api.models.data import ModelBasicInfo, ModelData
 from api.models.evaluate import (
@@ -39,7 +40,6 @@ from api.users.crud import (
     update_user_password,
 )
 from api.users.data import User, UserCreate
-from api.users.db import get_async_session
 from api.users.utils import verify_password
 
 
@@ -47,7 +47,10 @@ router = APIRouter()
 
 
 @router.post("/endpoints", response_model=Dict[str, str])
-async def create_endpoint_route(config: EndpointConfig) -> Dict[str, str]:
+async def create_endpoint_route(
+    config: EndpointConfig,
+    session: AsyncSession = Depends(get_models_async_session),  # noqa: B008
+) -> Dict[str, str]:
     """
     Create a new evaluation endpoint.
 
@@ -55,6 +58,8 @@ async def create_endpoint_route(config: EndpointConfig) -> Dict[str, str]:
     ----------
     config : EndpointConfig
         The configuration for the new endpoint.
+    session : AsyncSession
+        The database session.
 
     Returns
     -------
@@ -67,7 +72,7 @@ async def create_endpoint_route(config: EndpointConfig) -> Dict[str, str]:
         If there's an error during endpoint creation.
     """
     try:
-        result = create_evaluation_endpoint(config)
+        result = await create_evaluation_endpoint(config, session)
         if isinstance(result, dict) and "error" in result:
             raise HTTPException(status_code=400, detail=result["error"])
         return cast(Dict[str, str], result)
@@ -80,34 +85,51 @@ async def create_endpoint_route(config: EndpointConfig) -> Dict[str, str]:
 
 
 @router.get("/endpoints", response_model=Dict[str, List[EndpointDetails]])
-async def get_evaluation_endpoints_route() -> Dict[str, List[EndpointDetails]]:
+async def get_evaluation_endpoints_route(
+    session: AsyncSession = Depends(get_models_async_session),  # noqa: B008
+) -> Dict[str, List[EndpointDetails]]:
     """
     List all created evaluation endpoints.
+
+    Parameters
+    ----------
+    session : AsyncSession
+        The database session.
 
     Returns
     -------
     Dict[str, List[EndpointDetails]]
         A dictionary containing a list of all evaluation endpoints.
     """
-    result = list_evaluation_endpoints()
+    result = await list_evaluation_endpoints(session)
     return cast(Dict[str, List[EndpointDetails]], result)
 
 
 @router.get("/models", response_model=Dict[str, ModelData])
-async def get_models_route() -> Dict[str, ModelData]:
+async def get_models_route(
+    session: AsyncSession = Depends(get_models_async_session),  # noqa: B008
+) -> Dict[str, ModelData]:
     """
     List all models.
+
+    Parameters
+    ----------
+    session : AsyncSession
+        The database session.
 
     Returns
     -------
     Dict[str, ModelData]
         A dict with all models, with model IDs as keys and ModelData as values.
     """
-    return cast(Dict[str, ModelData], list_models())
+    return cast(Dict[str, ModelData], await list_models(session))
 
 
 @router.get("/models/{model_id}", response_model=ModelData)
-async def get_model_route(model_id: str) -> ModelData:
+async def get_model_route(
+    model_id: str,
+    session: AsyncSession = Depends(get_models_async_session),  # noqa: B008
+) -> ModelData:
     """
     Get details of a specific model.
 
@@ -115,6 +137,8 @@ async def get_model_route(model_id: str) -> ModelData:
     ----------
     model_id : str
         The ID of the model to retrieve.
+    session : AsyncSession
+        The database session.
 
     Returns
     -------
@@ -126,7 +150,7 @@ async def get_model_route(model_id: str) -> ModelData:
     HTTPException
         If the model is not found or there's an error retrieving the model data.
     """
-    model = get_model_by_id(model_id)
+    model = await get_model_by_id(model_id, session)
     if model is None:
         raise HTTPException(
             status_code=404, detail=f"Model with ID {model_id} not found"
@@ -136,7 +160,10 @@ async def get_model_route(model_id: str) -> ModelData:
 
 @router.post("/evaluate/{endpoint_name}/{model_id}", response_model=Dict[str, Any])
 async def evaluate_route(
-    endpoint_name: str, model_id: str, data: EvaluationInput
+    endpoint_name: str,
+    model_id: str,
+    data: EvaluationInput,
+    session: AsyncSession = Depends(get_models_async_session),  # noqa: B008
 ) -> Dict[str, Any]:
     """
     Evaluate a model using the specified evaluation endpoint configuration.
@@ -149,6 +176,8 @@ async def evaluate_route(
         The ID of the model to use for evaluation.
     data : EvaluationInput
         The input data for the evaluation.
+    session : AsyncSession
+        The database session.
 
     Returns
     -------
@@ -161,7 +190,7 @@ async def evaluate_route(
         If there's an error during evaluation.
     """
     try:
-        result = evaluate_model(endpoint_name, model_id, data)
+        result = await evaluate_model(endpoint_name, model_id, data, session)
         if not isinstance(result, dict):
             raise ValueError("Unexpected result type from evaluate_model")
         return result
@@ -174,9 +203,16 @@ async def evaluate_route(
 
 
 @router.get("/endpoint_logs", response_model=List[EndpointLog])
-async def get_endpoint_logs_route() -> List[EndpointLog]:
+async def get_endpoint_logs_route(
+    session: AsyncSession = Depends(get_models_async_session),  # noqa: B008
+) -> List[EndpointLog]:
     """
     Get logs for all endpoints.
+
+    Parameters
+    ----------
+    session : AsyncSession
+        The database session.
 
     Returns
     -------
@@ -189,7 +225,7 @@ async def get_endpoint_logs_route() -> List[EndpointLog]:
         If there's an error retrieving the logs.
     """
     try:
-        logs = get_endpoint_logs()
+        logs = await get_endpoint_logs(session)
         if not isinstance(logs, list):
             raise ValueError("Unexpected result type from get_endpoint_logs")
         return logs
@@ -203,7 +239,9 @@ async def get_endpoint_logs_route() -> List[EndpointLog]:
     "/performance_metrics/{endpoint_name}/{model_id}", response_model=Dict[str, Any]
 )
 async def get_performance_metrics_route(
-    endpoint_name: str, model_id: str
+    endpoint_name: str,
+    model_id: str,
+    session: AsyncSession = Depends(get_models_async_session),  # noqa: B008
 ) -> Dict[str, Any]:
     """
     Retrieve performance metrics for the model.
@@ -214,6 +252,8 @@ async def get_performance_metrics_route(
         The name of the endpoint to retrieve performance metrics for.
     model_id : str
         The ID of the model for which the performance metrics are to be retrieved.
+    session : AsyncSession
+        The database session.
 
     Returns
     -------
@@ -226,7 +266,7 @@ async def get_performance_metrics_route(
         If there's an error retrieving the performance metrics.
     """
     try:
-        metrics = await get_performance_metrics(endpoint_name, model_id)
+        metrics = await get_performance_metrics(endpoint_name, model_id, session)
         if not isinstance(metrics, dict):
             raise ValueError("Unexpected result type from get_performance_metrics")
         return metrics
@@ -237,7 +277,10 @@ async def get_performance_metrics_route(
 
 
 @router.get("/model/{model_id}/safety", response_model=ModelSafety)
-async def get_model_safety_route(model_id: str) -> ModelSafety:
+async def get_model_safety_route(
+    model_id: str,
+    session: AsyncSession = Depends(get_models_async_session),  # noqa: B008
+) -> ModelSafety:
     """
     Retrieve safety status, checklist for a specific model.
 
@@ -245,6 +288,8 @@ async def get_model_safety_route(model_id: str) -> ModelSafety:
     ----------
     model_id : str
         The ID of the model to retrieve safety information for.
+    session : AsyncSession
+        The database session.
 
     Returns
     -------
@@ -257,7 +302,7 @@ async def get_model_safety_route(model_id: str) -> ModelSafety:
         If there's an error retrieving the model health.
     """
     try:
-        return await get_model_safety(model_id)
+        return await get_model_safety(model_id, session)
     except HTTPException:
         raise
     except Exception as e:
@@ -267,7 +312,10 @@ async def get_model_safety_route(model_id: str) -> ModelSafety:
 
 
 @router.delete("/endpoints/{endpoint_name}", response_model=Dict[str, str])
-async def delete_endpoint_route(endpoint_name: str) -> Dict[str, str]:
+async def delete_endpoint_route(
+    endpoint_name: str,
+    session: AsyncSession = Depends(get_models_async_session),  # noqa: B008
+) -> Dict[str, str]:
     """
     Delete an existing evaluation endpoint configuration.
 
@@ -275,6 +323,8 @@ async def delete_endpoint_route(endpoint_name: str) -> Dict[str, str]:
     ----------
     endpoint_name : str
         The name of the endpoint to delete.
+    session : AsyncSession
+        The database session.
 
     Returns
     -------
@@ -287,7 +337,7 @@ async def delete_endpoint_route(endpoint_name: str) -> Dict[str, str]:
         If there's an error during endpoint deletion.
     """
     try:
-        result = delete_evaluation_endpoint(endpoint_name)
+        result = await delete_evaluation_endpoint(endpoint_name, session)
         if not isinstance(result, dict):
             raise ValueError("Unexpected result type from delete_evaluation_endpoint")
         return cast(Dict[str, str], result)
@@ -300,7 +350,10 @@ async def delete_endpoint_route(endpoint_name: str) -> Dict[str, str]:
 
 
 @router.get("/models/{model_id}/facts", response_model=Optional[ModelFacts])
-async def get_model_facts_route(model_id: str) -> Optional[ModelFacts]:
+async def get_model_facts_route(
+    model_id: str,
+    session: AsyncSession = Depends(get_models_async_session),  # noqa: B008
+) -> Optional[ModelFacts]:
     """
     Retrieve facts for a specific model.
 
@@ -308,6 +361,8 @@ async def get_model_facts_route(model_id: str) -> Optional[ModelFacts]:
     ----------
     model_id : str
         The ID of the model to retrieve facts for.
+    session : AsyncSession
+        The database session.
 
     Returns
     -------
@@ -320,7 +375,7 @@ async def get_model_facts_route(model_id: str) -> Optional[ModelFacts]:
         If there's an error retrieving the model facts.
     """
     try:
-        return get_model_facts(model_id)
+        return await get_model_facts(model_id, session)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e)) from e
     except Exception as e:
@@ -330,7 +385,11 @@ async def get_model_facts_route(model_id: str) -> Optional[ModelFacts]:
 
 
 @router.post("/models/{model_id}/facts", response_model=ModelFacts)
-async def update_model_facts_route(model_id: str, facts: ModelFacts) -> ModelFacts:
+async def update_model_facts_route(
+    model_id: str,
+    facts: ModelFacts,
+    session: AsyncSession = Depends(get_models_async_session),  # noqa: B008
+) -> ModelFacts:
     """
     Update facts for a specific model.
 
@@ -340,6 +399,8 @@ async def update_model_facts_route(model_id: str, facts: ModelFacts) -> ModelFac
         The ID of the model to update facts for.
     facts : ModelFacts
         The updated facts for the model.
+    session : AsyncSession
+        The database session.
 
     Returns
     -------
@@ -352,7 +413,7 @@ async def update_model_facts_route(model_id: str, facts: ModelFacts) -> ModelFac
         If there's an error updating the model facts.
     """
     try:
-        return update_model_facts(model_id, facts.dict())
+        return await update_model_facts(model_id, facts.dict(), session)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e)) from e
     except Exception as e:
@@ -363,7 +424,9 @@ async def update_model_facts_route(model_id: str, facts: ModelFacts) -> ModelFac
 
 @router.post("/endpoints/{endpoint_name}/models", response_model=Dict[str, str])
 async def add_model_to_endpoint_route(
-    endpoint_name: str, model_info: ModelBasicInfo
+    endpoint_name: str,
+    model_info: ModelBasicInfo,
+    session: AsyncSession = Depends(get_models_async_session),  # noqa: B008
 ) -> Dict[str, str]:
     """
     Add a model to an existing endpoint.
@@ -374,6 +437,8 @@ async def add_model_to_endpoint_route(
         The name of the endpoint to add the model to.
     model_info : ModelBasicInfo
         Basic information about the model to be added.
+    session : AsyncSession
+        The database session.
 
     Returns
     -------
@@ -386,7 +451,10 @@ async def add_model_to_endpoint_route(
         If there's an error during model addition.
     """
     try:
-        return cast(Dict[str, str], add_model_to_endpoint(endpoint_name, model_info))
+        return cast(
+            Dict[str, str],
+            await add_model_to_endpoint(endpoint_name, model_info, session),
+        )
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e)) from e
     except Exception as e:
@@ -399,7 +467,9 @@ async def add_model_to_endpoint_route(
     "/endpoints/{endpoint_name}/models/{model_id}", response_model=Dict[str, str]
 )
 async def remove_model_from_endpoint_route(
-    endpoint_name: str, model_id: str
+    endpoint_name: str,
+    model_id: str,
+    session: AsyncSession = Depends(get_models_async_session),  # noqa: B008
 ) -> Dict[str, str]:
     """
     Remove a model from an existing endpoint.
@@ -410,6 +480,8 @@ async def remove_model_from_endpoint_route(
         The name of the endpoint to remove the model from.
     model_id : str
         The ID of the model to be removed.
+    session : AsyncSession
+        The database session.
 
     Returns
     -------
@@ -422,7 +494,10 @@ async def remove_model_from_endpoint_route(
         If there's an error during model removal.
     """
     try:
-        return cast(Dict[str, str], remove_model_from_endpoint(endpoint_name, model_id))
+        return cast(
+            Dict[str, str],
+            await remove_model_from_endpoint(endpoint_name, model_id, session),
+        )
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e)) from e
     except Exception as e:
@@ -434,7 +509,7 @@ async def remove_model_from_endpoint_route(
 @router.post("/auth/signin")
 async def signin(
     request: Request,
-    db: AsyncSession = Depends(get_async_session),  # noqa: B008
+    db: AsyncSession = Depends(get_users_async_session),  # noqa: B008
 ) -> Dict[str, Any]:
     """
     Authenticate a user and return an access token.
@@ -558,7 +633,7 @@ async def get_session(
 async def signup(
     user: UserCreate,
     current_user: User = Depends(get_current_active_user),  # noqa: B008
-    db: AsyncSession = Depends(get_async_session),  # noqa: B008
+    db: AsyncSession = Depends(get_users_async_session),  # noqa: B008
 ) -> User:
     """
     Create a new user (admin only).
@@ -595,7 +670,7 @@ async def get_users_route(
     current_user: User = Depends(get_current_active_user),  # noqa: B008
     skip: int = 0,
     limit: int = 100,
-    db: AsyncSession = Depends(get_async_session),  # noqa: B008
+    db: AsyncSession = Depends(get_users_async_session),  # noqa: B008
 ) -> List[User]:
     """
     Get a list of users (admin only).
@@ -633,7 +708,7 @@ async def update_user_route(
     user_id: int,
     user_update: UserCreate,
     current_user: User = Depends(get_current_active_user),  # noqa: B008
-    db: AsyncSession = Depends(get_async_session),  # noqa: B008
+    db: AsyncSession = Depends(get_users_async_session),  # noqa: B008
 ) -> User:
     """
     Update a user (admin only).
@@ -671,7 +746,7 @@ async def update_user_route(
 async def update_password(
     request: Request,
     current_user: User = Depends(get_current_active_user),  # noqa: B008
-    db: AsyncSession = Depends(get_async_session),  # noqa: B008
+    db: AsyncSession = Depends(get_users_async_session),  # noqa: B008
 ) -> Dict[str, str]:
     """
     Update the current user's password.
@@ -731,7 +806,7 @@ async def update_password(
 async def delete_user_route(
     user_id: int,
     current_user: User = Depends(get_current_active_user),  # noqa: B008
-    db: AsyncSession = Depends(get_async_session),  # noqa: B008
+    db: AsyncSession = Depends(get_users_async_session),  # noqa: B008
 ) -> Dict[str, str]:
     """
     Delete a user (admin only).
