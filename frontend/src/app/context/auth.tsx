@@ -1,6 +1,6 @@
 'use client'
 
-import React, { createContext, useContext, useState, useEffect } from 'react'
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 
 interface User {
@@ -13,6 +13,7 @@ interface AuthContextType {
   user: User | null
   login: (username: string, password: string) => Promise<void>
   logout: () => Promise<void>
+  updatePassword: (currentPassword: string, newPassword: string) => Promise<void>
   isLoading: boolean
   isAuthenticated: () => boolean
   getToken: () => string | null
@@ -25,39 +26,38 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState(true)
   const router = useRouter()
 
-  useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const token = localStorage.getItem('token')
-        if (!token) {
-          setUser(null)
-          setIsLoading(false)
-          return
-        }
+  const checkAuth = useCallback(async () => {
+    try {
+      const token = localStorage.getItem('token')
+      if (!token) {
+        setUser(null)
+        return
+      }
 
-        const response = await fetch('/api/auth/session', {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        })
-        if (response.ok) {
-          const data = await response.json()
-          setUser(data.user)
-        } else {
-          setUser(null)
-          localStorage.removeItem('token')
+      const response = await fetch('/api/auth/session', {
+        headers: {
+          'Authorization': `Bearer ${token}`
         }
-      } catch (error) {
-        console.error('Error checking authentication:', error)
+      })
+      if (response.ok) {
+        const data = await response.json()
+        setUser(data.user)
+      } else {
         setUser(null)
         localStorage.removeItem('token')
-      } finally {
-        setIsLoading(false)
       }
+    } catch (error) {
+      console.error('Error checking authentication:', error)
+      setUser(null)
+      localStorage.removeItem('token')
+    } finally {
+      setIsLoading(false)
     }
-
-    checkAuth()
   }, [])
+
+  useEffect(() => {
+    checkAuth()
+  }, [checkAuth])
 
   const login = async (username: string, password: string): Promise<void> => {
     setIsLoading(true)
@@ -107,18 +107,43 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }
 
-  const isAuthenticated = () => {
-    return !!user && !!localStorage.getItem('token')
+  const updatePassword = async (currentPassword: string, newPassword: string): Promise<void> => {
+    try {
+      const token = localStorage.getItem('token')
+      if (!token) throw new Error('No authentication token found')
+
+      const response = await fetch('/api/auth/update-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ currentPassword, newPassword })
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.detail || 'Failed to update password')
+      }
+    } catch (error) {
+      console.error('Error updating password:', error)
+      throw error
+    }
   }
 
-  const getToken = () => {
+  const isAuthenticated = useCallback(() => {
+    return !!user && !!localStorage.getItem('token')
+  }, [user])
+
+  const getToken = useCallback(() => {
     return localStorage.getItem('token')
-  }
+  }, [])
 
   const contextValue: AuthContextType = {
     user,
     login,
     logout,
+    updatePassword,
     isLoading,
     isAuthenticated,
     getToken,

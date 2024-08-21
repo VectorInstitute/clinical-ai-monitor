@@ -36,9 +36,11 @@ from api.users.crud import (
     delete_user,
     get_users,
     update_user,
+    update_user_password,
 )
 from api.users.data import User, UserCreate
 from api.users.db import get_async_session
+from api.users.utils import verify_password
 
 
 router = APIRouter()
@@ -663,6 +665,66 @@ async def update_user_route(
             detail="Not authorized to update users",
         )
     return await update_user(db=db, user_id=user_id, user_update=user_update)
+
+
+@router.post("/auth/update-password")
+async def update_password(
+    request: Request,
+    current_user: User = Depends(get_current_active_user),  # noqa: B008
+    db: AsyncSession = Depends(get_async_session),  # noqa: B008
+) -> Dict[str, str]:
+    """
+    Update the current user's password.
+
+    Parameters
+    ----------
+    request : Request
+        The incoming request object.
+    current_user : User
+        The current authenticated user.
+    db : AsyncSession
+        The database session.
+
+    Returns
+    -------
+    Dict[str, str]
+        A dictionary containing a success message.
+
+    Raises
+    ------
+    HTTPException
+        If the current password is incorrect or the new password is invalid.
+    """
+    data = await request.json()
+    current_password = data.get("currentPassword")
+    new_password = data.get("newPassword")
+
+    if not current_password or not new_password:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Current password and new password are required",
+        )
+
+    if not verify_password(current_password, current_user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect current password",
+        )
+
+    try:
+        await update_user_password(db, current_user.id, new_password)
+        await db.commit()
+    except HTTPException as he:
+        # Re-raise HTTP exceptions
+        raise he
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="An error occurred while updating the password",
+        ) from e
+
+    return {"message": "Password updated successfully"}
 
 
 @router.delete("/users/{user_id}")

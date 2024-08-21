@@ -2,6 +2,7 @@
 
 from typing import List, Optional
 
+from fastapi import HTTPException
 from sqlalchemy import Boolean, Column, Integer, String, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -226,3 +227,34 @@ async def delete_user(db: AsyncSession, user_id: int) -> bool:
         await db.commit()
         return True
     return False
+
+
+async def update_user_password(
+    db: AsyncSession, user_id: int, new_password: str
+) -> None:
+    """
+    Update a user's password.
+
+    Parameters
+    ----------
+    db : AsyncSession
+        The database session.
+    user_id : int
+        The ID of the user to update.
+    new_password : str
+        The new password to set.
+
+    Raises
+    ------
+    HTTPException
+        If the user is not found.
+    """
+    stmt = select(UserModel).where(UserModel.id == user_id)
+    result = await db.execute(stmt)
+    user = result.scalar_one_or_none()
+
+    if user is None:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    user.hashed_password = get_password_hash(new_password)
+    db.add(user)
