@@ -34,6 +34,7 @@ services:
     environment:
       - BACKEND_PORT=${BACKEND_PORT}
       - FRONTEND_PORT=${FRONTEND_PORT}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
     networks:
       - app-network
 

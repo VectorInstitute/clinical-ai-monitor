@@ -1,5 +1,6 @@
 """Authentication and authorization utilities."""
 
+import os
 from datetime import datetime, timedelta
 from typing import Any, Dict, Optional
 
@@ -15,7 +16,9 @@ from api.users.utils import verify_password
 
 
 # Constants
-SECRET_KEY = "7f5157dd32f573a237cce2f2e83f88342a5034f3c9273c6104765dbef8e824f6"  # Change this in production
+SECRET_KEY = os.environ.get("JWT_SECRET_KEY")
+if not SECRET_KEY:
+    raise ValueError("JWT_SECRET_KEY environment variable is not set")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
