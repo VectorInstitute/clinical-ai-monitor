@@ -21,11 +21,11 @@ docker tag vectorinstitute/${PROJECT_NAME}:frontend-${BUILD_ID} vectorinstitute/
 docker tag vectorinstitute/${PROJECT_NAME}:backend-${BUILD_ID} vectorinstitute/${PROJECT_NAME}:backend-latest
 
 # Push all images (uncomment when ready to push)
-docker push vectorinstitute/${PROJECT_NAME}:frontend-dev-${BUILD_ID}
-docker push vectorinstitute/${PROJECT_NAME}:backend-dev-${BUILD_ID}
-docker push vectorinstitute/${PROJECT_NAME}:frontend-${BUILD_ID}
-docker push vectorinstitute/${PROJECT_NAME}:backend-${BUILD_ID}
-docker push vectorinstitute/${PROJECT_NAME}:frontend-dev-latest
-docker push vectorinstitute/${PROJECT_NAME}:backend-dev-latest
-docker push vectorinstitute/${PROJECT_NAME}:frontend-latest
-docker push vectorinstitute/${PROJECT_NAME}:backend-latest
+# docker push vectorinstitute/${PROJECT_NAME}:frontend-dev-${BUILD_ID}
+# docker push vectorinstitute/${PROJECT_NAME}:backend-dev-${BUILD_ID}
+# docker push vectorinstitute/${PROJECT_NAME}:frontend-${BUILD_ID}
+# docker push vectorinstitute/${PROJECT_NAME}:backend-${BUILD_ID}
+# docker push vectorinstitute/${PROJECT_NAME}:frontend-dev-latest
+# docker push vectorinstitute/${PROJECT_NAME}:backend-dev-latest
+# docker push vectorinstitute/${PROJECT_NAME}:frontend-latest
+# docker push vectorinstitute/${PROJECT_NAME}:backend-latest
