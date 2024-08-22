@@ -18,6 +18,7 @@ interface SelectModelModalProps {
   onClose: () => void;
   groupedModels: { [key: string]: { version: string; id: string }[] };
   onSelectModel: (modelId: string) => void;
+  title: string;
 }
 
 const SelectModelModal: React.FC<SelectModelModalProps> = ({
@@ -25,6 +26,7 @@ const SelectModelModal: React.FC<SelectModelModalProps> = ({
   onClose,
   groupedModels,
   onSelectModel,
+  title,
 }) => {
   const bgColor = useColorModeValue('white', 'gray.800');
   const textColor = useColorModeValue('gray.800', 'gray.100');
@@ -33,7 +35,7 @@ const SelectModelModal: React.FC<SelectModelModalProps> = ({
     <Modal isOpen={isOpen} onClose={onClose}>
       <ModalOverlay />
       <ModalContent bg={bgColor}>
-        <ModalHeader color={textColor}>Select Model to Update Facts</ModalHeader>
+        <ModalHeader color={textColor}>{title}</ModalHeader>
         <ModalCloseButton />
         <ModalBody>
           <VStack align="stretch" spacing={4}>
