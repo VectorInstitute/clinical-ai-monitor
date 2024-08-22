@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   Box, VStack, Heading, Text, Button, FormControl, FormLabel, Input, useToast,
   Container, useColorModeValue, Flex, Divider, Badge, Table, Thead, Tbody, Tr, Th, Td,
@@ -18,20 +18,28 @@ interface User {
   role: string;
 }
 
+interface NewUser {
+  username: string;
+  email: string;
+  password: string;
+  role: string;
+}
+
+const INITIAL_NEW_USER: NewUser = { username: '', email: '', password: '', role: 'viewer' };
+
 const ProfilePage: React.FC = () => {
   const { user, updatePassword } = useAuth();
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [users, setUsers] = useState<User[]>([]);
-  const [newUser, setNewUser] = useState({ username: '', email: '', password: '', role: 'viewer' });
+  const [newUser, setNewUser] = useState<NewUser>(INITIAL_NEW_USER);
   const { isOpen, onOpen, onClose } = useDisclosure();
   const toast = useToast();
 
   const bgColor = useColorModeValue('gray.50', 'gray.900');
   const cardBgColor = useColorModeValue('white', 'gray.800');
   const textColor = useColorModeValue('gray.800', 'gray.100');
-  const dividerColor = useColorModeValue('gray.200', 'gray.700');
 
   const fetchUsers = useCallback(async () => {
     if (user?.role !== 'admin') return;
@@ -65,7 +73,7 @@ const ProfilePage: React.FC = () => {
     }
   }, [user?.role, toast]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     fetchUsers();
   }, [fetchUsers]);
 
@@ -132,7 +140,7 @@ const ProfilePage: React.FC = () => {
       });
       onClose();
       fetchUsers();
-      setNewUser({ username: '', email: '', password: '', role: 'viewer' });
+      setNewUser(INITIAL_NEW_USER);
     } catch (error) {
       toast({
         title: 'Failed to create user',
@@ -190,7 +198,7 @@ const ProfilePage: React.FC = () => {
     }
   };
 
-  const getRoleBadgeColor = (role: string) => {
+  const getRoleBadgeColor = (role: string): string => {
     switch (role) {
       case 'admin':
         return 'red';
@@ -214,7 +222,10 @@ const ProfilePage: React.FC = () => {
               <VStack spacing={4} align="stretch">
                 <Heading as="h2" size="lg" color={textColor}>Account Information</Heading>
                 <Text><strong>Username:</strong> {user?.username}</Text>
-                <Text><strong>Role:</strong> {user?.role}</Text>
+                <Text>
+                  <strong>Role:</strong>{' '}
+                  <Badge colorScheme={getRoleBadgeColor(user?.role || '')}>{user?.role}</Badge>
+                </Text>
               </VStack>
             </Box>
 

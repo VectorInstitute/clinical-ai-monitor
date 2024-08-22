@@ -271,7 +271,15 @@ def add_models_and_evaluate(endpoints: List[Tuple[str, Dict]]) -> None:
         {"name": "Stroke Risk Assessment Model", "version": "1.8"},
     ]
 
-    base_date = datetime.now() - timedelta(days=100)  # Start 100 days ago
+    model_evaluation_counts = {
+        "Sepsis Prediction Model": 25,
+        "Delirium Prediction Model": 18,
+        "Pneumothorax Detection Model": 22,
+        "Heart Failure Prediction Model": 30,
+        "Stroke Risk Assessment Model": 20,
+    }
+
+    base_date = datetime.now() - timedelta(days=150)  # Start 150 days ago
     for (endpoint_name, config), model in zip(endpoints, models):
         model_response = add_model_to_endpoint(endpoint_name, model)
         model_id = model_response.get("model_id")
@@ -285,8 +293,9 @@ def add_models_and_evaluate(endpoints: List[Tuple[str, Dict]]) -> None:
             except Exception as e:
                 print(f"Error adding facts for model {model['name']}: {str(e)}")
 
-            days_between_evaluations = random.randint(3, 10)
-            for j in range(10):  # Perform 10 evaluations for each model
+            num_evaluations = model_evaluation_counts[model["name"]]
+            days_between_evaluations = 150 // num_evaluations
+            for j in range(num_evaluations):
                 evaluation_date = base_date + timedelta(
                     days=j * days_between_evaluations
                 )
@@ -294,7 +303,7 @@ def add_models_and_evaluate(endpoints: List[Tuple[str, Dict]]) -> None:
                 try:
                     evaluate_model(endpoint_name, model_id, dummy_data)
                     print(
-                        f"Evaluation performed for model {model_id} on endpoint {endpoint_name} at {evaluation_date}"
+                        f"Evaluation {j+1}/{num_evaluations} performed for model {model_id} on endpoint {endpoint_name} at {evaluation_date}"
                     )
                 except Exception as e:
                     print(f"Error during evaluation: {str(e)}")

@@ -237,7 +237,6 @@ async def get_performance_metrics(
         If the endpoint file is not found.
     """
     threshold = 0.6
-    last_n_evals = 10
     mean_std_min_evals = 3
     file_path = DATA_DIR / f"{endpoint_name}.json"
 
@@ -250,7 +249,7 @@ async def get_performance_metrics(
     evaluation_history: List[Dict[str, Any]] = data.get("evaluation_history", {}).get(
         model_id, []
     )
-
+    last_n_evals = len(evaluation_history)
     has_data = bool(evaluation_history)
 
     if has_data:

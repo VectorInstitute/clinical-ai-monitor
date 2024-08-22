@@ -2,7 +2,6 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   Box,
   Text,
-  SimpleGrid,
   Flex,
   VStack,
   Heading,
@@ -15,17 +14,19 @@ import {
 } from '@chakra-ui/react';
 import { ErrorMessage } from './components/error-display';
 import { LoadingSpinner } from './components/loading-spinner';
-import { MetricCard } from './components/metric-card';
+import { MetricCards } from './components/metric-cards';
 import { MetricSelector } from './components/metric-selector';
 import { SliceSelector } from './components/slice-selector';
 import { PlotSettings } from './components/plot-settings';
 import { TimeSeriesChart } from './components/time-series-chart';
-import { PerformanceData, PerformanceDataSchema } from './types/performance-metrics';
+import { PerformanceData, PerformanceDataSchema, Metric } from './types/performance-metrics';
 
 interface PerformanceMetricsTabProps {
   endpointName: string;
   modelId: string;
 }
+
+const MAX_CARD_DATA_POINTS = 16;
 
 export default function PerformanceMetricsTab({ endpointName, modelId }: PerformanceMetricsTabProps) {
   const [data, setData] = useState<PerformanceData | null>(null);
@@ -37,7 +38,6 @@ export default function PerformanceMetricsTab({ endpointName, modelId }: Perform
   const [rollingWindow, setRollingWindow] = useState(3);
   const [lastNEvaluations, setLastNEvaluations] = useState<number>(20);
 
-  const cardColumns = useBreakpointValue({ base: 1, sm: 2, md: 3, lg: 4 });
   const chartHeight = useBreakpointValue({ base: 300, md: 400, lg: 500 }) ?? 300;
 
   const fetchPerformanceMetrics = useCallback(async () => {
@@ -65,18 +65,19 @@ export default function PerformanceMetricsTab({ endpointName, modelId }: Perform
     fetchPerformanceMetrics();
   }, [fetchPerformanceMetrics]);
 
-  const renderMetricCards = useMemo(() => {
-    if (!data || !data.overview.has_data) return null;
-    return (
-      <SimpleGrid columns={cardColumns} spacing={4} width="100%">
-        {data.overview.metric_cards.collection
-          .filter((metric) => metric.slice === 'overall')
-          .map((metric) => (
-            <MetricCard key={metric.name} metric={metric} />
-          ))}
-      </SimpleGrid>
+  const limitDataPoints = useCallback((metric: Metric, limit: number): Metric => ({
+    ...metric,
+    history: metric.history.slice(-limit),
+    timestamps: metric.timestamps.slice(-limit),
+    sample_sizes: metric.sample_sizes.slice(-limit),
+  }), []);
+
+  const limitedMetrics = useMemo(() => {
+    if (!data || !data.overview.has_data) return [];
+    return data.overview.metric_cards.collection.map(metric =>
+      limitDataPoints(metric, MAX_CARD_DATA_POINTS)
     );
-  }, [data, cardColumns]);
+  }, [data, limitDataPoints]);
 
   const handleMetricSelect = useCallback((metrics: string[]) => {
     setSelectedMetrics(metrics);
@@ -118,7 +119,7 @@ export default function PerformanceMetricsTab({ endpointName, modelId }: Perform
           No Evaluation Data Available
         </AlertTitle>
         <AlertDescription maxWidth="sm">
-          It looks like there&apos;s no evaluation data for this endpoint yet. Start logging evaluation data to see performance metrics here.
+          It looks like there's no evaluation data for this endpoint yet. Start logging evaluation data to see performance metrics here.
         </AlertDescription>
       </Alert>
     );
@@ -135,7 +136,7 @@ export default function PerformanceMetricsTab({ endpointName, modelId }: Perform
         </Text>
       </Box>
 
-      {renderMetricCards}
+      <MetricCards metrics={limitedMetrics} />
 
       <Divider my={8} />
 
