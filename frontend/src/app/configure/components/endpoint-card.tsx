@@ -22,7 +22,8 @@ import {
   HStack,
   useTheme,
 } from '@chakra-ui/react';
-import { FiPlus, FiTrash2, FiEdit } from 'react-icons/fi';
+import { FiPlus, FiTrash2, FiEdit, FiCheckSquare } from 'react-icons/fi';
+import { useRouter } from 'next/navigation';
 import SelectModelModal from './select-model-modal';
 
 interface EndpointCardProps {
@@ -34,6 +35,7 @@ interface EndpointCardProps {
   onAddModel: () => void;
   onRemoveModel: () => void;
   onUpdateFacts: (modelId: string) => void;
+  onUpdateCriteria: (modelId: string) => void;
 }
 
 const EndpointCard: React.FC<EndpointCardProps> = ({
@@ -42,8 +44,11 @@ const EndpointCard: React.FC<EndpointCardProps> = ({
   onAddModel,
   onRemoveModel,
   onUpdateFacts,
+  onUpdateCriteria,
 }) => {
-  const { isOpen, onOpen, onClose } = useDisclosure();
+  const { isOpen: isModelSelectOpen, onOpen: onModelSelectOpen, onClose: onModelSelectClose } = useDisclosure();
+  const { isOpen: isCriteriaSelectOpen, onOpen: onCriteriaSelectOpen, onClose: onCriteriaSelectClose } = useDisclosure();
+  const router = useRouter();
   const theme = useTheme();
 
   const colors = useMemo(() => ({
@@ -94,10 +99,16 @@ const EndpointCard: React.FC<EndpointCardProps> = ({
     </>
   );
 
+  const handleUpdateCriteria = (modelId: string) => {
+    onCriteriaSelectClose();
+    router.push(`/configure/evaluation-criteria/${modelId}`);
+  };
+
   const actionButtons = [
     { label: 'Add Model', icon: FiPlus, color: 'green', onClick: onAddModel },
     { label: 'Remove Model', icon: FiTrash2, color: 'red', onClick: onRemoveModel },
-    { label: 'Update Facts', icon: FiEdit, color: 'blue', onClick: onOpen },
+    { label: 'Update Facts', icon: FiEdit, color: 'blue', onClick: onModelSelectOpen },
+    { label: 'Update Criteria', icon: FiCheckSquare, color: 'purple', onClick: onCriteriaSelectOpen },
   ];
 
   return (
@@ -159,10 +170,16 @@ const EndpointCard: React.FC<EndpointCardProps> = ({
         </Accordion>
       </VStack>
       <SelectModelModal
-        isOpen={isOpen}
-        onClose={onClose}
+        isOpen={isModelSelectOpen}
+        onClose={onModelSelectClose}
         groupedModels={groupedModels}
         onSelectModel={onUpdateFacts}
+      />
+      <SelectModelModal
+        isOpen={isCriteriaSelectOpen}
+        onClose={onCriteriaSelectClose}
+        groupedModels={groupedModels}
+        onSelectModel={handleUpdateCriteria}
       />
     </Box>
   );

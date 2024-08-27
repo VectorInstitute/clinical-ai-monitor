@@ -1,4 +1,3 @@
-import { hasExternalOtelApiPackage } from 'next/dist/build/webpack-config';
 import { z } from 'zod';
 
 export const MetricSchema = z.object({
@@ -11,7 +10,8 @@ export const MetricSchema = z.object({
   passed: z.boolean(),
   history: z.array(z.number()),
   timestamps: z.array(z.string()),
-  sample_sizes: z.array(z.number())
+  sample_sizes: z.array(z.number()),
+  status: z.string()
 });
 
 export const MetricCardsSchema = z.object({

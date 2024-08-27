@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Formik, Form, FieldArray, Field } from 'formik';
 import {
   VStack,
@@ -13,8 +13,11 @@ import {
   Text,
   Flex,
   useColorModeValue,
+  List,
+  ListItem,
+  ListIcon,
 } from '@chakra-ui/react';
-import { FiPlus, FiMinus } from 'react-icons/fi';
+import { FiPlus, FiMinus, FiChevronRight } from 'react-icons/fi';
 import { ModelFacts } from '../types/facts';
 
 interface ModelFactsFormProps {
@@ -25,6 +28,75 @@ interface ModelFactsFormProps {
 const ModelFactsForm: React.FC<ModelFactsFormProps> = ({ initialValues, onSubmit }) => {
   const bgColor = useColorModeValue('gray.50', 'gray.700');
   const borderColor = useColorModeValue('gray.200', 'gray.600');
+  const filledFieldBg = useColorModeValue('gray.100', 'gray.600');
+  const editableFieldBg = useColorModeValue('white', 'gray.700');
+  const sectionBg = useColorModeValue('gray.50', 'gray.800');
+
+  const [focusedField, setFocusedField] = useState<string | null>(null);
+
+  const renderField = (name: string, label: string, as: string = 'input') => (
+    <FormControl>
+      <FormLabel>{label}</FormLabel>
+      <Field name={name}>
+        {({ field, form }: any) => (
+          <Box
+            as={as === 'input' ? Input : Textarea}
+            {...field}
+            bg={field.value && focusedField !== name ? filledFieldBg : editableFieldBg}
+            onFocus={() => setFocusedField(name)}
+            onBlur={(e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+              field.onBlur(e);
+              setFocusedField(null);
+            }}
+          />
+        )}
+      </Field>
+    </FormControl>
+  );
+
+  const renderArrayField = (name: string, label: string) => (
+    <FieldArray name={name}>
+      {({ push, remove }) => (
+        <Box>
+          <Text fontWeight="bold" mb={2}>{label}</Text>
+          <List spacing={3}>
+            {(initialValues[name as keyof ModelFacts] as string[] || []).map((_, index) => (
+              <ListItem key={index}>
+                <Flex alignItems="center">
+                  <ListIcon as={FiChevronRight} color="green.500" />
+                  <Field name={`${name}.${index}`}>
+                    {({ field, form }: any) => (
+                      <Input
+                        {...field}
+                        bg={field.value && focusedField !== `${name}.${index}` ? filledFieldBg : editableFieldBg}
+                        onFocus={() => setFocusedField(`${name}.${index}`)}
+                        onBlur={(e: React.FocusEvent<HTMLInputElement>) => {
+                          field.onBlur(e);
+                          setFocusedField(null);
+                        }}
+                        flex={1}
+                      />
+                    )}
+                  </Field>
+                  <IconButton
+                    aria-label={`Remove ${label}`}
+                    icon={<FiMinus />}
+                    onClick={() => remove(index)}
+                    ml={2}
+                  />
+                </Flex>
+              </ListItem>
+            ))}
+            <ListItem>
+              <Button leftIcon={<FiPlus />} onClick={() => push('')} mt={2}>
+                Add {label}
+              </Button>
+            </ListItem>
+          </List>
+        </Box>
+      )}
+    </FieldArray>
+  );
 
   return (
     <Formik
@@ -32,208 +104,50 @@ const ModelFactsForm: React.FC<ModelFactsFormProps> = ({ initialValues, onSubmit
       onSubmit={onSubmit}
       enableReinitialize
     >
-      {({ values, handleChange, handleBlur, isSubmitting }) => (
+      {({ values }) => (
         <Form>
           <VStack spacing={8} align="stretch">
             <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6}>
-              <FormControl>
-                <FormLabel>Type</FormLabel>
-                <Input name="type" value={values.type} onChange={handleChange} onBlur={handleBlur} />
-              </FormControl>
-              <FormControl>
-                <FormLabel>Intended Use</FormLabel>
-                <Input name="intended_use" value={values.intended_use} onChange={handleChange} onBlur={handleBlur} />
-              </FormControl>
-              <FormControl>
-                <FormLabel>Target Population</FormLabel>
-                <Input name="target_population" value={values.target_population} onChange={handleChange} onBlur={handleBlur} />
-              </FormControl>
-              <FormControl>
-                <FormLabel>Output Data</FormLabel>
-                <Input name="output_data" value={values.output_data} onChange={handleChange} onBlur={handleBlur} />
-              </FormControl>
+              {renderField('type', 'Type')}
+              {renderField('intended_use', 'Intended Use')}
+              {renderField('target_population', 'Target Population')}
+              {renderField('output_data', 'Output Data')}
             </SimpleGrid>
 
-            <FormControl>
-              <FormLabel>Summary</FormLabel>
-              <Textarea name="summary" value={values.summary} onChange={handleChange} onBlur={handleBlur} />
-            </FormControl>
+            {renderField('summary', 'Summary', 'textarea')}
+            {renderField('mechanism_of_action', 'Mechanism of Action', 'textarea')}
 
-            <FormControl>
-              <FormLabel>Mechanism of Action</FormLabel>
-              <Textarea name="mechanism_of_action" value={values.mechanism_of_action} onChange={handleChange} onBlur={handleBlur} />
-            </FormControl>
+            <Box bg={sectionBg} p={6} borderRadius="md" borderWidth={1} borderColor={borderColor}>
+              <Text fontWeight="bold" mb={4} fontSize="lg">Input Data</Text>
+              {renderArrayField('input_data', 'Input Data')}
+            </Box>
 
-            <FieldArray name="input_data">
-              {({ push, remove }) => (
-                <Box>
-                  <FormLabel>Input Data</FormLabel>
-                  {values.input_data?.map((item, index) => (
-                    <Flex key={index} mt={2}>
-                      <Input
-                        name={`input_data.${index}`}
-                        value={item}
-                        onChange={handleChange}
-                        onBlur={handleBlur}
-                      />
-                      <IconButton
-                        aria-label="Remove input data"
-                        icon={<FiMinus />}
-                        onClick={() => remove(index)}
-                        ml={2}
-                      />
-                    </Flex>
-                  ))}
-                  <Button leftIcon={<FiPlus />} onClick={() => push('')} mt={2}>
-                    Add Input Data
-                  </Button>
-                </Box>
-              )}
-            </FieldArray>
-
-            <Box bg={bgColor} p={4} borderRadius="md" borderWidth={1} borderColor={borderColor}>
-              <Text fontWeight="bold" mb={2}>Validation and Performance</Text>
+            <Box bg={sectionBg} p={6} borderRadius="md" borderWidth={1} borderColor={borderColor}>
+              <Text fontWeight="bold" mb={4} fontSize="lg">Validation and Performance</Text>
               <VStack align="stretch" spacing={4}>
-                <FormControl>
-                  <FormLabel>Internal Validation</FormLabel>
-                  <Input
-                    name="validation_and_performance.internal_validation"
-                    value={values.validation_and_performance?.internal_validation}
-                    onChange={handleChange}
-                    onBlur={handleBlur}
-                  />
-                </FormControl>
-                <FormControl>
-                  <FormLabel>External Validation</FormLabel>
-                  <Input
-                    name="validation_and_performance.external_validation"
-                    value={values.validation_and_performance?.external_validation}
-                    onChange={handleChange}
-                    onBlur={handleBlur}
-                  />
-                </FormControl>
-                <FieldArray name="validation_and_performance.performance_in_subgroups">
-                  {({ push, remove }) => (
-                    <Box>
-                      <FormLabel>Performance in Subgroups</FormLabel>
-                      {values.validation_and_performance?.performance_in_subgroups?.map((item, index) => (
-                        <Flex key={index} mt={2}>
-                          <Input
-                            name={`validation_and_performance.performance_in_subgroups.${index}`}
-                            value={item}
-                            onChange={handleChange}
-                            onBlur={handleBlur}
-                          />
-                          <IconButton
-                            aria-label="Remove subgroup performance"
-                            icon={<FiMinus />}
-                            onClick={() => remove(index)}
-                            ml={2}
-                          />
-                        </Flex>
-                      ))}
-                      <Button leftIcon={<FiPlus />} onClick={() => push('')} mt={2}>
-                        Add Subgroup Performance
-                      </Button>
-                    </Box>
-                  )}
-                </FieldArray>
+                {renderField('validation_and_performance.internal_validation', 'Internal Validation')}
+                {renderField('validation_and_performance.external_validation', 'External Validation')}
+                {renderArrayField('validation_and_performance.performance_in_subgroups', 'Performance in Subgroups')}
               </VStack>
             </Box>
 
-            <FieldArray name="uses_and_directions">
-              {({ push, remove }) => (
-                <Box>
-                  <FormLabel>Uses and Directions</FormLabel>
-                  {values.uses_and_directions?.map((item, index) => (
-                    <Flex key={index} mt={2}>
-                      <Input
-                        name={`uses_and_directions.${index}`}
-                        value={item}
-                        onChange={handleChange}
-                        onBlur={handleBlur}
-                      />
-                      <IconButton
-                        aria-label="Remove use/direction"
-                        icon={<FiMinus />}
-                        onClick={() => remove(index)}
-                        ml={2}
-                      />
-                    </Flex>
-                  ))}
-                  <Button leftIcon={<FiPlus />} onClick={() => push('')} mt={2}>
-                    Add Use/Direction
-                  </Button>
-                </Box>
-              )}
-            </FieldArray>
+            <Box bg={sectionBg} p={6} borderRadius="md" borderWidth={1} borderColor={borderColor}>
+              <Text fontWeight="bold" mb={4} fontSize="lg">Uses and Directions</Text>
+              {renderArrayField('uses_and_directions', 'Use/Direction')}
+            </Box>
 
-            <FieldArray name="warnings">
-              {({ push, remove }) => (
-                <Box>
-                  <FormLabel>Warnings</FormLabel>
-                  {values.warnings?.map((item, index) => (
-                    <Flex key={index} mt={2}>
-                      <Input
-                        name={`warnings.${index}`}
-                        value={item}
-                        onChange={handleChange}
-                        onBlur={handleBlur}
-                      />
-                      <IconButton
-                        aria-label="Remove warning"
-                        icon={<FiMinus />}
-                        onClick={() => remove(index)}
-                        ml={2}
-                      />
-                    </Flex>
-                  ))}
-                  <Button leftIcon={<FiPlus />} onClick={() => push('')} mt={2}>
-                    Add Warning
-                  </Button>
-                </Box>
-              )}
-            </FieldArray>
+            <Box bg={sectionBg} p={6} borderRadius="md" borderWidth={1} borderColor={borderColor}>
+              <Text fontWeight="bold" mb={4} fontSize="lg">Warnings</Text>
+              {renderArrayField('warnings', 'Warning')}
+            </Box>
 
-            <Box bg={bgColor} p={4} borderRadius="md" borderWidth={1} borderColor={borderColor}>
-              <Text fontWeight="bold" mb={2}>Other Information</Text>
+            <Box bg={sectionBg} p={6} borderRadius="md" borderWidth={1} borderColor={borderColor}>
+              <Text fontWeight="bold" mb={4} fontSize="lg">Other Information</Text>
               <VStack align="stretch" spacing={4}>
-                <FormControl>
-                  <FormLabel>Approval Date</FormLabel>
-                  <Input
-                    name="other_information.approval_date"
-                    value={values.other_information?.approval_date}
-                    onChange={handleChange}
-                    onBlur={handleBlur}
-                  />
-                </FormControl>
-                <FormControl>
-                  <FormLabel>License</FormLabel>
-                  <Input
-                    name="other_information.license"
-                    value={values.other_information?.license}
-                    onChange={handleChange}
-                    onBlur={handleBlur}
-                  />
-                </FormControl>
-                <FormControl>
-                  <FormLabel>Contact Information</FormLabel>
-                  <Input
-                    name="other_information.contact_information"
-                    value={values.other_information?.contact_information}
-                    onChange={handleChange}
-                    onBlur={handleBlur}
-                  />
-                </FormControl>
-                <FormControl>
-                  <FormLabel>Publication Link</FormLabel>
-                  <Input
-                    name="other_information.publication_link"
-                    value={values.other_information?.publication_link}
-                    onChange={handleChange}
-                    onBlur={handleBlur}
-                  />
-                </FormControl>
+                {renderField('other_information.approval_date', 'Approval Date')}
+                {renderField('other_information.license', 'License')}
+                {renderField('other_information.contact_information', 'Contact Information')}
+                {renderField('other_information.publication_link', 'Publication Link')}
               </VStack>
             </Box>
 

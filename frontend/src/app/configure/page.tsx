@@ -100,6 +100,14 @@ const ConfigurationPage: React.FC = () => {
     onRemoveModelOpen();
   }, [onRemoveModelOpen]);
 
+  const handleUpdateCriteria = useCallback((modelId: string) => {
+    if (modelId) {
+      router.push(`/configure/evaluation-criteria/${modelId}`);
+    } else {
+      console.error('Invalid model ID for updating criteria');
+    }
+  }, [router]);
+
   return (
     <Flex minHeight="100vh" bg={bgColor}>
       <Sidebar />
@@ -136,6 +144,7 @@ const ConfigurationPage: React.FC = () => {
                     }}
                     onRemoveModel={() => handleRemoveModel(endpoint.name)}
                     onUpdateFacts={handleUpdateFacts}
+                    onUpdateCriteria={handleUpdateCriteria}
                   />
                 );
               })}

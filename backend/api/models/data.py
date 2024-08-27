@@ -1,6 +1,8 @@
 """Dataclasses for evaluation input and output."""
 
+import uuid
 from datetime import datetime
+from enum import Enum
 from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field, validator
@@ -65,13 +67,85 @@ class ModelFacts(ModelBasicInfo):
     )
 
 
+class ComparisonOperator(str, Enum):
+    """Comparison operator for evaluation criteria."""
+
+    GREATER_THAN = ">"
+    LESS_THAN = "<"
+    EQUAL_TO = "="
+    GREATER_THAN_OR_EQUAL_TO = ">="
+    LESS_THAN_OR_EQUAL_TO = "<="
+
+
+class EvaluationCriterion(BaseModel):
+    """Evaluation criterion for a model.
+
+    Attributes
+    ----------
+    id: str
+        Unique identifier for the criterion.
+    metric_name: str
+        Name of the metric.
+    operator: ComparisonOperator
+        Comparison operator.
+    threshold: float
+        Threshold value for the criterion.
+    """
+
+    id: str = Field(
+        default_factory=lambda: str(uuid.uuid4()),
+        description="Unique identifier for the criterion",
+    )
+    metric_name: str = Field(..., description="Name of the metric")
+    display_name: str = Field(..., description="Display name of the metric")
+    operator: ComparisonOperator = Field(..., description="Comparison operator")
+    threshold: float = Field(..., description="Threshold value for the criterion")
+
+
+class EvaluationFrequency(BaseModel):
+    """Frequency at which the model is evaluated.
+
+    Attributes
+    ----------
+    value: int
+        The value of the frequency.
+    unit: str
+        The unit of the frequency.
+    """
+
+    value: int
+    unit: str
+
+
 class ModelData(BaseModel):
-    """Data structure for storing model information."""
+    """Data structure for storing model information.
+
+    Attributes
+    ----------
+    id : str
+        Unique identifier for the model.
+    endpoints : List[str]
+        List of endpoints associated with the model.
+    basic_info : ModelBasicInfo
+        Basic information about the model, including name and version.
+    facts : Optional[ModelFacts]
+        Detailed facts about the model, including its type, intended use,
+        target population, etc. This attribute is optional.
+    evaluation_criteria : List[EvaluationCriterion]
+        List of evaluation criteria for the model. Each criterion specifies a metric,
+        comparison operator, and threshold value.
+    evaluation_frequency: Optional[EvaluationFrequency] = None
+        The frequency at which the model is evaluated.
+    """
 
     id: str
     endpoints: List[str]
     basic_info: ModelBasicInfo
     facts: Optional[ModelFacts] = None
+    evaluation_criteria: List[EvaluationCriterion] = Field(
+        default_factory=list, description="List of evaluation criteria"
+    )
+    evaluation_frequency: Optional[EvaluationFrequency] = None
 
 
 class EvaluationInput(BaseModel):
@@ -296,3 +370,131 @@ class EndpointDetails(BaseModel):
     name: str
     metrics: List[str]
     models: List[str]
+
+
+class Metric(BaseModel):
+    """
+    Represents a single metric with its associated data.
+
+    Attributes
+    ----------
+    name : str
+        The name of the metric.
+    display_name : str
+        The display name of the metric.
+    type : str
+        The type of the metric (binary or multiclass).
+    slice : str
+        The slice or segment of data the metric represents.
+    tooltip : str
+        A brief description or explanation of the metric.
+    value : float
+        The current value of the metric.
+    threshold : float
+        The threshold value for the metric.
+    passed : bool
+        Indicates whether the metric passed the threshold.
+    history : List[float]
+        Historical values of the metric.
+    timestamps : List[str]
+        Timestamps corresponding to the historical values.
+    sample_sizes : List[int]
+        Sample sizes corresponding to the historical values.
+    status : str = "not met"
+        The status of the metric (met or not met).
+    """
+
+    name: str
+    display_name: str
+    type: str
+    slice: str
+    tooltip: str
+    value: float
+    threshold: float = Field(default=0.6)
+    passed: bool
+    history: List[float]
+    timestamps: List[str]
+    sample_sizes: List[int]
+    status: str = "not met"
+
+
+class MetricCards(BaseModel):
+    """
+    Represents a collection of metric cards.
+
+    Attributes
+    ----------
+    metrics : List[str]
+        List of metric names.
+    display_names : List[str]
+        List of display names for each metric.
+    tooltips : List[str]
+        List of tooltips for each metric.
+    slices : List[str]
+        List of data slices.
+    collection : List[Metric]
+        Collection of individual metrics.
+    """
+
+    metrics: List[str]
+    display_names: List[str]
+    tooltips: List[str]
+    slices: List[str]
+    collection: List[Metric]
+
+
+class Overview(BaseModel):
+    """
+    Represents an overview of performance metrics.
+
+    Attributes
+    ----------
+    last_n_evals : int
+        Number of recent evaluations.
+    mean_std_min_evals : int
+        Minimum number of evaluations required to calculate mean and standard deviation.
+    metric_cards : MetricCards
+        Collection of metric cards.
+    has_data : bool
+        Indicates whether there is evaluation data available.
+    """
+
+    last_n_evals: int
+    mean_std_min_evals: int
+    metric_cards: MetricCards
+    has_data: bool
+
+
+class PerformanceData(BaseModel):
+    """
+    Represents the overall performance data.
+
+    Attributes
+    ----------
+    overview : Overview
+        Overview of performance metrics.
+    """
+
+    overview: Overview
+
+
+class ModelSafety(BaseModel):
+    """
+    Represents the safety of a model.
+
+    Attributes
+    ----------
+    metrics : List[Metric]
+        A list of individual metrics and their current status.
+    last_evaluated : datetime
+        A timestamp of when the model was last evaluated.
+    is_recently_evaluated : bool
+        Whether the model was recently evaluated.
+    overall_status : str
+        The overall status of the model ('No warnings' or 'Warning').
+    """
+
+    metrics: List[Metric]
+    last_evaluated: str = Field(..., description="ISO 8601 formatted date string")
+    is_recently_evaluated: bool
+    overall_status: str

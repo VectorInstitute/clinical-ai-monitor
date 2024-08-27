@@ -7,7 +7,13 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.models.config import EndpointConfig
-from api.models.data import ModelBasicInfo, ModelData
+from api.models.data import (
+    EvaluationCriterion,
+    EvaluationFrequency,
+    ModelBasicInfo,
+    ModelData,
+)
+from api.models.db import load_model_data, save_model_data
 from api.models.evaluate import (
     EndpointDetails,
     EndpointLog,
@@ -233,6 +239,99 @@ async def get_performance_metrics_route(
     except Exception as e:
         raise HTTPException(
             status_code=500, detail=f"Error retrieving performance metrics: {str(e)}"
+        ) from e
+
+
+@router.get(
+    "/models/{model_id}/evaluation-criteria", response_model=List[EvaluationCriterion]
+)
+async def get_evaluation_criteria(model_id: str) -> List[EvaluationCriterion]:
+    """
+    Retrieve evaluation criteria for a specific model.
+
+    Parameters
+    ----------
+    model_id : str
+        The ID of the model to retrieve evaluation criteria for.
+
+    Returns
+    -------
+    List[EvaluationCriterion]
+        The evaluation criteria for the specified model.
+    """
+    try:
+        model_data: ModelData = load_model_data(model_id)
+        if model_data is None:
+            raise HTTPException(status_code=404, detail="Model not found")
+        evaluation_criteria: List[EvaluationCriterion] = model_data.evaluation_criteria
+        return evaluation_criteria
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Error fetching evaluation criteria: {str(e)}"
+        ) from e
+
+
+@router.post("/models/{model_id}/evaluation-criteria")
+async def update_evaluation_criteria(
+    model_id: str, criteria: List[EvaluationCriterion]
+) -> Dict[str, str]:
+    """
+    Update evaluation criteria for a specific model.
+
+    Parameters
+    ----------
+    model_id : str
+        The ID of the model to update evaluation criteria for.
+    criteria : List[EvaluationCriterion]
+        The updated evaluation criteria for the model.
+
+    Returns
+    -------
+    Dict[str, str]
+        A dictionary containing a success message.
+    """
+    try:
+        model_data = load_model_data(model_id)
+        if model_data is None:
+            raise HTTPException(status_code=404, detail="Model not found")
+        model_data.evaluation_criteria = criteria
+        save_model_data(model_id, model_data)
+        return {"message": "Evaluation criteria updated successfully"}
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Error updating evaluation criteria: {str(e)}"
+        ) from e
+
+
+@router.post("/models/{model_id}/evaluation-frequency")
+async def update_evaluation_frequency(
+    model_id: str, frequency: EvaluationFrequency
+) -> Dict[str, str]:
+    """
+    Update evaluation frequency for a specific model.
+
+    Parameters
+    ----------
+    model_id : str
+        The ID of the model to update evaluation frequency for.
+    frequency : EvaluationFrequency
+        The updated evaluation frequency for the model.
+
+    Returns
+    -------
+    Dict[str, str]
+        A dictionary containing a success message.
+    """
+    try:
+        model_data = load_model_data(model_id)
+        if model_data is None:
+            raise HTTPException(status_code=404, detail="Model not found")
+        model_data.evaluation_frequency = frequency
+        save_model_data(model_id, model_data)
+        return {"message": "Evaluation frequency updated successfully"}
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Error updating evaluation frequency: {str(e)}"
         ) from e
 
 

@@ -58,6 +58,22 @@ def add_model_facts(model_id: str, facts: Dict) -> Dict:
     return response.json()
 
 
+def add_evaluation_criteria(model_id: str, criteria: List[Dict]) -> Dict:
+    """Add evaluation criteria to a model."""
+    response = requests.post(
+        f"{BASE_URL}/models/{model_id}/evaluation-criteria", json=criteria
+    )
+    return response.json()
+
+
+def set_evaluation_frequency(model_id: str, frequency: Dict) -> Dict:
+    """Set evaluation frequency for a model."""
+    response = requests.post(
+        f"{BASE_URL}/models/{model_id}/evaluation-frequency", json=frequency
+    )
+    return response.json()
+
+
 def create_test_endpoints() -> List[Tuple[str, Dict]]:
     """Create 5 different evaluation endpoints with various metrics."""
     endpoints = [
@@ -261,6 +277,54 @@ def generate_model_facts(model_name: str, model_version: str) -> Dict:
     }
 
 
+def generate_evaluation_criteria(model_name: str) -> List[Dict]:
+    """Generate evaluation criteria for a model."""
+    criteria = []
+    if "Sepsis" in model_name:
+        criteria = [
+            {"metric_name": "accuracy", "operator": ">=", "threshold": 0.80},
+            {"metric_name": "f1_score", "operator": ">=", "threshold": 0.75},
+        ]
+    elif "Delirium" in model_name:
+        criteria = [
+            {"metric_name": "accuracy", "operator": ">=", "threshold": 0.75},
+            {"metric_name": "precision", "operator": ">=", "threshold": 0.70},
+            {"metric_name": "recall", "operator": ">=", "threshold": 0.70},
+        ]
+    elif "Pneumothorax" in model_name:
+        criteria = [
+            {"metric_name": "accuracy", "operator": ">=", "threshold": 0.85},
+            {"metric_name": "auroc", "operator": ">=", "threshold": 0.80},
+            {"metric_name": "tpr", "operator": ">=", "threshold": 0.80},
+        ]
+    elif "Heart Failure" in model_name:
+        criteria = [
+            {"metric_name": "accuracy", "operator": ">=", "threshold": 0.75},
+            {"metric_name": "ppv", "operator": ">=", "threshold": 0.70},
+            {"metric_name": "npv", "operator": ">=", "threshold": 0.70},
+        ]
+    elif "Stroke" in model_name:
+        criteria = [
+            {"metric_name": "accuracy", "operator": ">=", "threshold": 0.78},
+            {"metric_name": "sensitivity", "operator": ">=", "threshold": 0.72},
+            {"metric_name": "specificity", "operator": ">=", "threshold": 0.82},
+        ]
+    return criteria
+
+
+def generate_evaluation_frequency(model_name: str) -> Dict:
+    """Generate evaluation frequency for a model."""
+    if "Sepsis" in model_name or "Delirium" in model_name:
+        return {"value": 7, "unit": "days"}
+    if "Pneumothorax" in model_name:
+        return {"value": 14, "unit": "days"}
+    if "Heart Failure" in model_name:
+        return {"value": 30, "unit": "days"}
+    if "Stroke" in model_name:
+        return {"value": 2, "unit": "months"}
+    return {"value": 1, "unit": "months"}
+
+
 def add_models_and_evaluate(endpoints: List[Tuple[str, Dict]]) -> None:
     """Add models to the created endpoints, add model facts, and perform evaluations."""
     models = [
@@ -285,6 +349,7 @@ def add_models_and_evaluate(endpoints: List[Tuple[str, Dict]]) -> None:
         model_id = model_response.get("model_id")
         if model_id:
             print(f"Model {model['name']} added to endpoint {endpoint_name}")
+
             # Add model facts
             model_facts = generate_model_facts(model["name"], model["version"])
             try:
@@ -292,6 +357,26 @@ def add_models_and_evaluate(endpoints: List[Tuple[str, Dict]]) -> None:
                 print(f"Facts added for model {model['name']}")
             except Exception as e:
                 print(f"Error adding facts for model {model['name']}: {str(e)}")
+
+            # Add evaluation criteria
+            evaluation_criteria = generate_evaluation_criteria(model["name"])
+            try:
+                add_evaluation_criteria(model_id, evaluation_criteria)
+                print(f"Evaluation criteria added for model {model['name']}")
+            except Exception as e:
+                print(
+                    f"Error adding evaluation criteria for model {model['name']}: {str(e)}"
+                )
+
+            # Set evaluation frequency
+            evaluation_frequency = generate_evaluation_frequency(model["name"])
+            try:
+                set_evaluation_frequency(model_id, evaluation_frequency)
+                print(f"Evaluation frequency set for model {model['name']}")
+            except Exception as e:
+                print(
+                    f"Error setting evaluation frequency for model {model['name']}: {str(e)}"
+                )
 
             num_evaluations = model_evaluation_counts[model["name"]]
             days_between_evaluations = 150 // num_evaluations
@@ -316,8 +401,10 @@ if __name__ == "__main__":
     endpoints = create_test_endpoints()
     print("Endpoints created successfully.")
     print(
-        "Adding models to endpoints, adding model facts, and performing evaluations..."
+        "Adding models to endpoints, adding model facts, evaluation criteria, setting evaluation frequency, and performing evaluations..."
     )
     add_models_and_evaluate(endpoints)
-    print("Models added, facts added, and evaluations performed successfully.")
+    print(
+        "Models added, facts added, evaluation criteria set, evaluation frequency set, and evaluations performed successfully."
+    )
     print("Test script completed.")
