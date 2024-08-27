@@ -6,7 +6,6 @@ import {
   VStack,
   Heading,
   Text,
-  Spinner,
   useColorModeValue,
   Button,
   useToast,
@@ -25,6 +24,8 @@ import {
   AlertIcon,
   AlertTitle,
   AlertDescription,
+  Skeleton,
+  SkeletonText,
 } from '@chakra-ui/react';
 import { useRouter, useParams } from 'next/navigation';
 import { FiHome, FiSettings, FiClipboard } from 'react-icons/fi';
@@ -125,25 +126,6 @@ const EvaluationCriteriaPage: React.FC = () => {
     }
   };
 
-  if (isLoading) {
-    return (
-      <Flex h="100vh" alignItems="center" justifyContent="center">
-        <Spinner size="xl" />
-      </Flex>
-    );
-  }
-
-  if (error || !model) {
-    return (
-      <Flex h="100vh" alignItems="center" justifyContent="center" direction="column">
-        <Text fontSize="xl" mb={4}>{error || "Model not found"}</Text>
-        <Button onClick={() => router.push('/configure')} colorScheme="blue">
-          Back to Configuration
-        </Button>
-      </Flex>
-    );
-  }
-
   return (
     <Flex minHeight="100vh" bg={bgColor}>
       <Sidebar />
@@ -168,16 +150,32 @@ const EvaluationCriteriaPage: React.FC = () => {
 
             <Card>
               <CardHeader>
-                <Heading as="h1" size={headingSize} color={textColor}>
-                  Evaluation Criteria: {model.basic_info.name}
-                </Heading>
-                <Text color={textColor} fontSize="md" mt={2}>
-                  Version: {model.basic_info.version}
-                </Text>
+                <Skeleton isLoaded={!isLoading}>
+                  <Heading as="h1" size={headingSize} color={textColor}>
+                    Evaluation Criteria: {model?.basic_info.name}
+                  </Heading>
+                </Skeleton>
+                <SkeletonText isLoaded={!isLoading} noOfLines={1} mt={2}>
+                  <Text color={textColor} fontSize="md">
+                    Version: {model?.basic_info.version}
+                  </Text>
+                </SkeletonText>
               </CardHeader>
               <Divider />
               <CardBody bg={cardBgColor} borderRadius="lg">
-                {availableMetrics.length > 0 ? (
+                {isLoading ? (
+                  <VStack spacing={4}>
+                    <Skeleton height="40px" width="100%" />
+                    <Skeleton height="100px" width="100%" />
+                    <Skeleton height="100px" width="100%" />
+                  </VStack>
+                ) : error ? (
+                  <Alert status="error">
+                    <AlertIcon />
+                    <AlertTitle mr={2}>Error</AlertTitle>
+                    <AlertDescription>{error}</AlertDescription>
+                  </Alert>
+                ) : availableMetrics.length > 0 ? (
                   <EvaluationCriteriaForm
                     initialValues={criteria.length > 0 ? criteria : []}
                     onSubmit={handleSubmit}

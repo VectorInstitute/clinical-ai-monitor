@@ -2,11 +2,12 @@ import React, { useEffect, useState, useCallback } from 'react';
 import {
   Box,
   VStack,
-  Spinner,
   useToast,
   Button,
   useColorModeValue,
   Container,
+  Skeleton,
+  SkeletonText,
 } from '@chakra-ui/react';
 import { ModelFacts } from '../../../types/facts';
 import ModelHeader from './components/model-header';
@@ -57,19 +58,33 @@ const ModelFactsTab: React.FC<ModelFactsTabProps> = ({ modelId }) => {
     fetchModelFacts();
   }, [fetchModelFacts]);
 
-  if (isLoading) return <Spinner size="xl" />;
-  if (error) return <ErrorDisplay error={error} onRetry={fetchModelFacts} />;
-  if (!modelFacts) return <NoFactsDisplay onRefresh={fetchModelFacts} />;
+  const renderContent = () => {
+    if (error) return <ErrorDisplay error={error} onRetry={fetchModelFacts} />;
+    if (!modelFacts) return <NoFactsDisplay onRefresh={fetchModelFacts} />;
+
+    return (
+      <VStack align="stretch" spacing={8}>
+        <ModelHeader name={modelFacts.name} version={modelFacts.version} type={modelFacts.type} />
+        <ModelSummary summary={modelFacts.summary} />
+        <ModelAccordion modelFacts={modelFacts} />
+        <OtherInformationSection otherInfo={modelFacts.other_information} />
+      </VStack>
+    );
+  };
 
   return (
     <Container maxW="container.xl" p={0}>
       <Box bg={bgColor} p={8} borderRadius="lg" boxShadow="md" borderColor={borderColor} borderWidth={1}>
-        <VStack align="stretch" spacing={8}>
-          <ModelHeader name={modelFacts.name} version={modelFacts.version} type={modelFacts.type} />
-          <ModelSummary summary={modelFacts.summary} />
-          <ModelAccordion modelFacts={modelFacts} />
-          <OtherInformationSection otherInfo={modelFacts.other_information} />
-        </VStack>
+        {isLoading ? (
+          <VStack align="stretch" spacing={8}>
+            <Skeleton height="60px" />
+            <SkeletonText mt="4" noOfLines={4} spacing="4" />
+            <Skeleton height="200px" />
+            <Skeleton height="100px" />
+          </VStack>
+        ) : (
+          renderContent()
+        )}
       </Box>
     </Container>
   );

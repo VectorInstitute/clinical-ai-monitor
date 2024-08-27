@@ -19,6 +19,7 @@ import {
   NumberIncrementStepper,
   NumberDecrementStepper,
   useColorModeValue,
+  Skeleton,
 } from '@chakra-ui/react';
 import { FiPlus, FiMinus } from 'react-icons/fi';
 import { Criterion, EvaluationFrequency } from '../../types/evaluation-criteria';
@@ -89,58 +90,60 @@ const EvaluationCriteriaForm: React.FC<EvaluationCriteriaFormProps> = ({
               {({ push, remove }) => (
                 <>
                   {values.criteria.map((criterion, index) => (
-                    <Box key={criterion.id || index} p={4} borderWidth={1} borderRadius="md" borderColor={borderColor}>
-                      <SimpleGrid columns={{ base: 1, md: 3 }} spacing={4}>
-                        <FormControl>
-                          <FormLabel>Metric</FormLabel>
-                          <Select
-                            value={criterion.metric_name}
-                            onChange={(e) => {
-                              const selected = availableMetrics.find(m => m.name === e.target.value);
-                              setFieldValue(`criteria.${index}.metric_name`, selected?.name || '');
-                              setFieldValue(`criteria.${index}.display_name`, selected?.display_name || '');
-                            }}
-                          >
-                            <option value="">Select a metric</option>
-                            {availableMetrics.map((metric) => (
-                              <option key={metric.name} value={metric.name}>
-                                {metric.display_name}
-                              </option>
-                            ))}
-                          </Select>
-                        </FormControl>
-                        <FormControl>
-                          <FormLabel>Operator</FormLabel>
-                          <Select
-                            value={criterion.operator}
-                            onChange={(e) => setFieldValue(`criteria.${index}.operator`, e.target.value)}
-                          >
-                            <option value=">">Greater than</option>
-                            <option value="<">Less than</option>
-                            <option value="=">Equal to</option>
-                            <option value=">=">Greater than or equal to</option>
-                            <option value="<=">Less than or equal to</option>
-                          </Select>
-                        </FormControl>
-                        <FormControl>
-                          <FormLabel>Threshold</FormLabel>
-                          <Input
-                            type="number"
-                            step="any"
-                            value={criterion.threshold}
-                            onChange={(e) => setFieldValue(`criteria.${index}.threshold`, parseFloat(e.target.value))}
+                    <Skeleton key={criterion.id || index} isLoaded={!isSubmitting}>
+                      <Box p={4} borderWidth={1} borderRadius="md" borderColor={borderColor}>
+                        <SimpleGrid columns={{ base: 1, md: 3 }} spacing={4}>
+                          <FormControl>
+                            <FormLabel>Metric</FormLabel>
+                            <Select
+                              value={criterion.metric_name}
+                              onChange={(e) => {
+                                const selected = availableMetrics.find(m => m.name === e.target.value);
+                                setFieldValue(`criteria.${index}.metric_name`, selected?.name || '');
+                                setFieldValue(`criteria.${index}.display_name`, selected?.display_name || '');
+                              }}
+                            >
+                              <option value="">Select a metric</option>
+                              {availableMetrics.map((metric) => (
+                                <option key={metric.name} value={metric.name}>
+                                  {metric.display_name}
+                                </option>
+                              ))}
+                            </Select>
+                          </FormControl>
+                          <FormControl>
+                            <FormLabel>Operator</FormLabel>
+                            <Select
+                              value={criterion.operator}
+                              onChange={(e) => setFieldValue(`criteria.${index}.operator`, e.target.value)}
+                            >
+                              <option value=">">Greater than</option>
+                              <option value="<">Less than</option>
+                              <option value="=">Equal to</option>
+                              <option value=">=">Greater than or equal to</option>
+                              <option value="<=">Less than or equal to</option>
+                            </Select>
+                          </FormControl>
+                          <FormControl>
+                            <FormLabel>Threshold</FormLabel>
+                            <Input
+                              type="number"
+                              step="any"
+                              value={criterion.threshold}
+                              onChange={(e) => setFieldValue(`criteria.${index}.threshold`, parseFloat(e.target.value))}
+                            />
+                          </FormControl>
+                        </SimpleGrid>
+                        <Flex justifyContent="flex-end" mt={2}>
+                          <IconButton
+                            aria-label="Remove criterion"
+                            icon={<FiMinus />}
+                            onClick={() => remove(index)}
+                            size="sm"
                           />
-                        </FormControl>
-                      </SimpleGrid>
-                      <Flex justifyContent="flex-end" mt={2}>
-                        <IconButton
-                          aria-label="Remove criterion"
-                          icon={<FiMinus />}
-                          onClick={() => remove(index)}
-                          size="sm"
-                        />
-                      </Flex>
-                    </Box>
+                        </Flex>
+                      </Box>
+                    </Skeleton>
                   ))}
                   <Button
                     leftIcon={<FiPlus />}

@@ -11,9 +11,9 @@ import {
   AlertIcon,
   AlertTitle,
   AlertDescription,
+  Skeleton,
+  SkeletonText,
 } from '@chakra-ui/react';
-import { ErrorMessage } from './components/error-display';
-import { LoadingSpinner } from './components/loading-spinner';
 import { MetricCards } from './components/metric-cards';
 import { MetricSelector } from './components/metric-selector';
 import { SliceSelector } from './components/slice-selector';
@@ -99,106 +99,131 @@ export default function PerformanceMetricsTab({ endpointName, modelId }: Perform
     setLastNEvaluations(n);
   }, []);
 
-  if (isLoading) return <LoadingSpinner />;
-  if (error) return <ErrorMessage message={error} />;
-  if (!data) return null;
+  const renderContent = () => {
+    if (error) {
+      return (
+        <Alert status="error">
+          <AlertIcon />
+          <AlertTitle mr={2}>Error</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      );
+    }
 
-  if (!data.overview.has_data) {
+    if (!data || !data.overview.has_data) {
+      return (
+        <Alert
+          status="info"
+          variant="subtle"
+          flexDirection="column"
+          alignItems="center"
+          justifyContent="center"
+          textAlign="center"
+          height="200px"
+        >
+          <AlertIcon boxSize="40px" mr={0} />
+          <AlertTitle mt={4} mb={1} fontSize="lg">
+            No Evaluation Data Available
+          </AlertTitle>
+          <AlertDescription maxWidth="sm">
+            It looks like there's no evaluation data for this endpoint yet. Start logging evaluation data to see performance metrics here.
+          </AlertDescription>
+        </Alert>
+      );
+    }
+
     return (
-      <Alert
-        status="info"
-        variant="subtle"
-        flexDirection="column"
-        alignItems="center"
-        justifyContent="center"
-        textAlign="center"
-        height="200px"
-      >
-        <AlertIcon boxSize="40px" mr={0} />
-        <AlertTitle mt={4} mb={1} fontSize="lg">
-          No Evaluation Data Available
-        </AlertTitle>
-        <AlertDescription maxWidth="sm">
-          It looks like there&apos;s no evaluation data for this endpoint yet. Start logging evaluation data to see performance metrics here.
-        </AlertDescription>
-      </Alert>
+      <>
+        <MetricCards metrics={limitedMetrics} />
+
+        <Divider my={8} />
+
+        <Box width="100%">
+          <Heading as="h3" size="lg" mb={1}>
+            How is your model doing over time?
+          </Heading>
+          <Text fontSize="md" color="gray.600" mb={4}>
+            See how your model is performing over several metrics and subgroups over time.
+          </Text>
+          <Flex direction={{ base: 'column', md: 'row' }} align="flex-start" gap={8}>
+            <Box width={{ base: '100%', md: '25%' }} mr={{ base: 0, md: 8 }} mb={{ base: 8, md: 0 }}>
+              <VStack spacing={8} align="stretch">
+                <Box>
+                  <Heading as="h4" size="md" mb={3}>
+                    Metrics
+                  </Heading>
+                  <MetricSelector
+                    metrics={data.overview.metric_cards.metrics}
+                    selectedMetrics={selectedMetrics}
+                    setSelectedMetrics={handleMetricSelect}
+                  />
+                </Box>
+                <Box>
+                  <Heading as="h4" size="md" mb={3}>
+                    Subgroups
+                  </Heading>
+                  <SliceSelector
+                    slices={data.overview.metric_cards.slices}
+                    selectedSlices={selectedSlices}
+                    setSelectedSlices={handleSliceSelect}
+                  />
+                </Box>
+                <Box>
+                  <Heading as="h4" size="md" mb={3}>
+                    Settings
+                  </Heading>
+                  <PlotSettings
+                    showRollingStats={showRollingStats}
+                    setShowRollingStats={handleRollingStatsToggle}
+                    rollingWindow={rollingWindow}
+                    setRollingWindow={handleRollingWindowChange}
+                    lastNEvaluations={lastNEvaluations}
+                    setLastNEvaluations={handleLastNEvaluationsChange}
+                    maxEvaluations={data.overview.last_n_evals}
+                  />
+                </Box>
+              </VStack>
+            </Box>
+            <Box width={{ base: '100%', md: '75%' }} height={chartHeight}>
+              <TimeSeriesChart
+                metrics={data.overview.metric_cards.collection}
+                selectedMetrics={selectedMetrics}
+                selectedSlices={selectedSlices}
+                showRollingStats={showRollingStats}
+                rollingWindow={rollingWindow}
+                height={chartHeight}
+                lastNEvaluations={lastNEvaluations}
+              />
+            </Box>
+          </Flex>
+        </Box>
+      </>
     );
-  }
+  };
 
   return (
     <VStack spacing={8} align="stretch" width="100%">
       <Box>
-        <Heading as="h2" size="lg" mb={1}>
-          How is your model doing?
-        </Heading>
-        <Text fontSize="md" color="gray.600">
-          A quick glance of your most important metrics.
-        </Text>
+        <Skeleton isLoaded={!isLoading}>
+          <Heading as="h2" size="lg" mb={1}>
+            How is your model doing?
+          </Heading>
+        </Skeleton>
+        <SkeletonText isLoaded={!isLoading} noOfLines={1} spacing="4">
+          <Text fontSize="md" color="gray.600">
+            A quick glance of your most important metrics.
+          </Text>
+        </SkeletonText>
       </Box>
 
-      <MetricCards metrics={limitedMetrics} />
-
-      <Divider my={8} />
-
-      <Box width="100%">
-        <Heading as="h3" size="lg" mb={1}>
-          How is your model doing over time?
-        </Heading>
-        <Text fontSize="md" color="gray.600" mb={4}>
-          See how your model is performing over several metrics and subgroups over time.
-        </Text>
-        <Flex direction={{ base: 'column', md: 'row' }} align="flex-start" gap={8}>
-          <Box width={{ base: '100%', md: '25%' }} mr={{ base: 0, md: 8 }} mb={{ base: 8, md: 0 }}>
-            <VStack spacing={8} align="stretch">
-              <Box>
-                <Heading as="h4" size="md" mb={3}>
-                  Metrics
-                </Heading>
-                <MetricSelector
-                  metrics={data.overview.metric_cards.metrics}
-                  selectedMetrics={selectedMetrics}
-                  setSelectedMetrics={handleMetricSelect}
-                />
-              </Box>
-              <Box>
-                <Heading as="h4" size="md" mb={3}>
-                  Subgroups
-                </Heading>
-                <SliceSelector
-                  slices={data.overview.metric_cards.slices}
-                  selectedSlices={selectedSlices}
-                  setSelectedSlices={handleSliceSelect}
-                />
-              </Box>
-              <Box>
-                <Heading as="h4" size="md" mb={3}>
-                  Settings
-                </Heading>
-                <PlotSettings
-                  showRollingStats={showRollingStats}
-                  setShowRollingStats={handleRollingStatsToggle}
-                  rollingWindow={rollingWindow}
-                  setRollingWindow={handleRollingWindowChange}
-                  lastNEvaluations={lastNEvaluations}
-                  setLastNEvaluations={handleLastNEvaluationsChange}
-                  maxEvaluations={data.overview.last_n_evals}
-                />
-              </Box>
-            </VStack>
-          </Box>
-          <Box width={{ base: '100%', md: '75%' }} height={chartHeight}>
-            <TimeSeriesChart
-              metrics={data.overview.metric_cards.collection}
-              selectedMetrics={selectedMetrics}
-              selectedSlices={selectedSlices}
-              showRollingStats={showRollingStats}
-              rollingWindow={rollingWindow}
-              height={chartHeight}
-              lastNEvaluations={lastNEvaluations}
-            />
-          </Box>
-        </Flex>
-      </Box>
+      {isLoading ? (
+        <VStack spacing={4} align="stretch">
+          <Skeleton height="200px" />
+          <Skeleton height="400px" />
+        </VStack>
+      ) : (
+        renderContent()
+      )}
     </VStack>
   );
 }
