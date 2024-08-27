@@ -1,7 +1,7 @@
 import React from 'react';
 import { SimpleGrid, useBreakpointValue } from '@chakra-ui/react';
 import { MetricCard } from './metric-card';
-import { Metric } from '../types/performance-metrics';
+import { Metric } from '../../../../types/performance-metrics';
 
 interface MetricCardsProps {
   metrics: Metric[];

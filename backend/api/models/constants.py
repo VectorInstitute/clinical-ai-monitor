@@ -15,6 +15,7 @@ METRIC_TOOLTIPS: Dict[str, str] = {
     "binary_recall": "Proportion of true positive predictions among all actual positive cases.",
     "binary_tpr": "True Positive Rate, equivalent to recall, the proportion of actual positive cases that were correctly identified.",
     "binary_specificity": "Proportion of actual negative cases that were correctly identified.",
+    "binary_sensitivity": "Proportion of actual positive cases that were correctly identified.",
     "binary_tnr": "True Negative Rate, equivalent to specificity, the proportion of actual negative cases that were correctly identified.",
 }
 
@@ -30,6 +31,7 @@ METRIC_DISPLAY_NAMES: Dict[str, str] = {
     "binary_recall": "Recall",
     "binary_tpr": "True Positive Rate",
     "binary_specificity": "Specificity",
+    "binary_sensitivity": "Sensitivity",
     "binary_tnr": "True Negative Rate",
 }
 
@@ -45,5 +47,6 @@ VALID_METRIC_NAMES: List[str] = [
     "binary_recall",
     "binary_tpr",
     "binary_specificity",
+    "binary_sensitivity",
     "binary_tnr",
 ]

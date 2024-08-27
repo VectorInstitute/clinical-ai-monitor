@@ -6,56 +6,50 @@ from typing import Dict, List, Tuple
 
 import requests
 
+from api.models.constants import METRIC_DISPLAY_NAMES
 from api.models.data import ModelFacts
 
 
 BASE_URL = "http://localhost:8001"  # Adjust this to your API's base URL
 
-VALID_METRIC_NAMES = [
-    "binary_accuracy",
-    "binary_auroc",
-    "binary_average_precision",
-    "binary_f1_score",
-    "binary_mcc",
-    "binary_npv",
-    "binary_ppv",
-    "binary_precision",
-    "binary_recall",
-    "binary_tpr",
-    "binary_specificity",
-    "binary_tnr",
-]
+
+def api_request(method: str, endpoint: str, data: Dict = None) -> Dict:
+    """Make an API request and return the JSON response."""
+    url = f"{BASE_URL}{endpoint}"
+    response = requests.request(method, url, json=data)
+    response.raise_for_status()
+    return response.json()
 
 
 def create_endpoint(config: Dict) -> Dict:
     """Create an evaluation endpoint."""
-    response = requests.post(f"{BASE_URL}/endpoints", json=config)
-    return response.json()
+    return api_request("POST", "/endpoints", config)
 
 
 def add_model_to_endpoint(endpoint_name: str, model_info: Dict) -> Dict:
     """Add a model to an endpoint."""
-    response = requests.post(
-        f"{BASE_URL}/endpoints/{endpoint_name}/models", json=model_info
-    )
-    return response.json()
+    return api_request("POST", f"/endpoints/{endpoint_name}/models", model_info)
 
 
 def evaluate_model(endpoint_name: str, model_id: str, data: Dict) -> Dict:
     """Evaluate a model using the specified evaluation endpoint."""
-    response = requests.post(
-        f"{BASE_URL}/evaluate/{endpoint_name}/{model_id}", json=data
-    )
-    return response.json()
+    return api_request("POST", f"/evaluate/{endpoint_name}/{model_id}", data)
 
 
 def add_model_facts(model_id: str, facts: Dict) -> Dict:
     """Add facts to a model."""
     model_facts = ModelFacts(**facts)
-    response = requests.post(
-        f"{BASE_URL}/models/{model_id}/facts", json=model_facts.dict()
-    )
-    return response.json()
+    return api_request("POST", f"/models/{model_id}/facts", model_facts.dict())
+
+
+def add_evaluation_criteria(model_id: str, criteria: List[Dict]) -> Dict:
+    """Add evaluation criteria to a model."""
+    return api_request("POST", f"/models/{model_id}/evaluation-criteria", criteria)
+
+
+def set_evaluation_frequency(model_id: str, frequency: Dict) -> Dict:
+    """Set evaluation frequency for a model."""
+    return api_request("POST", f"/models/{model_id}/evaluation-frequency", frequency)
 
 
 def create_test_endpoints() -> List[Tuple[str, Dict]]:
@@ -261,6 +255,37 @@ def generate_model_facts(model_name: str, model_version: str) -> Dict:
     }
 
 
+def generate_evaluation_criteria(endpoint_config: Dict) -> List[Dict]:
+    """Generate evaluation criteria based on the endpoint's metrics."""
+    criteria = []
+    for metric in endpoint_config["metrics"]:
+        full_metric_name = f"{metric['type']}_{metric['name']}"
+        criteria.append(
+            {
+                "metric_name": full_metric_name,
+                "display_name": METRIC_DISPLAY_NAMES.get(
+                    full_metric_name, full_metric_name
+                ),
+                "operator": ">",
+                "threshold": round(random.uniform(0.5, 0.65), 2),
+            }
+        )
+    return criteria
+
+
+def generate_evaluation_frequency(model_name: str) -> Dict:
+    """Generate evaluation frequency for a model."""
+    if "Sepsis" in model_name or "Delirium" in model_name:
+        return {"value": 7, "unit": "days"}
+    if "Pneumothorax" in model_name:
+        return {"value": 14, "unit": "days"}
+    if "Heart Failure" in model_name:
+        return {"value": 30, "unit": "days"}
+    if "Stroke" in model_name:
+        return {"value": 2, "unit": "months"}
+    return {"value": 1, "unit": "months"}
+
+
 def add_models_and_evaluate(endpoints: List[Tuple[str, Dict]]) -> None:
     """Add models to the created endpoints, add model facts, and perform evaluations."""
     models = [
@@ -280,44 +305,57 @@ def add_models_and_evaluate(endpoints: List[Tuple[str, Dict]]) -> None:
     }
 
     base_date = datetime.now() - timedelta(days=150)  # Start 150 days ago
+
     for (endpoint_name, config), model in zip(endpoints, models):
-        model_response = add_model_to_endpoint(endpoint_name, model)
-        model_id = model_response.get("model_id")
-        if model_id:
+        try:
+            model_response = add_model_to_endpoint(endpoint_name, model)
+            model_id = model_response["model_id"]
             print(f"Model {model['name']} added to endpoint {endpoint_name}")
-            # Add model facts
-            model_facts = generate_model_facts(model["name"], model["version"])
-            try:
-                add_model_facts(model_id, model_facts)
-                print(f"Facts added for model {model['name']}")
-            except Exception as e:
-                print(f"Error adding facts for model {model['name']}: {str(e)}")
+
+            add_model_facts(
+                model_id, generate_model_facts(model["name"], model["version"])
+            )
+            print(f"Facts added for model {model['name']}")
+
+            evaluation_criteria = generate_evaluation_criteria(config)
+            add_evaluation_criteria(model_id, evaluation_criteria)
+            print(f"Evaluation criteria added for model {model['name']}")
+
+            set_evaluation_frequency(
+                model_id, generate_evaluation_frequency(model["name"])
+            )
+            print(f"Evaluation frequency set for model {model['name']}")
 
             num_evaluations = model_evaluation_counts[model["name"]]
             days_between_evaluations = 150 // num_evaluations
+
             for j in range(num_evaluations):
                 evaluation_date = base_date + timedelta(
                     days=j * days_between_evaluations
                 )
                 dummy_data = generate_dummy_data(1000, config, evaluation_date)
-                try:
-                    evaluate_model(endpoint_name, model_id, dummy_data)
-                    print(
-                        f"Evaluation {j+1}/{num_evaluations} performed for model {model_id} on endpoint {endpoint_name} at {evaluation_date}"
-                    )
-                except Exception as e:
-                    print(f"Error during evaluation: {str(e)}")
-        else:
-            print(f"Failed to add model {model['name']} to endpoint {endpoint_name}")
+                evaluate_model(endpoint_name, model_id, dummy_data)
+                print(
+                    f"Evaluation {j+1}/{num_evaluations} performed for model {model_id} on endpoint {endpoint_name} at {evaluation_date}"
+                )
+
+        except requests.exceptions.RequestException as e:
+            print(f"Error processing model {model['name']}: {str(e)}")
 
 
-if __name__ == "__main__":
+def main():
+    """Run the test script."""
     print("Creating endpoints...")
     endpoints = create_test_endpoints()
     print("Endpoints created successfully.")
+
     print(
-        "Adding models to endpoints, adding model facts, and performing evaluations..."
+        "Adding models, facts, criteria, setting frequency, and performing evaluations..."
     )
     add_models_and_evaluate(endpoints)
-    print("Models added, facts added, and evaluations performed successfully.")
-    print("Test script completed.")
+
+    print("Test script completed successfully.")
+
+
+if __name__ == "__main__":
+    main()

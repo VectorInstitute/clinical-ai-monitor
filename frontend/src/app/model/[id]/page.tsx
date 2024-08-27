@@ -1,25 +1,10 @@
 'use client'
 
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect } from 'react'
 import {
-  Box,
-  Tabs,
-  TabList,
-  TabPanels,
-  Tab,
-  TabPanel,
-  Flex,
-  Heading,
-  useColorModeValue,
-  Spinner,
-  Center,
-  useToast,
-  Container,
-  Divider,
-  Badge,
-  HStack,
-  VStack,
-  Icon,
+  Box, Tabs, TabList, TabPanels, Tab, TabPanel, Flex, Heading,
+  useColorModeValue, Spinner, Center, useToast, Container,
+  Divider, Badge, HStack, VStack, Icon, Skeleton
 } from '@chakra-ui/react'
 import { FiBox, FiAlertCircle, FiCheckCircle } from 'react-icons/fi'
 import Sidebar from '../../components/sidebar'
@@ -46,28 +31,27 @@ function ModelDashboard({ params }: ModelDashboardProps): JSX.Element {
   const textColor = useColorModeValue('gray.800', 'white')
   const borderColor = useColorModeValue('gray.200', 'gray.700')
 
-  const fetchModel = useCallback(async () => {
-    if (isContextLoading) return
-    setIsModelLoading(true)
-    try {
-      const fetchedModel = await getModelById(params.id)
-      setModel(fetchedModel)
-    } catch (error) {
-      toast({
-        title: "Error fetching model",
-        description: error instanceof Error ? error.message : "An unknown error occurred",
-        status: "error",
-        duration: 5000,
-        isClosable: true,
-      })
-    } finally {
-      setIsModelLoading(false)
-    }
-  }, [params.id, getModelById, isContextLoading, toast])
-
   useEffect(() => {
+    const fetchModel = async () => {
+      if (isContextLoading) return
+      try {
+        const fetchedModel = await getModelById(params.id)
+        setModel(fetchedModel)
+      } catch (error) {
+        toast({
+          title: "Error fetching model",
+          description: error instanceof Error ? error.message : "An unknown error occurred",
+          status: "error",
+          duration: 5000,
+          isClosable: true,
+        })
+      } finally {
+        setIsModelLoading(false)
+      }
+    }
+
     fetchModel()
-  }, [fetchModel])
+  }, [params.id, getModelById, isContextLoading, toast])
 
   useEffect(() => {
     const storedTabIndex = localStorage.getItem(`activeTab-${params.id}`)
@@ -79,22 +63,6 @@ function ModelDashboard({ params }: ModelDashboardProps): JSX.Element {
   const handleTabChange = (index: number) => {
     setActiveTabIndex(index)
     localStorage.setItem(`activeTab-${params.id}`, index.toString())
-  }
-
-  if (isContextLoading || isModelLoading) {
-    return (
-      <Center h="100vh">
-        <Spinner size="xl" />
-      </Center>
-    )
-  }
-
-  if (!model) {
-    return (
-      <Center h="100vh">
-        <Heading as="h1" size="xl">Model not found</Heading>
-      </Center>
-    )
   }
 
   const getStatusColor = (status: string) => status === 'No warnings' ? 'green' : 'red'
@@ -109,17 +77,23 @@ function ModelDashboard({ params }: ModelDashboardProps): JSX.Element {
             <Flex justifyContent="space-between" alignItems="center">
               <HStack spacing={4}>
                 <Icon as={FiBox} boxSize={6} color={textColor} />
-                <Heading as="h1" size="xl" color={textColor}>
-                  {model.basic_info.name}
-                </Heading>
-                <Badge colorScheme="blue" fontSize="md">v{model.basic_info.version}</Badge>
+                <Skeleton isLoaded={!isModelLoading}>
+                  <Heading as="h1" size="xl" color={textColor}>
+                    {model?.basic_info.name || 'Loading...'}
+                  </Heading>
+                </Skeleton>
+                <Skeleton isLoaded={!isModelLoading}>
+                  <Badge colorScheme="blue" fontSize="md">v{model?.basic_info.version || '0.0'}</Badge>
+                </Skeleton>
               </HStack>
-              <Badge colorScheme={getStatusColor(model.overall_status)} p={2} borderRadius="md">
-                <HStack spacing={2}>
-                  <Icon as={getStatusIcon(model.overall_status)} />
-                  <Box>{model.overall_status}</Box>
-                </HStack>
-              </Badge>
+              <Skeleton isLoaded={!isModelLoading}>
+                <Badge colorScheme={getStatusColor(model?.overall_status)} p={2} borderRadius="md">
+                  <HStack spacing={2}>
+                    <Icon as={getStatusIcon(model?.overall_status)} />
+                    <Box>{model?.overall_status || 'Loading...'}</Box>
+                  </HStack>
+                </Badge>
+              </Skeleton>
             </Flex>
             <Divider borderColor={borderColor} />
 
@@ -141,7 +115,7 @@ function ModelDashboard({ params }: ModelDashboardProps): JSX.Element {
                   <ModelSafetyTab modelId={params.id} />
                 </TabPanel>
                 <TabPanel>
-                  <PerformanceMetricsTab endpointName={model.endpoints[0]} modelId={params.id} />
+                  {model && <PerformanceMetricsTab endpointName={model.endpoints[0]} modelId={params.id} />}
                 </TabPanel>
                 <TabPanel>
                   <ModelFactsTab modelId={params.id} />

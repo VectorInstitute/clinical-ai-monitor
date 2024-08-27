@@ -1,6 +1,6 @@
 import React from 'react';
 import { Box, Heading, Text, VStack, Link, Grid, GridItem } from '@chakra-ui/react';
-import { OtherInformation } from '../../../../configure/types/facts'
+import { OtherInformation } from '../../../../types/facts'
 
 interface OtherInformationSectionProps {
   otherInfo: OtherInformation;

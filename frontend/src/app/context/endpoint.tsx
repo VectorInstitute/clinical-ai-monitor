@@ -1,8 +1,7 @@
 'use client'
 
 import React, { createContext, useState, useContext, ReactNode, useCallback, useMemo, useEffect } from 'react';
-import { EndpointConfig } from '../configure/types/configure';
-import { ModelFacts } from '../configure/types/facts';
+import { EndpointConfig } from '../types/configure';
 import { useAuth } from './auth';
 
 interface Endpoint {
@@ -17,7 +16,6 @@ interface EndpointContextType {
   removeEndpoint: (name: string) => Promise<void>;
   addModelToEndpoint: (endpointName: string, modelName: string, modelVersion: string, isExistingModel: boolean) => Promise<void>;
   removeModelFromEndpoint: (endpointName: string, modelId: string) => Promise<void>;
-  updateModelFacts: (modelId: string, modelFacts: ModelFacts) => Promise<void>;
   isLoading: boolean;
 }
 
@@ -46,6 +44,7 @@ export const EndpointProvider: React.FC<{ children: ReactNode }> = ({ children }
       headers: {
         ...options.headers,
         'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
       },
     });
     if (!response.ok) {
@@ -76,7 +75,6 @@ export const EndpointProvider: React.FC<{ children: ReactNode }> = ({ children }
     try {
       await apiRequest('/api/endpoints', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(config),
       });
       await fetchEndpoints();
@@ -118,7 +116,6 @@ export const EndpointProvider: React.FC<{ children: ReactNode }> = ({ children }
 
       await apiRequest(`/api/endpoints/${endpointName}/models`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: modelName, version: modelVersion, isExistingModel }),
       });
       await fetchEndpoints();
@@ -129,23 +126,6 @@ export const EndpointProvider: React.FC<{ children: ReactNode }> = ({ children }
       setIsLoading(false);
     }
   }, [endpoints, apiRequest, fetchEndpoints]);
-
-  const updateModelFacts = useCallback(async (modelId: string, modelFacts: ModelFacts) => {
-    setIsLoading(true);
-    try {
-      await apiRequest(`/api/models/${modelId}/facts`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(modelFacts),
-      });
-      await fetchEndpoints();
-    } catch (error) {
-      console.error('Error updating model facts:', error);
-      throw error;
-    } finally {
-      setIsLoading(false);
-    }
-  }, [apiRequest, fetchEndpoints]);
 
   const removeModelFromEndpoint = useCallback(async (endpointName: string, modelId: string) => {
     setIsLoading(true);
@@ -166,9 +146,8 @@ export const EndpointProvider: React.FC<{ children: ReactNode }> = ({ children }
     removeEndpoint,
     addModelToEndpoint,
     removeModelFromEndpoint,
-    updateModelFacts,
     isLoading
-  }), [endpoints, addEndpoint, removeEndpoint, addModelToEndpoint, removeModelFromEndpoint, updateModelFacts, isLoading]);
+  }), [endpoints, addEndpoint, removeEndpoint, addModelToEndpoint, removeModelFromEndpoint, isLoading]);
 
   return (
     <EndpointContext.Provider value={contextValue}>

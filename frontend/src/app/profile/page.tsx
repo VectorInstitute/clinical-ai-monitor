@@ -5,11 +5,12 @@ import {
   Box, VStack, Heading, Text, Button, FormControl, FormLabel, Input, useToast,
   Container, useColorModeValue, Flex, Divider, Badge, Table, Thead, Tbody, Tr, Th, Td,
   Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody, ModalCloseButton,
-  useDisclosure, Select
+  useDisclosure, Select, useBreakpointValue, SimpleGrid, IconButton
 } from '@chakra-ui/react';
 import { useAuth } from '../context/auth';
 import Sidebar from '../components/sidebar';
 import { withAuth } from '../components/with-auth';
+import { FiTrash2 } from 'react-icons/fi';
 
 interface User {
   id: number;
@@ -40,6 +41,8 @@ const ProfilePage: React.FC = () => {
   const bgColor = useColorModeValue('gray.50', 'gray.900');
   const cardBgColor = useColorModeValue('white', 'gray.800');
   const textColor = useColorModeValue('gray.800', 'gray.100');
+
+  const isMobile = useBreakpointValue({ base: true, md: false });
 
   const fetchUsers = useCallback(async () => {
     if (user?.role !== 'admin') return;
@@ -210,97 +213,101 @@ const ProfilePage: React.FC = () => {
   };
 
   return (
-    <Flex>
+    <Flex direction={{ base: 'column', md: 'row' }}>
       <Sidebar />
-      <Box flex={1} bg={bgColor} p={8}>
+      <Box flex={1} bg={bgColor} p={{ base: 4, md: 8 }} ml={{ base: 0, md: 60 }}>
         <Container maxW="container.xl">
           <VStack spacing={8} align="stretch">
             <Heading as="h1" size="xl" color={textColor}>User Profile</Heading>
             <Text color={textColor}>Manage your account information and security settings.</Text>
 
-            <Box bg={cardBgColor} p={6} borderRadius="md" boxShadow="md">
-              <VStack spacing={4} align="stretch">
-                <Heading as="h2" size="lg" color={textColor}>Account Information</Heading>
-                <Text><strong>Username:</strong> {user?.username}</Text>
-                <Text>
-                  <strong>Role:</strong>{' '}
-                  <Badge colorScheme={getRoleBadgeColor(user?.role || '')}>{user?.role}</Badge>
-                </Text>
-              </VStack>
-            </Box>
-
-            <Box bg={cardBgColor} p={6} borderRadius="md" boxShadow="md">
-              <form onSubmit={handlePasswordUpdate}>
+            <SimpleGrid columns={{ base: 1, md: 2 }} spacing={8}>
+              <Box bg={cardBgColor} p={6} borderRadius="md" boxShadow="md">
                 <VStack spacing={4} align="stretch">
-                  <Heading as="h2" size="lg" color={textColor}>Change Password</Heading>
-                  <FormControl>
-                    <FormLabel>Current Password</FormLabel>
-                    <Input
-                      type="password"
-                      value={currentPassword}
-                      onChange={(e) => setCurrentPassword(e.target.value)}
-                      required
-                    />
-                  </FormControl>
-                  <FormControl>
-                    <FormLabel>New Password</FormLabel>
-                    <Input
-                      type="password"
-                      value={newPassword}
-                      onChange={(e) => setNewPassword(e.target.value)}
-                      required
-                    />
-                  </FormControl>
-                  <FormControl>
-                    <FormLabel>Confirm New Password</FormLabel>
-                    <Input
-                      type="password"
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                      required
-                    />
-                  </FormControl>
-                  <Button type="submit" colorScheme="blue">Update Password</Button>
+                  <Heading as="h2" size="lg" color={textColor}>Account Information</Heading>
+                  <Text><strong>Username:</strong> {user?.username}</Text>
+                  <Text>
+                    <strong>Role:</strong>{' '}
+                    <Badge colorScheme={getRoleBadgeColor(user?.role || '')}>{user?.role}</Badge>
+                  </Text>
                 </VStack>
-              </form>
-            </Box>
+              </Box>
+
+              <Box bg={cardBgColor} p={6} borderRadius="md" boxShadow="md">
+                <form onSubmit={handlePasswordUpdate}>
+                  <VStack spacing={4} align="stretch">
+                    <Heading as="h2" size="lg" color={textColor}>Change Password</Heading>
+                    <FormControl>
+                      <FormLabel>Current Password</FormLabel>
+                      <Input
+                        type="password"
+                        value={currentPassword}
+                        onChange={(e) => setCurrentPassword(e.target.value)}
+                        required
+                      />
+                    </FormControl>
+                    <FormControl>
+                      <FormLabel>New Password</FormLabel>
+                      <Input
+                        type="password"
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        required
+                      />
+                    </FormControl>
+                    <FormControl>
+                      <FormLabel>Confirm New Password</FormLabel>
+                      <Input
+                        type="password"
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        required
+                      />
+                    </FormControl>
+                    <Button type="submit" colorScheme="blue">Update Password</Button>
+                  </VStack>
+                </form>
+              </Box>
+            </SimpleGrid>
 
             {user?.role === 'admin' && (
               <Box bg={cardBgColor} p={6} borderRadius="md" boxShadow="md">
                 <VStack spacing={4} align="stretch">
                   <Heading as="h2" size="lg" color={textColor}>User Management</Heading>
                   <Button onClick={onOpen} colorScheme="green">Create New User</Button>
-                  <Table variant="simple">
-                    <Thead>
-                      <Tr>
-                        <Th>Username</Th>
-                        <Th>Email</Th>
-                        <Th>Role</Th>
-                        <Th>Actions</Th>
-                      </Tr>
-                    </Thead>
-                    <Tbody>
-                      {users.map((u) => (
-                        <Tr key={u.id}>
-                          <Td>{u.username}</Td>
-                          <Td>{u.email}</Td>
-                          <Td>
-                            <Badge colorScheme={getRoleBadgeColor(u.role)}>{u.role}</Badge>
-                          </Td>
-                          <Td>
-                            <Button
-                              colorScheme="red"
-                              size="sm"
-                              onClick={() => handleDeleteUser(u.id)}
-                              isDisabled={u.id === user.id}
-                            >
-                              Delete
-                            </Button>
-                          </Td>
+                  <Box overflowX="auto">
+                    <Table variant="simple">
+                      <Thead>
+                        <Tr>
+                          <Th>Username</Th>
+                          <Th>Email</Th>
+                          <Th>Role</Th>
+                          <Th>Actions</Th>
                         </Tr>
-                      ))}
-                    </Tbody>
-                  </Table>
+                      </Thead>
+                      <Tbody>
+                        {users.map((u) => (
+                          <Tr key={u.id}>
+                            <Td>{u.username}</Td>
+                            <Td>{u.email}</Td>
+                            <Td>
+                              <Badge colorScheme={getRoleBadgeColor(u.role)}>{u.role}</Badge>
+                            </Td>
+                            <Td>
+                              <IconButton
+                                aria-label="Delete user"
+                                icon={<FiTrash2 />}
+                                colorScheme="red"
+                                size="sm"
+                                onClick={() => handleDeleteUser(u.id)}
+                                isDisabled={u.id === user.id}
+                              />
+                            </Td>
+                          </Tr>
+                        ))}
+                      </Tbody>
+                    </Table>
+                  </Box>
                 </VStack>
               </Box>
             )}

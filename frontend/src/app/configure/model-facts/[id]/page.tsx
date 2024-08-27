@@ -26,7 +26,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { FiHome, FiSettings, FiFileText, FiSave } from 'react-icons/fi';
 import ModelFactsForm from '../../components/model-facts-form';
 import { useModelContext } from '../../../context/model';
-import { ModelFacts } from '../../types/facts';
+import { ModelFacts } from '../../../types/facts';
 import Sidebar from '../../../components/sidebar';
 
 const ModelFactsPage: React.FC = () => {

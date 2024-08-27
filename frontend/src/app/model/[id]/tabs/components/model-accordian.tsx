@@ -14,7 +14,7 @@ import {
   VStack,
 } from '@chakra-ui/react';
 import { InfoOutlineIcon, WarningIcon } from '@chakra-ui/icons';
-import { ModelFacts } from '../../../../configure/types/facts'
+import { ModelFacts } from '../../../../types/facts'
 
 interface ModelAccordionProps {
   modelFacts: ModelFacts;

@@ -1,8 +1,10 @@
 'use client'
 
 import React, { createContext, useState, useContext, ReactNode, useCallback, useMemo, useEffect } from 'react';
-import { ModelFacts } from '../configure/types/facts';
+import { ModelFacts } from '../types/facts';
+import { Criterion, EvaluationFrequency } from '../types/evaluation-criteria';
 import { useAuth } from './auth';
+import { debounce } from 'lodash';
 
 interface ModelBasicInfo {
   name: string;
@@ -14,6 +16,8 @@ interface ModelData {
   endpoints: string[];
   basic_info: ModelBasicInfo;
   facts: ModelFacts | null;
+  evaluation_criteria: Criterion[];
+  evaluation_frequency: EvaluationFrequency | null;
   overall_status: string;
 }
 
@@ -22,6 +26,9 @@ interface ModelContextType {
   fetchModels: () => Promise<void>;
   getModelById: (id: string) => Promise<ModelData | undefined>;
   updateModelFacts: (id: string, facts: ModelFacts) => Promise<void>;
+  fetchEvaluationCriteria: (modelId: string) => Promise<Criterion[]>;
+  updateEvaluationCriteria: (modelId: string, criteria: Criterion[]) => Promise<void>;
+  updateEvaluationFrequency: (modelId: string, frequency: EvaluationFrequency) => Promise<void>;
   isLoading: boolean;
 }
 
@@ -50,6 +57,7 @@ export const ModelProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       headers: {
         ...options.headers,
         'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
       },
     });
     if (!response.ok) {
@@ -88,20 +96,22 @@ export const ModelProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     setIsLoading(true);
     try {
       const cachedModel = models.find(m => m.id === id);
-      if (cachedModel && cachedModel.facts) {
-        setIsLoading(false);
+      if (cachedModel && cachedModel.facts && cachedModel.evaluation_frequency) {
         return cachedModel;
       }
 
-      const data = await apiRequest<any>(`/api/models/${id}`);
-      const safetyData = await apiRequest<{ overall_status: string }>(`/api/model/${id}/safety`);
-      const factsData = await apiRequest<ModelFacts>(`/api/models/${id}/facts`);
+      const [modelData, safetyData, factsData] = await Promise.all([
+        apiRequest<any>(`/api/models/${id}`),
+        apiRequest<{ overall_status: string }>(`/api/model/${id}/safety`),
+        apiRequest<ModelFacts>(`/api/models/${id}/facts`)
+      ]);
 
       const newModel: ModelData = {
         id,
-        ...data,
+        ...modelData,
         overall_status: safetyData.overall_status,
-        facts: factsData
+        facts: factsData,
+        evaluation_frequency: modelData.evaluation_frequency || { value: 30, unit: 'days' }
       };
 
       setModels(prevModels => {
@@ -128,9 +138,6 @@ export const ModelProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     try {
       await apiRequest(`/api/models/${id}/facts`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify(facts),
       });
 
@@ -145,13 +152,61 @@ export const ModelProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     }
   }, [apiRequest]);
 
+  const fetchEvaluationCriteria = useCallback(async (modelId: string): Promise<Criterion[]> => {
+    try {
+      const criteria = await apiRequest<Criterion[]>(`/api/models/${modelId}/evaluation-criteria`);
+      return criteria.map(criterion => ({
+        ...criterion,
+        display_name: criterion.display_name || criterion.metric_name
+      }));
+    } catch (error) {
+      console.error('Error fetching evaluation criteria:', error);
+      throw error;
+    }
+  }, [apiRequest]);
+
+  const updateEvaluationCriteria = useCallback(async (modelId: string, criteria: Criterion[]) => {
+    try {
+      await apiRequest(`/api/models/${modelId}/evaluation-criteria`, {
+        method: 'POST',
+        body: JSON.stringify(criteria.map(({ id, metric_name, display_name, operator, threshold }) => ({
+          id,
+          metric_name,
+          display_name,
+          operator,
+          threshold
+        }))),
+      });
+    } catch (error) {
+      console.error('Error updating evaluation criteria:', error);
+      throw error;
+    }
+  }, [apiRequest]);
+
+  const updateEvaluationFrequency = useCallback(async (modelId: string, frequency: EvaluationFrequency) => {
+    try {
+      await apiRequest(`/api/models/${modelId}/evaluation-frequency`, {
+        method: 'POST',
+        body: JSON.stringify(frequency),
+      });
+    } catch (error) {
+      console.error('Error updating evaluation frequency:', error);
+      throw error;
+    }
+  }, [apiRequest]);
+
+  const debouncedUpdateModelFacts = useMemo(() => debounce(updateModelFacts, 300), [updateModelFacts]);
+
   const contextValue = useMemo(() => ({
     models,
     fetchModels,
     getModelById,
-    updateModelFacts,
+    updateModelFacts: debouncedUpdateModelFacts,
+    fetchEvaluationCriteria,
+    updateEvaluationCriteria,
+    updateEvaluationFrequency,
     isLoading
-  }), [models, fetchModels, getModelById, updateModelFacts, isLoading]);
+  }), [models, fetchModels, getModelById, debouncedUpdateModelFacts, fetchEvaluationCriteria, updateEvaluationCriteria, updateEvaluationFrequency, isLoading]);
 
   return (
     <ModelContext.Provider value={contextValue}>

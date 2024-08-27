@@ -1,54 +1,57 @@
 """Model safety API."""
 
+import logging
 from datetime import datetime, timedelta
-from typing import List
+from typing import Any, Dict, List, Union
 
 from fastapi import HTTPException
-from pydantic import BaseModel
+
+from api.models.data import (
+    EvaluationCriterion,
+    EvaluationFrequency,
+    Metric,
+    ModelData,
+    ModelSafety,
+)
+from api.models.db import load_model_data
+from api.models.performance import get_performance_metrics
 
 
-class Metric(BaseModel):
+def check_criterion(
+    criterion: EvaluationCriterion, metric_value: Union[int, float]
+) -> bool:
     """
-    Represents a single safety metric for a model.
+    Check if a criterion is met based on the metric value.
 
-    Attributes
+    Parameters
     ----------
-    name : str
-        The name of the metric.
-    value : float
+    criterion : EvaluationCriterion
+        The criterion to check.
+    metric_value : Union[int, float]
         The current value of the metric.
-    unit : str
-        The unit of measurement for the metric.
-    status : str
-        Whether the metric is 'met' or 'not met'.
+
+    Returns
+    -------
+    bool
+        True if the criterion is met, False otherwise.
     """
+    threshold = float(criterion.threshold)
+    value = float(metric_value)
 
-    name: str
-    value: float
-    unit: str
-    status: str
-
-
-class ModelSafety(BaseModel):
-    """
-    Represents the safety of a model.
-
-    Attributes
-    ----------
-    metrics : List[Metric]
-        A list of individual metrics and their current status.
-    last_evaluated : datetime
-        A timestamp of when the model was last evaluated.
-    overall_status : str
-        The overall status of the model ('No warnings' or 'Warning').
-    """
-
-    metrics: List[Metric]
-    last_evaluated: datetime
-    overall_status: str
+    if criterion.operator == ">":
+        return value > threshold
+    if criterion.operator == "<":
+        return value < threshold
+    if criterion.operator == "=":
+        return value == threshold
+    if criterion.operator == ">=":
+        return value >= threshold
+    if criterion.operator == "<=":
+        return value <= threshold
+    raise ValueError(f"Unknown operator: {criterion.operator}")
 
 
-async def get_model_safety(model_id: str) -> ModelSafety:
+async def get_model_safety(model_id: str) -> ModelSafety:  # noqa: PLR0912
     """
     Retrieve the safety data for a specific model.
 
@@ -70,32 +73,97 @@ async def get_model_safety(model_id: str) -> ModelSafety:
         the data.
     """
     try:
-        # Simulate fetching data from a database
+        model_data: ModelData = load_model_data(model_id)
+        if model_data is None:
+            raise HTTPException(status_code=404, detail="Model not found")
+
+        if not model_data.endpoints:
+            raise ValueError("No endpoints found for this model")
+
+        endpoint_name = model_data.endpoints[0]
+        performance_metrics: Dict[str, Any] = await get_performance_metrics(
+            endpoint_name, model_id
+        )
+        if (
+            "overview" not in performance_metrics
+            or "metric_cards" not in performance_metrics["overview"]
+        ):
+            raise ValueError("Unexpected performance metrics structure")
+
+        collection = performance_metrics["overview"]["metric_cards"].get(
+            "collection", []
+        )
+        if not collection:
+            raise ValueError("No metrics found in performance data")
         current_date: datetime = datetime.now()
-        last_evaluated: datetime = current_date - timedelta(days=32)
+        last_evaluated = datetime.fromisoformat(collection[0]["timestamps"][-1])
 
-        # Simulate individual metrics
-        metrics: List[Metric] = [
-            Metric(name="Accuracy", value=92, unit="%", status="met"),
-            Metric(name="F1 Score", value=0.88, unit="", status="met"),
-            Metric(name="AUC-ROC", value=0.95, unit="", status="met"),
-        ]
+        metrics: List[Metric] = []
+        for criterion in model_data.evaluation_criteria:
+            metric_data = next(
+                (
+                    m
+                    for m in performance_metrics["overview"]["metric_cards"][
+                        "collection"
+                    ]
+                    if m["name"].lower() == criterion.metric_name.lower()
+                ),
+                None,
+            )
+            if metric_data is None:
+                continue
 
-        # Compute overall status
+            metric_value = metric_data["value"]
+            status = "met" if check_criterion(criterion, metric_value) else "not met"
+            metrics.append(
+                Metric(
+                    name=criterion.metric_name,
+                    display_name=criterion.display_name,
+                    value=metric_value,
+                    threshold=criterion.threshold,
+                    status=status,
+                    history=metric_data["history"],
+                    timestamps=metric_data["timestamps"],
+                    sample_sizes=metric_data["sample_sizes"],
+                    type=metric_data["type"],
+                    slice=metric_data["slice"],
+                    tooltip=metric_data["tooltip"],
+                    passed=status == "met",
+                )
+            )
+
         all_criteria_met = all(metric.status == "met" for metric in metrics)
-        is_recently_evaluated = (current_date - last_evaluated).days <= 30
+        evaluation_frequency = model_data.evaluation_frequency or EvaluationFrequency(
+            value=30, unit="days"
+        )
+
+        if evaluation_frequency.unit == "hours":
+            threshold = timedelta(hours=evaluation_frequency.value)
+        elif evaluation_frequency.unit == "days":
+            threshold = timedelta(days=evaluation_frequency.value)
+        elif evaluation_frequency.unit == "weeks":
+            threshold = timedelta(weeks=evaluation_frequency.value)
+        elif evaluation_frequency.unit == "months":
+            threshold = timedelta(days=evaluation_frequency.value * 30)  # Approximate
+        else:
+            raise ValueError(f"Unknown frequency unit: {evaluation_frequency.unit}")
+
+        is_recently_evaluated = (current_date - last_evaluated) <= threshold
         overall_status = (
             "No warnings" if all_criteria_met and is_recently_evaluated else "Warning"
         )
 
         return ModelSafety(
             metrics=metrics,
-            last_evaluated=last_evaluated,
+            last_evaluated=last_evaluated.isoformat(),
             overall_status=overall_status,
+            is_recently_evaluated=is_recently_evaluated,
         )
     except ValueError as ve:
+        logging.error(f"ValueError in get_model_safety: {str(ve)}")
         raise HTTPException(status_code=500, detail=str(ve)) from ve
     except Exception as e:
+        logging.error(f"Unexpected error in get_model_safety: {str(e)}")
         raise HTTPException(
             status_code=500, detail=f"Error retrieving model safety: {str(e)}"
         ) from e

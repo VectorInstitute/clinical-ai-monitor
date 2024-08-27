@@ -15,7 +15,7 @@ import {
   Text,
 } from '@chakra-ui/react';
 import { AddIcon, DeleteIcon, InfoIcon } from '@chakra-ui/icons';
-import { EndpointConfig, SubgroupConfig } from '../types/configure';
+import { EndpointConfig, SubgroupConfig } from '../../types/configure';
 
 const conditionTypes = [
   { value: 'value', label: 'Exact Value' },
