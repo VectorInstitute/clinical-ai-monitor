@@ -12,36 +12,79 @@ import {
   IconButton,
   Text,
   Flex,
+  HStack,
+  NumberInput,
+  NumberInputField,
+  NumberInputStepper,
+  NumberIncrementStepper,
+  NumberDecrementStepper,
   useColorModeValue,
 } from '@chakra-ui/react';
 import { FiPlus, FiMinus } from 'react-icons/fi';
-import { Criterion } from '../../types/evaluation-criteria';
+import { Criterion, EvaluationFrequency } from '../../types/evaluation-criteria';
 
 interface EvaluationCriteriaFormProps {
   initialValues: Criterion[];
-  onSubmit: (criteria: Criterion[]) => Promise<void>;
+  onSubmit: (criteria: Criterion[], frequency: EvaluationFrequency) => Promise<void>;
   availableMetrics: Array<{ name: string; display_name: string }>;
+  initialEvaluationFrequency: EvaluationFrequency;
 }
 
 const EvaluationCriteriaForm: React.FC<EvaluationCriteriaFormProps> = ({
   initialValues,
   onSubmit,
   availableMetrics,
+  initialEvaluationFrequency,
 }) => {
   const bgColor = useColorModeValue('gray.50', 'gray.700');
   const borderColor = useColorModeValue('gray.200', 'gray.600');
 
   return (
     <Formik
-      initialValues={{ criteria: initialValues }}
-      onSubmit={async (values) => {
-        await onSubmit(values.criteria);
+      initialValues={{
+        criteria: initialValues,
+        evaluationFrequency: initialEvaluationFrequency
+      }}
+      onSubmit={async (values, { setSubmitting }) => {
+        try {
+          await onSubmit(values.criteria, values.evaluationFrequency);
+        } catch (error) {
+          console.error('Error submitting form:', error);
+        } finally {
+          setSubmitting(false);
+        }
       }}
     >
       {({ values, setFieldValue, isSubmitting }) => (
         <Form>
           <VStack spacing={6} align="stretch" bg={bgColor} p={6} borderRadius="md" borderWidth={1} borderColor={borderColor}>
             <Text fontSize="xl" fontWeight="bold">Evaluation Criteria</Text>
+            <Box>
+              <Text fontWeight="bold" mb={2}>Evaluation Frequency</Text>
+              <HStack>
+                <NumberInput
+                  value={values.evaluationFrequency.value}
+                  onChange={(_, value) => setFieldValue('evaluationFrequency.value', value)}
+                  min={1}
+                  max={365}
+                >
+                  <NumberInputField />
+                  <NumberInputStepper>
+                    <NumberIncrementStepper />
+                    <NumberDecrementStepper />
+                  </NumberInputStepper>
+                </NumberInput>
+                <Select
+                  value={values.evaluationFrequency.unit}
+                  onChange={(e) => setFieldValue('evaluationFrequency.unit', e.target.value)}
+                >
+                  <option value="hours">Hours</option>
+                  <option value="days">Days</option>
+                  <option value="weeks">Weeks</option>
+                  <option value="months">Months</option>
+                </Select>
+              </HStack>
+            </Box>
             <FieldArray name="criteria">
               {({ push, remove }) => (
                 <>
@@ -110,7 +153,7 @@ const EvaluationCriteriaForm: React.FC<EvaluationCriteriaFormProps> = ({
               )}
             </FieldArray>
             <Button type="submit" colorScheme="blue" isLoading={isSubmitting}>
-              Save Criteria
+              Save Criteria and Frequency
             </Button>
           </VStack>
         </Form>

@@ -422,7 +422,7 @@ def list_models() -> Dict[str, ModelData]:
 
 def get_model_by_id(model_id: str) -> Optional[ModelData]:
     """
-    Get a model by its ID.
+    Get a model's details by its ID.
 
     Parameters
     ----------
@@ -434,7 +434,10 @@ def get_model_by_id(model_id: str) -> Optional[ModelData]:
     Optional[ModelData]
         The model data if found, None otherwise.
     """
-    return models.get(model_id)
+    model_data = load_model_data(model_id)
+    if model_data:
+        return model_data
+    return None
 
 
 def add_model_to_endpoint(

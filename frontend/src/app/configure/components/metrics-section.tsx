@@ -25,6 +25,7 @@ const METRIC_NAMES = [
   "recall",
   "tpr",
   "specificity",
+  "sensitivity",
   "tnr"
 ];
 

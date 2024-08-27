@@ -16,6 +16,8 @@ interface ModelData {
   endpoints: string[];
   basic_info: ModelBasicInfo;
   facts: ModelFacts | null;
+  evaluation_criteria: Criterion[];
+  evaluation_frequency: EvaluationFrequency | null;
   overall_status: string;
 }
 
@@ -94,7 +96,7 @@ export const ModelProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     setIsLoading(true);
     try {
       const cachedModel = models.find(m => m.id === id);
-      if (cachedModel && cachedModel.facts) {
+      if (cachedModel && cachedModel.facts && cachedModel.evaluation_frequency) {
         return cachedModel;
       }
 
@@ -108,7 +110,8 @@ export const ModelProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         id,
         ...modelData,
         overall_status: safetyData.overall_status,
-        facts: factsData
+        facts: factsData,
+        evaluation_frequency: modelData.evaluation_frequency || { value: 30, unit: 'days' }
       };
 
       setModels(prevModels => {

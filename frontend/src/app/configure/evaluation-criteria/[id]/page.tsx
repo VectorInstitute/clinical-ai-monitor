@@ -20,15 +20,6 @@ import {
   Card,
   CardBody,
   CardHeader,
-  FormControl,
-  FormLabel,
-  NumberInput,
-  NumberInputField,
-  NumberInputStepper,
-  NumberIncrementStepper,
-  NumberDecrementStepper,
-  Select,
-  HStack,
   Divider,
   Alert,
   AlertIcon,
@@ -36,12 +27,12 @@ import {
   AlertDescription,
 } from '@chakra-ui/react';
 import { useRouter, useParams } from 'next/navigation';
-import { FiHome, FiSettings, FiClipboard, FiSave } from 'react-icons/fi';
+import { FiHome, FiSettings, FiClipboard } from 'react-icons/fi';
 import { useModelContext } from '../../../context/model';
 import EvaluationCriteriaForm from '../../components/evaluation-criteria-form';
 import Sidebar from '../../../components/sidebar';
 import { Criterion, EvaluationFrequency } from '../../../types/evaluation-criteria';
-
+import { withAuth } from '../../../components/with-auth';
 
 const EvaluationCriteriaPage: React.FC = () => {
   const router = useRouter();
@@ -109,11 +100,12 @@ const EvaluationCriteriaPage: React.FC = () => {
     fetchData();
   }, [modelId, getModelById, fetchEvaluationCriteria, fetchPerformanceMetrics]);
 
-  const handleSubmit = async (updatedCriteria: Criterion[]) => {
+  const handleSubmit = async (updatedCriteria: Criterion[], updatedFrequency: EvaluationFrequency) => {
     try {
       await updateEvaluationCriteria(modelId, updatedCriteria);
-      await updateEvaluationFrequency(modelId, evaluationFrequency);
+      await updateEvaluationFrequency(modelId, updatedFrequency);
       setCriteria(updatedCriteria);
+      setEvaluationFrequency(updatedFrequency);
       toast({
         title: 'Success',
         description: 'Evaluation criteria and frequency updated successfully',
@@ -186,39 +178,12 @@ const EvaluationCriteriaPage: React.FC = () => {
               <Divider />
               <CardBody bg={cardBgColor} borderRadius="lg">
                 {availableMetrics.length > 0 ? (
-                  <>
-                    <FormControl mb={6}>
-                      <FormLabel>Evaluation Frequency Threshold</FormLabel>
-                      <HStack>
-                        <NumberInput
-                          value={evaluationFrequency.value}
-                          onChange={(_, value) => setEvaluationFrequency(prev => ({ ...prev, value }))}
-                          min={1}
-                          max={365}
-                        >
-                          <NumberInputField />
-                          <NumberInputStepper>
-                            <NumberIncrementStepper />
-                            <NumberDecrementStepper />
-                          </NumberInputStepper>
-                        </NumberInput>
-                        <Select
-                          value={evaluationFrequency.unit}
-                          onChange={(e) => setEvaluationFrequency(prev => ({ ...prev, unit: e.target.value as EvaluationFrequency['unit'] }))}
-                        >
-                          <option value="hours">Hours</option>
-                          <option value="days">Days</option>
-                          <option value="weeks">Weeks</option>
-                          <option value="months">Months</option>
-                        </Select>
-                      </HStack>
-                    </FormControl>
-                    <EvaluationCriteriaForm
-                      initialValues={criteria.length > 0 ? criteria : []}
-                      onSubmit={handleSubmit}
-                      availableMetrics={availableMetrics}
-                    />
-                  </>
+                  <EvaluationCriteriaForm
+                    initialValues={criteria.length > 0 ? criteria : []}
+                    onSubmit={handleSubmit}
+                    availableMetrics={availableMetrics}
+                    initialEvaluationFrequency={evaluationFrequency}
+                  />
                 ) : (
                   <Alert status="warning">
                     <AlertIcon />
@@ -235,16 +200,6 @@ const EvaluationCriteriaPage: React.FC = () => {
               <Button onClick={() => router.push('/configure')} size="lg" colorScheme="gray" leftIcon={<FiSettings />}>
                 Back to Configuration
               </Button>
-              {availableMetrics.length > 0 && (
-                <Button
-                  onClick={() => document.getElementById('submit-criteria-form')?.click()}
-                  size="lg"
-                  colorScheme="blue"
-                  leftIcon={<FiSave />}
-                >
-                  Save Evaluation Criteria
-                </Button>
-              )}
             </Flex>
           </VStack>
         </Container>
@@ -253,4 +208,4 @@ const EvaluationCriteriaPage: React.FC = () => {
   );
 };
 
-export default EvaluationCriteriaPage;
+export default withAuth(EvaluationCriteriaPage);

@@ -2,9 +2,7 @@
 
 import React, { createContext, useState, useContext, ReactNode, useCallback, useMemo, useEffect } from 'react';
 import { EndpointConfig } from '../types/configure';
-import { ModelFacts } from '../types/facts';
 import { useAuth } from './auth';
-import { debounce } from 'lodash';
 
 interface Endpoint {
   name: string;
@@ -18,7 +16,6 @@ interface EndpointContextType {
   removeEndpoint: (name: string) => Promise<void>;
   addModelToEndpoint: (endpointName: string, modelName: string, modelVersion: string, isExistingModel: boolean) => Promise<void>;
   removeModelFromEndpoint: (endpointName: string, modelId: string) => Promise<void>;
-  updateModelFacts: (modelId: string, modelFacts: ModelFacts) => Promise<void>;
   isLoading: boolean;
 }
 
@@ -130,22 +127,6 @@ export const EndpointProvider: React.FC<{ children: ReactNode }> = ({ children }
     }
   }, [endpoints, apiRequest, fetchEndpoints]);
 
-  const updateModelFacts = useCallback(async (modelId: string, modelFacts: ModelFacts) => {
-    setIsLoading(true);
-    try {
-      await apiRequest(`/api/models/${modelId}/facts`, {
-        method: 'PUT',
-        body: JSON.stringify(modelFacts),
-      });
-      await fetchEndpoints();
-    } catch (error) {
-      console.error('Error updating model facts:', error);
-      throw error;
-    } finally {
-      setIsLoading(false);
-    }
-  }, [apiRequest, fetchEndpoints]);
-
   const removeModelFromEndpoint = useCallback(async (endpointName: string, modelId: string) => {
     setIsLoading(true);
     try {
@@ -159,17 +140,14 @@ export const EndpointProvider: React.FC<{ children: ReactNode }> = ({ children }
     }
   }, [apiRequest, fetchEndpoints]);
 
-  const debouncedUpdateModelFacts = useMemo(() => debounce(updateModelFacts, 300), [updateModelFacts]);
-
   const contextValue = useMemo(() => ({
     endpoints,
     addEndpoint,
     removeEndpoint,
     addModelToEndpoint,
     removeModelFromEndpoint,
-    updateModelFacts: debouncedUpdateModelFacts,
     isLoading
-  }), [endpoints, addEndpoint, removeEndpoint, addModelToEndpoint, removeModelFromEndpoint, debouncedUpdateModelFacts, isLoading]);
+  }), [endpoints, addEndpoint, removeEndpoint, addModelToEndpoint, removeModelFromEndpoint, isLoading]);
 
   return (
     <EndpointContext.Provider value={contextValue}>
