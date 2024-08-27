@@ -79,7 +79,7 @@ export const MetricCard: React.FC<MetricCardProps> = ({ metric }) => {
     hovermode: 'closest' as const,
   };
 
-  const metricColor = metric.value >= metric.threshold ? 'green.500' : 'red.500';
+  const trendColor = trend === 'up' ? 'green.500' : trend === 'down' ? 'red.500' : textColor;
 
   return (
     <Box
@@ -99,17 +99,17 @@ export const MetricCard: React.FC<MetricCardProps> = ({ metric }) => {
       <VStack align="stretch" spacing={2} height="100%">
         <Tooltip label={metric.tooltip} placement="top">
           <Text fontWeight="bold" fontSize={{ base: "md", md: "lg" }} mb={1}>
-            {metric.name}
+            {metric.display_name}
           </Text>
         </Tooltip>
         <Flex justifyContent="space-between" alignItems="center">
-          <Text fontSize={{ base: "2xl", md: "3xl" }} fontWeight="bold" color={metricColor}>
+          <Text fontSize={{ base: "2xl", md: "3xl" }} fontWeight="bold" color={trendColor}>
             {metric.value.toFixed(2)}
           </Text>
           {trend !== 'neutral' && (
             <Icon
               as={trend === 'up' ? FaArrowUp : FaArrowDown}
-              color={trend === 'up' ? 'green.500' : 'red.500'}
+              color={trendColor}
               boxSize={{ base: 5, md: 6 }}
             />
           )}
@@ -128,9 +128,6 @@ export const MetricCard: React.FC<MetricCardProps> = ({ metric }) => {
             />
           )}
         </Box>
-        <Text fontSize={{ base: "xs", md: "sm" }} fontWeight="medium" color={textColor}>
-          Threshold: {metric.threshold.toFixed(2)}
-        </Text>
       </VStack>
     </Box>
   );

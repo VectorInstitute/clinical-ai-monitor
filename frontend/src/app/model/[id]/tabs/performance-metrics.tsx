@@ -149,9 +149,9 @@ export default function PerformanceMetricsTab({ endpointName, modelId }: Perform
         </Text>
         <Flex direction={{ base: 'column', md: 'row' }} align="flex-start" gap={8}>
           <Box width={{ base: '100%', md: '25%' }} mr={{ base: 0, md: 8 }} mb={{ base: 8, md: 0 }}>
-            <VStack spacing={6} align="stretch">
+            <VStack spacing={8} align="stretch">
               <Box>
-                <Heading as="h4" size="md" mb={2}>
+                <Heading as="h4" size="md" mb={3}>
                   Metrics
                 </Heading>
                 <MetricSelector
@@ -161,7 +161,7 @@ export default function PerformanceMetricsTab({ endpointName, modelId }: Perform
                 />
               </Box>
               <Box>
-                <Heading as="h4" size="md" mb={2}>
+                <Heading as="h4" size="md" mb={3}>
                   Subgroups
                 </Heading>
                 <SliceSelector
@@ -171,7 +171,7 @@ export default function PerformanceMetricsTab({ endpointName, modelId }: Perform
                 />
               </Box>
               <Box>
-                <Heading as="h4" size="md" mb={2}>
+                <Heading as="h4" size="md" mb={3}>
                   Settings
                 </Heading>
                 <PlotSettings
