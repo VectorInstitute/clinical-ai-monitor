@@ -18,7 +18,7 @@ import {
   ListIcon,
 } from '@chakra-ui/react';
 import { FiPlus, FiMinus, FiChevronRight } from 'react-icons/fi';
-import { ModelFacts } from '../types/facts';
+import { ModelFacts } from '../../types/facts';
 
 interface ModelFactsFormProps {
   initialValues: Partial<ModelFacts>;

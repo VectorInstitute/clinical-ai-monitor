@@ -40,7 +40,7 @@ import { FiHome, FiSettings, FiClipboard, FiSave } from 'react-icons/fi';
 import { useModelContext } from '../../../context/model';
 import EvaluationCriteriaForm from '../../components/evaluation-criteria-form';
 import Sidebar from '../../../components/sidebar';
-import { Criterion, EvaluationFrequency } from '../../types/evaluation-criteria';
+import { Criterion, EvaluationFrequency } from '../../../types/evaluation-criteria';
 
 
 const EvaluationCriteriaPage: React.FC = () => {
@@ -52,7 +52,7 @@ const EvaluationCriteriaPage: React.FC = () => {
   const [criteria, setCriteria] = useState<Criterion[]>([]);
   const [evaluationFrequency, setEvaluationFrequency] = useState<EvaluationFrequency>({ value: 30, unit: 'days' });
   const [isLoading, setIsLoading] = useState(true);
-  const [availableMetrics, setAvailableMetrics] = useState<string[]>([]);
+  const [availableMetrics, setAvailableMetrics] = useState<Array<{ name: string; display_name: string }>>([]);
   const [error, setError] = useState<string | null>(null);
   const toast = useToast();
 
@@ -91,7 +91,7 @@ const EvaluationCriteriaPage: React.FC = () => {
         setModel(modelData);
         setEvaluationFrequency(modelData.evaluation_frequency || { value: 30, unit: 'days' });
         const criteriaData = await fetchEvaluationCriteria(modelId);
-
+        setCriteria(criteriaData);
         if (modelData.endpoints && modelData.endpoints.length > 0) {
           const metrics = await fetchPerformanceMetrics(modelData.endpoints[0]);
           setAvailableMetrics(metrics);
@@ -113,6 +113,7 @@ const EvaluationCriteriaPage: React.FC = () => {
     try {
       await updateEvaluationCriteria(modelId, updatedCriteria);
       await updateEvaluationFrequency(modelId, evaluationFrequency);
+      setCriteria(updatedCriteria);
       toast({
         title: 'Success',
         description: 'Evaluation criteria and frequency updated successfully',
@@ -213,7 +214,7 @@ const EvaluationCriteriaPage: React.FC = () => {
                       </HStack>
                     </FormControl>
                     <EvaluationCriteriaForm
-                      initialValues={criteria}
+                      initialValues={criteria.length > 0 ? criteria : []}
                       onSubmit={handleSubmit}
                       availableMetrics={availableMetrics}
                     />

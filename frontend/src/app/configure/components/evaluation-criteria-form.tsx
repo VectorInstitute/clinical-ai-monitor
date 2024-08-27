@@ -15,7 +15,7 @@ import {
   useColorModeValue,
 } from '@chakra-ui/react';
 import { FiPlus, FiMinus } from 'react-icons/fi';
-import { Criterion } from '../types/evaluation-criteria';
+import { Criterion } from '../../types/evaluation-criteria';
 
 interface EvaluationCriteriaFormProps {
   initialValues: Criterion[];

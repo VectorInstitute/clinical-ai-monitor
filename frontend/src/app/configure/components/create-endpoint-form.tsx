@@ -16,7 +16,7 @@ import {
 } from '@chakra-ui/react';
 import { useEndpointContext } from '../../context/endpoint';
 import { useRouter } from 'next/navigation';
-import { EndpointConfigSchema, EndpointConfig } from '../types/configure';
+import { EndpointConfigSchema, EndpointConfig } from '../../types/configure';
 import { MetricsSection } from './metrics-section';
 import { SubgroupsSection } from './subgroups-section';
 

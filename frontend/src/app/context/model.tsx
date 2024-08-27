@@ -1,9 +1,10 @@
 'use client'
 
 import React, { createContext, useState, useContext, ReactNode, useCallback, useMemo, useEffect } from 'react';
-import { ModelFacts } from '../configure/types/facts';
-import { Criterion, EvaluationFrequency } from '../configure/types/evaluation-criteria';
+import { ModelFacts } from '../types/facts';
+import { Criterion, EvaluationFrequency } from '../types/evaluation-criteria';
 import { useAuth } from './auth';
+import { debounce } from 'lodash';
 
 interface ModelBasicInfo {
   name: string;
@@ -97,13 +98,15 @@ export const ModelProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         return cachedModel;
       }
 
-      const data = await apiRequest<any>(`/api/models/${id}`);
-      const safetyData = await apiRequest<{ overall_status: string }>(`/api/model/${id}/safety`);
-      const factsData = await apiRequest<ModelFacts>(`/api/models/${id}/facts`);
+      const [modelData, safetyData, factsData] = await Promise.all([
+        apiRequest<any>(`/api/models/${id}`),
+        apiRequest<{ overall_status: string }>(`/api/model/${id}/safety`),
+        apiRequest<ModelFacts>(`/api/models/${id}/facts`)
+      ]);
 
       const newModel: ModelData = {
         id,
-        ...data,
+        ...modelData,
         overall_status: safetyData.overall_status,
         facts: factsData
       };
@@ -148,7 +151,11 @@ export const ModelProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
   const fetchEvaluationCriteria = useCallback(async (modelId: string): Promise<Criterion[]> => {
     try {
-      return await apiRequest<Criterion[]>(`/api/models/${modelId}/evaluation-criteria`);
+      const criteria = await apiRequest<Criterion[]>(`/api/models/${modelId}/evaluation-criteria`);
+      return criteria.map(criterion => ({
+        ...criterion,
+        display_name: criterion.display_name || criterion.metric_name
+      }));
     } catch (error) {
       console.error('Error fetching evaluation criteria:', error);
       throw error;
@@ -159,7 +166,8 @@ export const ModelProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     try {
       await apiRequest(`/api/models/${modelId}/evaluation-criteria`, {
         method: 'POST',
-        body: JSON.stringify(criteria.map(({ metric_name, display_name, operator, threshold }) => ({
+        body: JSON.stringify(criteria.map(({ id, metric_name, display_name, operator, threshold }) => ({
+          id,
           metric_name,
           display_name,
           operator,
@@ -184,16 +192,18 @@ export const ModelProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     }
   }, [apiRequest]);
 
+  const debouncedUpdateModelFacts = useMemo(() => debounce(updateModelFacts, 300), [updateModelFacts]);
+
   const contextValue = useMemo(() => ({
     models,
     fetchModels,
     getModelById,
-    updateModelFacts,
+    updateModelFacts: debouncedUpdateModelFacts,
     fetchEvaluationCriteria,
     updateEvaluationCriteria,
     updateEvaluationFrequency,
     isLoading
-  }), [models, fetchModels, getModelById, updateModelFacts, fetchEvaluationCriteria, updateEvaluationCriteria, isLoading]);
+  }), [models, fetchModels, getModelById, debouncedUpdateModelFacts, fetchEvaluationCriteria, updateEvaluationCriteria, updateEvaluationFrequency, isLoading]);
 
   return (
     <ModelContext.Provider value={contextValue}>

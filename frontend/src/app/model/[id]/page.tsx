@@ -1,25 +1,10 @@
 'use client'
 
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect } from 'react'
 import {
-  Box,
-  Tabs,
-  TabList,
-  TabPanels,
-  Tab,
-  TabPanel,
-  Flex,
-  Heading,
-  useColorModeValue,
-  Spinner,
-  Center,
-  useToast,
-  Container,
-  Divider,
-  Badge,
-  HStack,
-  VStack,
-  Icon,
+  Box, Tabs, TabList, TabPanels, Tab, TabPanel, Flex, Heading,
+  useColorModeValue, Spinner, Center, useToast, Container,
+  Divider, Badge, HStack, VStack, Icon,
 } from '@chakra-ui/react'
 import { FiBox, FiAlertCircle, FiCheckCircle } from 'react-icons/fi'
 import Sidebar from '../../components/sidebar'
@@ -46,28 +31,28 @@ function ModelDashboard({ params }: ModelDashboardProps): JSX.Element {
   const textColor = useColorModeValue('gray.800', 'white')
   const borderColor = useColorModeValue('gray.200', 'gray.700')
 
-  const fetchModel = useCallback(async () => {
-    if (isContextLoading) return
-    setIsModelLoading(true)
-    try {
-      const fetchedModel = await getModelById(params.id)
-      setModel(fetchedModel)
-    } catch (error) {
-      toast({
-        title: "Error fetching model",
-        description: error instanceof Error ? error.message : "An unknown error occurred",
-        status: "error",
-        duration: 5000,
-        isClosable: true,
-      })
-    } finally {
-      setIsModelLoading(false)
-    }
-  }, [params.id, getModelById, isContextLoading, toast])
-
   useEffect(() => {
+    const fetchModel = async () => {
+      if (isContextLoading) return
+      setIsModelLoading(true)
+      try {
+        const fetchedModel = await getModelById(params.id)
+        setModel(fetchedModel)
+      } catch (error) {
+        toast({
+          title: "Error fetching model",
+          description: error instanceof Error ? error.message : "An unknown error occurred",
+          status: "error",
+          duration: 5000,
+          isClosable: true,
+        })
+      } finally {
+        setIsModelLoading(false)
+      }
+    }
+
     fetchModel()
-  }, [fetchModel])
+  }, [params.id, getModelById, isContextLoading, toast])
 
   useEffect(() => {
     const storedTabIndex = localStorage.getItem(`activeTab-${params.id}`)

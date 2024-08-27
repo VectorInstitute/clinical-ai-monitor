@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 export const MetricSchema = z.object({
   name: z.string(),
+  display_name: z.string(),
   type: z.string(),
   slice: z.string(),
   tooltip: z.string(),

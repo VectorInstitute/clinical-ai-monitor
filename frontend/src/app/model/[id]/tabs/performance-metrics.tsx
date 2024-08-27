@@ -19,7 +19,7 @@ import { MetricSelector } from './components/metric-selector';
 import { SliceSelector } from './components/slice-selector';
 import { PlotSettings } from './components/plot-settings';
 import { TimeSeriesChart } from './components/time-series-chart';
-import { PerformanceData, PerformanceDataSchema, Metric } from './types/performance-metrics';
+import { PerformanceData, PerformanceDataSchema, Metric } from '../../../types/performance-metrics';
 
 interface PerformanceMetricsTabProps {
   endpointName: string;

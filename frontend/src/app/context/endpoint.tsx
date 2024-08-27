@@ -1,9 +1,10 @@
 'use client'
 
 import React, { createContext, useState, useContext, ReactNode, useCallback, useMemo, useEffect } from 'react';
-import { EndpointConfig } from '../configure/types/configure';
-import { ModelFacts } from '../configure/types/facts';
+import { EndpointConfig } from '../types/configure';
+import { ModelFacts } from '../types/facts';
 import { useAuth } from './auth';
+import { debounce } from 'lodash';
 
 interface Endpoint {
   name: string;
@@ -46,6 +47,7 @@ export const EndpointProvider: React.FC<{ children: ReactNode }> = ({ children }
       headers: {
         ...options.headers,
         'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
       },
     });
     if (!response.ok) {
@@ -76,7 +78,6 @@ export const EndpointProvider: React.FC<{ children: ReactNode }> = ({ children }
     try {
       await apiRequest('/api/endpoints', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(config),
       });
       await fetchEndpoints();
@@ -118,7 +119,6 @@ export const EndpointProvider: React.FC<{ children: ReactNode }> = ({ children }
 
       await apiRequest(`/api/endpoints/${endpointName}/models`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: modelName, version: modelVersion, isExistingModel }),
       });
       await fetchEndpoints();
@@ -135,7 +135,6 @@ export const EndpointProvider: React.FC<{ children: ReactNode }> = ({ children }
     try {
       await apiRequest(`/api/models/${modelId}/facts`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(modelFacts),
       });
       await fetchEndpoints();
@@ -160,15 +159,17 @@ export const EndpointProvider: React.FC<{ children: ReactNode }> = ({ children }
     }
   }, [apiRequest, fetchEndpoints]);
 
+  const debouncedUpdateModelFacts = useMemo(() => debounce(updateModelFacts, 300), [updateModelFacts]);
+
   const contextValue = useMemo(() => ({
     endpoints,
     addEndpoint,
     removeEndpoint,
     addModelToEndpoint,
     removeModelFromEndpoint,
-    updateModelFacts,
+    updateModelFacts: debouncedUpdateModelFacts,
     isLoading
-  }), [endpoints, addEndpoint, removeEndpoint, addModelToEndpoint, removeModelFromEndpoint, updateModelFacts, isLoading]);
+  }), [endpoints, addEndpoint, removeEndpoint, addModelToEndpoint, removeModelFromEndpoint, debouncedUpdateModelFacts, isLoading]);
 
   return (
     <EndpointContext.Provider value={contextValue}>

@@ -21,7 +21,7 @@ import { CheckCircleIcon, WarningIcon, InfoIcon } from '@chakra-ui/icons';
 import { ErrorMessage } from './components/error-display';
 import { LoadingSpinner } from './components/loading-spinner';
 import { formatDistanceToNow, parseISO } from 'date-fns';
-import { validateModelSafety, ModelSafety, Metric } from './types/safety';
+import { validateModelSafety, ModelSafety, Metric } from '../../../types/safety';
 
 interface ModelSafetyTabProps {
   modelId: string;
@@ -174,14 +174,14 @@ const SafetyMetricsCard: React.FC<SafetyMetricsCardProps> = ({ metrics, cardBgCo
               as={metric.status === 'met' ? CheckCircleIcon : WarningIcon}
               color={metric.status === 'met' ? 'green.500' : 'red.500'}
             />
-            <Text color={textColor} fontWeight="medium">{metric.display_name}:</Text>
-            <Text color={textColor}>{metric.value.toFixed(2)} {metric.unit}</Text>
-            <Tooltip label={`Threshold: ${metric.threshold} ${metric.unit}`} placement="top" hasArrow>
+            <Text color={textColor} fontWeight="medium">{metric.display_name || metric.name}:</Text>
+            <Text color={textColor}>{metric.value.toFixed(2)}</Text>
+            <Tooltip label={`Threshold: ${metric.threshold}`} placement="top" hasArrow>
               <Badge colorScheme={metric.status === 'met' ? 'green' : 'red'}>
                 {metric.status === 'met' ? 'Met' : 'Not Met'}
               </Badge>
             </Tooltip>
-            <Tooltip label={metric.description} placement="top" hasArrow>
+            <Tooltip label={metric.tooltip} placement="top" hasArrow>
               <InfoIcon color="blue.500" cursor="help" />
             </Tooltip>
           </HStack>

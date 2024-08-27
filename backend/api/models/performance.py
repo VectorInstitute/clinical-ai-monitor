@@ -2,7 +2,7 @@
 
 import json
 from pathlib import Path
-from typing import Any, Dict, List, Tuple, cast
+from typing import Any, Dict, List, Tuple, TypedDict, cast
 
 from fastapi import HTTPException
 
@@ -120,10 +120,22 @@ def create_metric(
     )
 
 
+class PerformanceDataDict(TypedDict):
+    """Performance data dictionary.
+
+    Attributes
+    ----------
+    overview : Dict[str, Any]
+        Overview of performance metrics.
+    """
+
+    overview: Dict[str, Any]
+
+
 async def get_performance_metrics(
     endpoint_name: str,
     model_id: str,
-) -> Dict[str, Any]:
+) -> PerformanceDataDict:
     """
     Retrieve performance metrics for a specific endpoint from the JSON file.
 
@@ -198,4 +210,4 @@ async def get_performance_metrics(
     )
 
     performance_data = PerformanceData(overview=overview)
-    return performance_data.dict()
+    return cast(PerformanceDataDict, performance_data.dict())
