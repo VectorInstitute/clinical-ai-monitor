@@ -4,7 +4,7 @@ import React, { createContext, useState, useContext, ReactNode, useCallback, use
 import { ModelFacts } from '../types/facts';
 import { Criterion, EvaluationFrequency } from '../types/evaluation-criteria';
 import { useAuth } from './auth';
-import { debounce } from 'lodash';
+import { debounce, DebouncedFunc } from 'lodash';
 
 interface ModelBasicInfo {
   name: string;
@@ -25,7 +25,7 @@ interface ModelContextType {
   models: ModelData[];
   fetchModels: () => Promise<void>;
   getModelById: (id: string) => Promise<ModelData | undefined>;
-  updateModelFacts: (id: string, facts: ModelFacts) => Promise<void>;
+  updateModelFacts: DebouncedFunc<(id: string, facts: ModelFacts) => Promise<void>>;
   fetchEvaluationCriteria: (modelId: string) => Promise<Criterion[]>;
   updateEvaluationCriteria: (modelId: string, criteria: Criterion[]) => Promise<void>;
   updateEvaluationFrequency: (modelId: string, frequency: EvaluationFrequency) => Promise<void>;
@@ -195,7 +195,10 @@ export const ModelProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     }
   }, [apiRequest]);
 
-  const debouncedUpdateModelFacts = useMemo(() => debounce(updateModelFacts, 300), [updateModelFacts]);
+  const debouncedUpdateModelFacts = useMemo(
+    () => debounce(updateModelFacts, 300) as DebouncedFunc<typeof updateModelFacts>,
+    [updateModelFacts]
+  );
 
   const contextValue = useMemo(() => ({
     models,

@@ -80,6 +80,9 @@ const EvaluationCriteriaPage: React.FC = () => {
       setError(null);
       try {
         const modelData = await getModelById(modelId);
+        if (!modelData) {
+          throw new Error('Model not found');
+        }
         setModel(modelData);
         setEvaluationFrequency(modelData.evaluation_frequency || { value: 30, unit: 'days' });
         const criteriaData = await fetchEvaluationCriteria(modelId);
@@ -152,12 +155,12 @@ const EvaluationCriteriaPage: React.FC = () => {
               <CardHeader>
                 <Skeleton isLoaded={!isLoading}>
                   <Heading as="h1" size={headingSize} color={textColor}>
-                    Evaluation Criteria: {model?.basic_info.name}
+                    Evaluation Criteria: {model?.basic_info?.name || 'Loading...'}
                   </Heading>
                 </Skeleton>
                 <SkeletonText isLoaded={!isLoading} noOfLines={1} mt={2}>
                   <Text color={textColor} fontSize="md">
-                    Version: {model?.basic_info.version}
+                    Version: {model?.basic_info?.version || 'Loading...'}
                   </Text>
                 </SkeletonText>
               </CardHeader>

@@ -51,13 +51,19 @@ const EndpointCard: React.FC<EndpointCardProps> = ({
   const router = useRouter();
   const theme = useTheme();
 
+  const cardBg = useColorModeValue('white', 'gray.800');
+  const border = useColorModeValue('blue.100', 'blue.700');
+  const text = useColorModeValue('gray.800', 'gray.100');
+  const accent = useColorModeValue('blue.500', 'blue.300');
+  const secondaryText = useColorModeValue('gray.600', 'gray.400');
+
   const colors = useMemo(() => ({
-    cardBg: useColorModeValue('white', 'gray.800'),
-    border: useColorModeValue('blue.100', 'blue.700'),
-    text: useColorModeValue('gray.800', 'gray.100'),
-    accent: useColorModeValue('blue.500', 'blue.300'),
-    secondaryText: useColorModeValue('gray.600', 'gray.400'),
-  }), []);
+    cardBg,
+    border,
+    text,
+    accent,
+    secondaryText,
+  }), [cardBg, border, text, accent, secondaryText]);
 
   const renderMetrics = () => (
     <Wrap spacing={2}>
@@ -170,12 +176,14 @@ const EndpointCard: React.FC<EndpointCardProps> = ({
         </Accordion>
       </VStack>
       <SelectModelModal
+        title="Select Model to Update Facts"
         isOpen={isModelSelectOpen}
         onClose={onModelSelectClose}
         groupedModels={groupedModels}
         onSelectModel={onUpdateFacts}
       />
       <SelectModelModal
+        title="Select Model to Update Criteria"
         isOpen={isCriteriaSelectOpen}
         onClose={onCriteriaSelectClose}
         groupedModels={groupedModels}
