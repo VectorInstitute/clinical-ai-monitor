@@ -10,7 +10,7 @@ from api.models.constants import METRIC_DISPLAY_NAMES
 from api.models.data import ModelFacts
 
 
-BASE_URL = "http://localhost:8001"  # Adjust this to your API's base URL
+BASE_URL = "http://localhost:8000"  # Adjust this to your API's base URL
 
 
 def api_request(method: str, endpoint: str, data: Dict = None) -> Dict:
@@ -267,7 +267,7 @@ def generate_evaluation_criteria(endpoint_config: Dict) -> List[Dict]:
                     full_metric_name, full_metric_name
                 ),
                 "operator": ">",
-                "threshold": round(random.uniform(0.5, 0.65), 2),
+                "threshold": round(random.uniform(0.45, 0.55), 2),
             }
         )
     return criteria
