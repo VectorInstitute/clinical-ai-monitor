@@ -3,23 +3,9 @@
 import React, { createContext, useState, useContext, ReactNode, useCallback, useMemo, useEffect } from 'react';
 import { ModelFacts } from '../types/facts';
 import { Criterion, EvaluationFrequency } from '../types/evaluation-criteria';
+import { ModelData } from '../types/model';
 import { useAuth } from './auth';
 import { debounce, DebouncedFunc } from 'lodash';
-
-interface ModelBasicInfo {
-  name: string;
-  version: string;
-}
-
-interface ModelData {
-  id: string;
-  endpoints: string[];
-  basic_info: ModelBasicInfo;
-  facts: ModelFacts | null;
-  evaluation_criteria: Criterion[];
-  evaluation_frequency: EvaluationFrequency | null;
-  overall_status: string;
-}
 
 interface ModelContextType {
   models: ModelData[];
@@ -77,7 +63,7 @@ export const ModelProvider: React.FC<{ children: ReactNode }> = ({ children }) =
           id,
           ...modelInfo,
           overall_status: safetyData.overall_status
-        };
+        } as ModelData;
       }));
       setModels(modelArray);
     } catch (error) {
@@ -101,13 +87,12 @@ export const ModelProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       }
 
       const [modelData, safetyData, factsData] = await Promise.all([
-        apiRequest<any>(`/api/models/${id}`),
+        apiRequest<ModelData>(`/api/models/${id}`),
         apiRequest<{ overall_status: string }>(`/api/model/${id}/safety`),
         apiRequest<ModelFacts>(`/api/models/${id}/facts`)
       ]);
 
       const newModel: ModelData = {
-        id,
         ...modelData,
         overall_status: safetyData.overall_status,
         facts: factsData,

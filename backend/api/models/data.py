@@ -486,8 +486,8 @@ class ModelSafety(BaseModel):
     ----------
     metrics : List[Metric]
         A list of individual metrics and their current status.
-    last_evaluated : datetime
-        A timestamp of when the model was last evaluated.
+    last_evaluated : Optional[str]
+        A timestamp of when the model was evaluated in ISO 8601 format.
     is_recently_evaluated : bool
         Whether the model was recently evaluated.
     overall_status : str
@@ -495,6 +495,8 @@ class ModelSafety(BaseModel):
     """
 
     metrics: List[Metric]
-    last_evaluated: str = Field(..., description="ISO 8601 formatted date string")
+    last_evaluated: Optional[str] = Field(
+        ..., description="ISO 8601 formatted date string"
+    )
     is_recently_evaluated: bool
     overall_status: str

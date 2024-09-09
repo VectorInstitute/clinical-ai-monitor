@@ -94,7 +94,12 @@ async def get_model_safety(model_id: str) -> ModelSafety:  # noqa: PLR0912
             "collection", []
         )
         if not collection:
-            raise ValueError("No metrics found in performance data")
+            return ModelSafety(
+                metrics=[],
+                last_evaluated=None,
+                overall_status="Not evaluated",
+                is_recently_evaluated=False,
+            )
         current_date: datetime = datetime.now()
         last_evaluated = datetime.fromisoformat(collection[0]["timestamps"][-1])
 

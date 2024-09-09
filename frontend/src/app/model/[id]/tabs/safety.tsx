@@ -18,6 +18,8 @@ import {
   HStack,
   Skeleton,
   SkeletonText,
+  Alert,
+  AlertIcon,
 } from '@chakra-ui/react';
 import { CheckCircleIcon, WarningIcon, InfoIcon } from '@chakra-ui/icons';
 import { formatDistanceToNow, parseISO } from 'date-fns';
@@ -59,11 +61,28 @@ const ModelSafetyTab: React.FC<ModelSafetyTabProps> = ({ modelId }) => {
     fetchModelSafety();
   }, [fetchModelSafety]);
 
+  if (error) {
+    return (
+      <Alert status="error">
+        <AlertIcon />
+        {error}
+      </Alert>
+    );
+  }
+
+  const isNotEvaluated = safetyData?.overall_status === 'Not evaluated';
+
   return (
     <Box p={4}>
       <Heading as="h2" size="xl" mb={6} color={textColor}>
         Model Safety Dashboard
       </Heading>
+      {isNotEvaluated && !isLoading && (
+        <Alert status="info" mb={6}>
+          <AlertIcon />
+          This model has not been evaluated yet.
+        </Alert>
+      )}
       <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={8}>
         <VStack spacing={4}>
           <SafetyStatusCard
@@ -108,10 +127,12 @@ interface SafetyStatusCardProps extends CardProps {
 const SafetyStatusCard: React.FC<SafetyStatusCardProps> = ({ overallStatus, cardBgColor, borderColor, textColor, isLoading }) => {
   const tooltipLabel = overallStatus === 'No warnings'
     ? "All safety criteria have been met and the model has been recently evaluated."
+    : overallStatus === 'Not evaluated'
+    ? "The model has not been evaluated yet."
     : "One or more safety criteria have not been met or the model needs re-evaluation. Check the Safety Evaluation Checklist for details.";
 
-  const statusColor = overallStatus === 'No warnings' ? 'green' : 'red';
-  const StatusIcon = overallStatus === 'No warnings' ? CheckCircleIcon : WarningIcon;
+  const statusColor = overallStatus === 'No warnings' ? 'green' : overallStatus === 'Not evaluated' ? 'gray' : 'red';
+  const StatusIcon = overallStatus === 'No warnings' ? CheckCircleIcon : overallStatus === 'Not evaluated' ? InfoIcon : WarningIcon;
 
   return (
     <Box bg={cardBgColor} p={6} borderRadius="lg" boxShadow="md" borderColor={borderColor} borderWidth={1} width="100%">
@@ -138,6 +159,8 @@ interface LastEvaluatedCardProps extends CardProps {
 const LastEvaluatedCard: React.FC<LastEvaluatedCardProps> = ({ lastEvaluated, isRecentlyEvaluated, cardBgColor, borderColor, textColor, isLoading }) => {
   const tooltipLabel = isRecentlyEvaluated
     ? "The model has been evaluated within the specified evaluation frequency threshold."
+    : lastEvaluated === null
+    ? "The model has not been evaluated yet."
     : "The model has not been evaluated recently and may need re-evaluation.";
 
   return (
@@ -146,16 +169,16 @@ const LastEvaluatedCard: React.FC<LastEvaluatedCardProps> = ({ lastEvaluated, is
       <Stat>
         <StatLabel>Time since last evaluation</StatLabel>
         <Skeleton isLoaded={!isLoading}>
-          <StatNumber>{lastEvaluated ? formatDistanceToNow(lastEvaluated) + ' ago' : 'N/A'}</StatNumber>
+          <StatNumber>{lastEvaluated ? formatDistanceToNow(lastEvaluated) + ' ago' : 'Not evaluated'}</StatNumber>
         </Skeleton>
         <Skeleton isLoaded={!isLoading}>
           {isRecentlyEvaluated !== undefined && (
             <Tooltip label={tooltipLabel} placement="top" hasArrow>
               <Flex align="center" mt={2} cursor="help">
-                <Badge colorScheme={isRecentlyEvaluated ? 'green' : 'red'} mr={2}>
-                  {isRecentlyEvaluated ? 'Recent' : 'Needs Re-evaluation'}
+                <Badge colorScheme={lastEvaluated === null ? 'gray' : isRecentlyEvaluated ? 'green' : 'red'} mr={2}>
+                  {lastEvaluated === null ? 'Not Evaluated' : isRecentlyEvaluated ? 'Recent' : 'Needs Re-evaluation'}
                 </Badge>
-                {isRecentlyEvaluated ? <CheckCircleIcon color="green.500" /> : <WarningIcon color="red.500" />}
+                {lastEvaluated === null ? <InfoIcon color="gray.500" /> : isRecentlyEvaluated ? <CheckCircleIcon color="green.500" /> : <WarningIcon color="red.500" />}
               </Flex>
             </Tooltip>
           )}
@@ -172,15 +195,19 @@ interface SafetyMetricsCardProps extends CardProps {
 const SafetyMetricsCard: React.FC<SafetyMetricsCardProps> = ({ metrics, cardBgColor, borderColor, textColor, isLoading }) => (
   <Box bg={cardBgColor} p={6} borderRadius="lg" boxShadow="md" borderColor={borderColor} borderWidth={1}>
     <Heading as="h3" size="md" mb={4} color={textColor}>Evaluation Checklist</Heading>
-    <List spacing={3}>
-      {isLoading ? (
-        Array.from({ length: 3 }).map((_, index) => (
+    {isLoading ? (
+      <List spacing={3}>
+        {Array.from({ length: 3 }).map((_, index) => (
           <ListItem key={index}>
             <SkeletonText noOfLines={1} spacing="4" />
           </ListItem>
-        ))
-      ) : (
-        metrics.map((metric, index) => (
+        ))}
+      </List>
+    ) : metrics.length === 0 ? (
+      <Text color={textColor}>No metrics available. The model has not been evaluated yet.</Text>
+    ) : (
+      <List spacing={3}>
+        {metrics.map((metric, index) => (
           <ListItem key={index}>
             <HStack spacing={2} align="center">
               <ListIcon
@@ -199,9 +226,9 @@ const SafetyMetricsCard: React.FC<SafetyMetricsCardProps> = ({ metrics, cardBgCo
               </Tooltip>
             </HStack>
           </ListItem>
-        ))
-      )}
-    </List>
+        ))}
+      </List>
+    )}
   </Box>
 );
 

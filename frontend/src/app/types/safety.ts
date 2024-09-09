@@ -3,7 +3,7 @@ import { MetricSchema } from './performance-metrics';
 
 export const ModelSafetySchema = z.object({
   metrics: z.array(MetricSchema),
-  last_evaluated: z.string(),
+  last_evaluated: z.string().nullable(),
   is_recently_evaluated: z.boolean(),
   overall_status: z.string()
 });
