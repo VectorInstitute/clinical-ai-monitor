@@ -136,7 +136,6 @@ async def get_model_safety(model_id: str) -> ModelSafety:  # noqa: PLR0912
                     passed=status == "met",
                 )
             )
-
         all_criteria_met = all(metric.status == "met" for metric in metrics)
         evaluation_frequency = model_data.evaluation_frequency or EvaluationFrequency(
             value=30, unit="days"

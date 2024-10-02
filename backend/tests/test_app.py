@@ -10,7 +10,7 @@ from api.models.constants import METRIC_DISPLAY_NAMES
 from api.models.data import ModelFacts
 
 
-BASE_URL = "http://localhost:8000"  # Adjust this to your API's base URL
+BASE_URL = "http://localhost:8001"  # Adjust this to your API's base URL
 
 
 def api_request(method: str, endpoint: str, data: Dict = None) -> Dict:

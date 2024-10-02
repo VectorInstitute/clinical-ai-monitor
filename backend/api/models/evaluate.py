@@ -21,6 +21,7 @@ from api.models.data import (
     EvaluationResult,
     ModelBasicInfo,
     ModelData,
+    _default_data,
 )
 from api.models.db import DATA_DIR, load_model_data, save_model_data
 from api.models.utils import deep_convert_numpy
@@ -194,11 +195,18 @@ class EvaluationEndpoint:
             The unique ID of the newly added model.
         """
         model_id = str(uuid.uuid4())
+        metric_name = f"{self.config.metrics[0].type}_{self.config.metrics[0].name}"
+        model_facts, evaluation_criterion, evaluation_frequency = _default_data(
+            metric_name
+        )
         model_data = ModelData(
             id=model_id,
             endpoint_name=self.name,
             basic_info=model_info,
             endpoints=[self.name],
+            facts=model_facts,
+            evaluation_criterion=evaluation_criterion,
+            evaluation_frequency=evaluation_frequency,
         )
         save_model_data(model_id, model_data)
         self.data.models.append(model_id)

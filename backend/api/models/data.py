@@ -3,11 +3,12 @@
 import uuid
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from pydantic import BaseModel, Field, validator
 
 from api.models.config import EndpointConfig
+from api.models.constants import METRIC_DISPLAY_NAMES
 from api.models.utils import deep_convert_numpy
 
 
@@ -500,3 +501,58 @@ class ModelSafety(BaseModel):
     )
     is_recently_evaluated: bool
     overall_status: str
+
+
+def _default_data(
+    metric_name: str,
+) -> Tuple[ModelFacts, EvaluationCriterion, EvaluationFrequency]:
+    """Create default data for the model.
+
+    Parameters
+    ----------
+    metric_name : str
+        The name of the metric to create default data for.
+
+    Returns
+    -------
+    ModelFacts, EvaluationCriterion, EvaluationFrequency
+        The default data for the model.
+
+    """
+    model_facts = ModelFacts(
+        name="This is the name of the model",
+        version="This is the version of the model",
+        type="This is the type of the model",
+        intended_use="This is the intended use of the model",
+        target_population="This is the target population of the model",
+        input_data=["This is the input data of the model"],
+        output_data="This is the output data of the model",
+        summary="This is the summary of the model",
+        mechanism_of_action="This is the mechanism of action of the model",
+        validation_and_performance=ValidationAndPerformance(
+            internal_validation="This is the internal validation of the model",
+            external_validation="This is the external validation of the model",
+            performance_in_subgroups=[
+                "This is the performance in subgroups of the model"
+            ],
+        ),
+        uses_and_directions=["This is the uses and directions of the model"],
+        warnings=["This is the warnings of the model"],
+        other_information=OtherInformation(
+            approval_date="This is the approval date of the model",
+            license="This is the license of the model",
+            contact_information="This is the contact information of the model",
+            publication_link="This is the publication link of the model",
+        ),
+    )
+    evaluation_criterion = EvaluationCriterion(
+        metric_name=metric_name,
+        display_name=METRIC_DISPLAY_NAMES[metric_name],
+        operator=ComparisonOperator.GREATER_THAN_OR_EQUAL_TO,
+        threshold=0.5,
+    )
+    evaluation_frequency = EvaluationFrequency(
+        value=7,
+        unit="days",
+    )
+    return model_facts, evaluation_criterion, evaluation_frequency
