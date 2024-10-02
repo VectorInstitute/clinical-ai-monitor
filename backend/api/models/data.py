@@ -515,7 +515,7 @@ def _default_data(
 
     Returns
     -------
-    ModelFacts, EvaluationCriterion, EvaluationFrequency
+    Tuple[ModelFacts, EvaluationCriterion, EvaluationFrequency]
         The default data for the model.
 
     """
