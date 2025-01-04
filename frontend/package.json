@@ -14,7 +14,7 @@
     "chart.js": "^4.4.3",
     "date-fns": "^3.6.0",
     "formik": "^2.4.6",
-    "next": "14.2.15",
+    "next": "14.2.21",
     "plotly.js-dist-min": "^2.33.0",
     "react": "^18",
     "react-chartjs-2": "^5.2.0",
