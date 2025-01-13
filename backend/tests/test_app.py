@@ -336,7 +336,7 @@ def add_models_and_evaluate(endpoints: List[Tuple[str, Dict]]) -> None:
                 dummy_data = generate_dummy_data(1000, config, evaluation_date)
                 evaluate_model(endpoint_name, model_id, dummy_data)
                 print(
-                    f"Evaluation {j+1}/{num_evaluations} performed for model {model_id} on endpoint {endpoint_name} at {evaluation_date}"
+                    f"Evaluation {j + 1}/{num_evaluations} performed for model {model_id} on endpoint {endpoint_name} at {evaluation_date}"
                 )
 
         except requests.exceptions.RequestException as e:
