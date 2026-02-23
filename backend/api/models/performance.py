@@ -107,7 +107,7 @@ def create_metric(
     return Metric(
         name=original_name,
         display_name=display_name,
-        type=metric.split("_")[0],
+        type=metric.split("_", maxsplit=1)[0],
         slice=slice_,
         tooltip=METRIC_TOOLTIPS.get(metric, f"No tooltip available for {metric}"),
         value=latest_value,
