@@ -1,5 +1,5 @@
 # Build stage
-FROM node:18-alpine AS builder
+FROM node:24-alpine AS builder
 
 WORKDIR /app
 
@@ -18,7 +18,7 @@ ENV NEXT_PUBLIC_FRONTEND_PORT=${FRONTEND_PORT} \
 RUN npm run build
 
 # Production stage
-FROM node:18-alpine
+FROM node:24-alpine
 
 WORKDIR /app
 
